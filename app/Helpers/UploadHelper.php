@@ -192,8 +192,8 @@ final class UploadHelper
      */
     public static function delete(string $path): bool
     {
-        $publicPath = config('paths.public', '');
-        $fullPath = $publicPath . ltrim($path, '/');
+        $publicPath = rtrim((string) config('paths.public', ''), '/');
+        $fullPath = $publicPath . '/' . ltrim($path, '/');
 
         if (is_file($fullPath)) {
             return unlink($fullPath);

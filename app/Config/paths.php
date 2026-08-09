@@ -17,6 +17,7 @@ return [
         'agrements' => dirname(__DIR__, 2) . '/public/uploads/agrements',
         'photos'    => dirname(__DIR__, 2) . '/public/uploads/photos',
         'avatars'   => dirname(__DIR__, 2) . '/public/uploads/avatars',
+        'landing'   => dirname(__DIR__, 2) . '/public/uploads/landing',
     ],
     'queue'     => dirname(__DIR__, 2) . '/storage/queue',
     'backups'   => dirname(__DIR__, 2) . '/storage/backups',

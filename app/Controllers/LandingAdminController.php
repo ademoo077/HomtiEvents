@@ -7,6 +7,7 @@ namespace App\Controllers;
 use App\Helpers\Database;
 use App\Helpers\I18n;
 use App\Helpers\LandingService;
+use App\Helpers\UploadHelper;
 use App\Helpers\Validator;
 
 final class LandingAdminController extends Controller
@@ -219,19 +220,33 @@ final class LandingAdminController extends Controller
     public function saveGallery(): never
     {
         $data = all_input();
+        $hasFile = ! empty($_FILES['image_file']['name']) && $_FILES['image_file']['error'] !== UPLOAD_ERR_NO_FILE;
         $validator = Validator::make($data, [
             'titre_fr' => 'required|string|max:255',
-            'image'    => 'required|string|max:255',
+            'image'    => $hasFile ? 'nullable|string|max:255' : 'required|string|max:255',
         ]);
 
         if ($validator->fails()) {
             $this->backWithErrors($validator->errors(), $data);
         }
 
+        $image = trim((string) ($data['image'] ?? ''));
+        if ($hasFile) {
+            $uploadDir = config('paths.uploads.landing', public_path('uploads/landing'));
+            $result = UploadHelper::uploadImage($_FILES['image_file'], $uploadDir, (int) config('security.upload_max', 5242880));
+            if (! $result['success']) {
+                $this->backWithErrors(['image_file' => $result['error']], $data);
+            }
+            $image = $result['path'];
+        }
+        if ($image === '') {
+            $this->backWithErrors(['image' => 'Une image est requise (fichier ou URL).'], $data);
+        }
+
         Database::insert('landing_gallery', [
             'titre_fr'   => trim((string) $data['titre_fr']),
             'titre_ar'   => trim((string) ($data['titre_ar'] ?? '')) ?: null,
-            'image'      => trim((string) $data['image']),
+            'image'      => $image,
             'lien'       => trim((string) ($data['lien'] ?? '')) ?: null,
             'type'       => (string) ($data['type'] ?? 'album'),
             'sort_order' => (int) ($data['sort_order'] ?? 0),
@@ -260,25 +275,49 @@ final class LandingAdminController extends Controller
 
     public function updateGallery(string $id): never
     {
+        $item = Database::one('SELECT * FROM landing_gallery WHERE id = ?', [(int) $id]);
+        if ($item === null) {
+            abort(404, 'Élément introuvable');
+        }
+
         $data = all_input();
+        $hasFile = ! empty($_FILES['image_file']['name']) && $_FILES['image_file']['error'] !== UPLOAD_ERR_NO_FILE;
         $validator = Validator::make($data, [
             'titre_fr' => 'required|string|max:255',
-            'image'    => 'required|string|max:255',
+            'image'    => $hasFile ? 'nullable|string|max:255' : 'required|string|max:255',
         ]);
 
         if ($validator->fails()) {
             $this->backWithErrors($validator->errors(), $data);
         }
 
+        $image = trim((string) ($data['image'] ?? ''));
+        if ($hasFile) {
+            $uploadDir = config('paths.uploads.landing', public_path('uploads/landing'));
+            $result = UploadHelper::uploadImage($_FILES['image_file'], $uploadDir, (int) config('security.upload_max', 5242880));
+            if (! $result['success']) {
+                $this->backWithErrors(['image_file' => $result['error']], $data);
+            }
+            $image = $result['path'];
+        }
+        if ($image === '') {
+            $this->backWithErrors(['image' => 'Une image est requise (fichier ou URL).'], $data);
+        }
+
         Database::update('landing_gallery', [
             'titre_fr'   => trim((string) $data['titre_fr']),
             'titre_ar'   => trim((string) ($data['titre_ar'] ?? '')) ?: null,
-            'image'      => trim((string) $data['image']),
+            'image'      => $image,
             'lien'       => trim((string) ($data['lien'] ?? '')) ?: null,
             'type'       => (string) ($data['type'] ?? 'album'),
             'sort_order' => (int) ($data['sort_order'] ?? 0),
             'actif'      => isset($data['actif']) ? 1 : 0,
         ], 'id = ?', [(int) $id]);
+
+        // Supprime l'ancien fichier uploadé (jamais un chemin public partagé)
+        if ($hasFile && str_starts_with((string) ($item['image'] ?? ''), '/uploads/')) {
+            UploadHelper::delete((string) $item['image']);
+        }
 
         flash('success', 'Élément de galerie mis à jour.');
         redirect('admin/landing/gallery');
