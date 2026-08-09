@@ -45,8 +45,8 @@ final class EpicController extends Controller
             $params[] = $like;
         }
 
-        $sql = 'SELECT ee.*, e.id AS evenement_id, e.adresse, e.date_evenement, e.statut AS evenement_statut,
-                       c.nom AS commune_nom, a.nom AS association_nom
+        $sql = 'SELECT ee.*, e.adresse AS evenement_adresse, e.date_evenement AS evenement_date,
+                       e.statut AS evenement_statut, c.nom AS commune_nom, a.nom AS association_nom
                 FROM evenement_epic ee
                 JOIN evenements e ON e.id = ee.evenement_id
                 LEFT JOIN commune c ON c.id = e.commune_id
@@ -77,14 +77,15 @@ final class EpicController extends Controller
         $epicId = (int) ($user['epic_id'] ?? 0);
 
         $intervention = Database::one(
-            'SELECT ee.*, e.adresse, e.description, e.statut AS evenement_statut, e.date_evenement, e.heure,
+            'SELECT ee.*, ee.evenement_id AS id, e.adresse AS evenement_adresse, e.description,
+                    e.statut AS evenement_statut, e.date_evenement, e.heure,
                     c.nom AS commune_nom, a.nom AS association_nom, q.token_qr
              FROM evenement_epic ee
              JOIN evenements e ON e.id = ee.evenement_id
              LEFT JOIN commune c ON c.id = e.commune_id
              LEFT JOIN associations a ON a.id = e.association_id
              LEFT JOIN qr_event q ON q.evenement_id = e.id
-             WHERE ee.id = ? AND ee.epic_id = ?',
+             WHERE ee.evenement_id = ? AND ee.epic_id = ?',
             [(int) $id, $epicId]
         );
 

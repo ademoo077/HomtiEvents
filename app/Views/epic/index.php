@@ -9,10 +9,11 @@ $isAr  = $dir === 'rtl';
 
 $badgeColor = static function (string $statut): string {
     return match (strtolower($statut)) {
-        'affacte' => 'badge-info',
+        'en_attente' => 'badge-gray',
+        'valide', 'programme', 'qr_genere' => 'badge-info',
         'en_cours' => 'badge-warning',
         'termine' => 'badge-success',
-        'anomalie' => 'badge-danger',
+        'refuse', 'modification_demandee' => 'badge-danger',
         default => 'badge-gray',
     };
 };
@@ -126,8 +127,8 @@ $badgeColor = static function (string $statut): string {
                             </td>
                             <td><?= e($iv['evenement_adresse'] ?? '-') ?></td>
                             <td>
-                                <span class="badge <?= $badgeColor((string) ($iv['statut'] ?? 'AFFECTE')) ?>">
-                                    <?= e(ucfirst(strtolower((string) ($iv['statut'] ?? 'AFFECTE')))) ?>
+                                <span class="badge <?= $badgeColor((string) ($iv['evenement_statut'] ?? 'EN_ATTENTE')) ?>">
+                                    <?= e(statut_label((string) ($iv['evenement_statut'] ?? 'EN_ATTENTE'))) ?>
                                 </span>
                             </td>
                             <td class="text-nowrap">
@@ -138,7 +139,7 @@ $badgeColor = static function (string $statut): string {
                                 <?php endif; ?>
                             </td>
                             <td class="text-center">
-                                <a class="btn btn-sm btn-outline-primary" href="<?= url('epic/' . (int) $iv['id']) ?>" title="<?= $isAr ? 'عرض' : 'Voir' ?>">
+                                <a class="btn btn-sm btn-outline-primary" href="<?= url('epic/' . (int) $iv['evenement_id']) ?>" title="<?= $isAr ? 'عرض' : 'Voir' ?>">
                                     <i class="mdi mdi-eye"></i>
                                 </a>
                             </td>

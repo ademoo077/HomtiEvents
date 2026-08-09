@@ -42,30 +42,17 @@ $checkinUrl = url('checkin/' . $intervention['token_qr']);
                     </div>
                     <div class="mb-2">
                         <strong><?= e(__('common.status')) ?>:</strong>
-                        <span class="badge <?= match (strtolower((string) $intervention['statut'] ?? '')) {
-                            'affacte' => 'bg-info',
+                        <span class="badge <?= match (strtolower((string) $intervention['evenement_statut'] ?? '')) {
+                            'en_attente' => 'bg-secondary',
+                            'valide' => 'bg-primary',
+                            'programme', 'qr_genere' => 'bg-info',
                             'en_cours' => 'bg-warning',
                             'termine' => 'bg-success',
-                            'anomalie' => 'bg-danger',
+                            'refuse', 'modification_demandee' => 'bg-danger',
                             default => 'bg-secondary',
                         } ?>">
-                            <?= e(ucfirst(strtolower((string) ($intervention['statut'] ?? 'AFFECTE')))) ?>
+                            <?= e(statut_label((string) ($intervention['evenement_statut'] ?? 'EN_ATTENTE'))) ?>
                         </span>
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label fw-bold"><?= e(__('common.status')) ?> <?= e(__('common.edit')) ?>:</label>
-                        <form method="post" action="<?= url('epic/' . (int) $intervention['id'] . '/statut') ?>" class="d-flex gap-2">
-                            <?= csrf_field() ?>
-                            <select name="statut" class="form-select">
-                                <option value="AFFECTE" <?= ($intervention['statut'] ?? '') === 'AFFECTE' ? 'selected' : '' ?>>Affecté</option>
-                                <option value="EN_COURS" <?= ($intervention['statut'] ?? '') === 'EN_COURS' ? 'selected' : '' ?>>En cours</option>
-                                <option value="TERMINE" <?= ($intervention['statut'] ?? '') === 'TERMINE' ? 'selected' : '' ?>>Terminé</option>
-                                <option value="ANOMALIE" <?= ($intervention['statut'] ?? '') === 'ANOMALIE' ? 'selected' : '' ?>>Anomalie</option>
-                            </select>
-                            <button type="submit" class="btn btn-sm btn-outline-primary">
-                                <i class="mdi mdi-update"></i>
-                            </button>
-                        </form>
                     </div>
                 </div>
             </div>
