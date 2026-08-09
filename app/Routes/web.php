@@ -114,6 +114,20 @@ $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])-
     ->post('association-requests/{id}/approve', 'AssociationRequestController@approve')->name('admin.association-requests.approve');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
     ->post('association-requests/{id}/reject', 'AssociationRequestController@reject')->name('admin.association-requests.reject');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
+    ->get('association-requests/{id}/edit', 'AssociationRequestController@edit')->name('admin.association-requests.edit');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
+    ->post('association-requests/{id}/update', 'AssociationRequestController@update')->name('admin.association-requests.update');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
+    ->post('association-requests/{id}/delete', 'AssociationRequestController@destroy')->name('admin.association-requests.delete');
+
+// ═══════════════════════════════════════════════════════════════
+//  STATISTIQUES — Tableau de bord analytique + export CSV
+// ═══════════════════════════════════════════════════════════════════
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
+    ->get('stats', 'StatsController@index')->name('admin.stats');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
+    ->get('stats/export', 'StatsController@export')->name('admin.stats.export');
 
 // ═══════════════════════════════════════════════════════════════
 //  GALERIE PHOTOS — Gestion des albums événements

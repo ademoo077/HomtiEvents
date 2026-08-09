@@ -30,9 +30,21 @@ $isPending = ($request['status'] ?? '') === 'pending';
                 <span class="wh-badge <?= e($st[0]) ?> ms-2"><?= e($st[1]) ?></span>
             </p>
         </div>
-        <a class="btn btn-outline-secondary" href="<?= url('admin/association-requests') ?>">
-            <i class="mdi mdi-arrow-left me-1"></i>Retour à la liste
-        </a>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-secondary" href="<?= url('admin/association-requests') ?>">
+                <i class="mdi mdi-arrow-left me-1"></i>Retour à la liste
+            </a>
+            <a class="btn btn-outline-primary" href="<?= url('admin/association-requests/' . (int) $request['id'] . '/edit') ?>">
+                <i class="mdi mdi-pencil-outline me-1"></i>Modifier
+            </a>
+            <form method="post" action="<?= url('admin/association-requests/' . (int) $request['id'] . '/delete') ?>"
+                  onsubmit="return confirm('Supprimer définitivement la demande de « <?= e($request['association_name']) ?> » ? Cette action est irréversible.')">
+                <?= csrf_field() ?>
+                <button type="submit" class="btn btn-outline-danger">
+                    <i class="mdi mdi-trash-can-outline me-1"></i>Supprimer
+                </button>
+            </form>
+        </div>
     </div>
 
     <div class="row g-4">

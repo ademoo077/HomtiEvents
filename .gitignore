@@ -18,6 +18,8 @@
 !/storage/pdfs/.gitkeep
 !/storage/backups/.gitkeep
 !/storage/sessions/.gitkeep
+/storage/cache/*
+!/storage/cache/.gitkeep
 
 # Uploads
 /public/uploads/*

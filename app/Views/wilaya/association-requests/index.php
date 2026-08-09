@@ -101,10 +101,23 @@ $statusFilter = [
                             </td>
                             <td><small class="text-muted"><?= e($r['created_at']) ?></small></td>
                             <td>
-                                <a href="<?= url('admin/association-requests/' . (int) $r['id']) ?>"
-                                   class="btn btn-sm btn-outline-primary" title="Voir">
-                                    <i class="mdi mdi-eye-outline"></i>
-                                </a>
+                                <div class="d-flex justify-content-end gap-1">
+                                    <a href="<?= url('admin/association-requests/' . (int) $r['id']) ?>"
+                                       class="btn btn-sm btn-outline-primary" title="Voir">
+                                        <i class="mdi mdi-eye-outline"></i>
+                                    </a>
+                                    <a href="<?= url('admin/association-requests/' . (int) $r['id'] . '/edit') ?>"
+                                       class="btn btn-sm btn-outline-secondary" title="Modifier">
+                                        <i class="mdi mdi-pencil-outline"></i>
+                                    </a>
+                                    <form method="post" action="<?= url('admin/association-requests/' . (int) $r['id'] . '/delete') ?>"
+                                          class="d-inline" onsubmit="return confirm('Supprimer définitivement la demande de « <?= e($r['association_name']) ?> » ?')">
+                                        <?= csrf_field() ?>
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                            <i class="mdi mdi-trash-can-outline"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>
