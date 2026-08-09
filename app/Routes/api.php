@@ -9,6 +9,7 @@ use App\Controllers\Api\MapController;
 use App\Controllers\Api\PushController;
 use App\Controllers\Api\StatsController;
 use App\Controllers\Api\CalendarController;
+use App\Controllers\Api\EpicDashboardApi;
 use App\Controllers\NotificationController;
 use App\Helpers\Router;
 use App\Middleware\AuthMiddleware;
@@ -38,3 +39,6 @@ $router->middleware([AuthMiddleware::class])->get('api/notifications/unread', 'N
 // ── API Carto & Search (authentifiée) ─────────────────────────
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->get('api/wilaya/carto', 'Api\CalendarController@carto')->name('api.wilaya.carto');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->get('api/wilaya/search', 'Api\CalendarController@search')->name('api.wilaya.search');
+
+// ── API Dashboard EPIC (événements d'un jour, authentifiée) ───
+$router->middleware([AuthMiddleware::class])->get('api/epic/events', 'Api\EpicDashboardApi@eventsDuJour')->name('api.epic.events');

@@ -11,6 +11,7 @@ use App\Controllers\AuthController;
 use App\Controllers\ControlCenterController;
 use App\Controllers\DashboardController;
 use App\Controllers\EpicController;
+use App\Controllers\EpicDashboardController;
 use App\Controllers\LandingAdminController;
 use App\Controllers\LandingController;
 use App\Controllers\NotificationController;
@@ -310,7 +311,12 @@ $router->middleware([AuthMiddleware::class])->prefix('association')
 
 // ═══════════════════════════════════════════════════════════════
 //  EPIC SPACE — Suivi des interventions EPIC
+//  ⚠ Les routes statiques (dashboard, export) doivent précéder {id}.
 // ═══════════════════════════════════════════════════════════════
+$router->middleware([AuthMiddleware::class])->prefix('epic')
+    ->get('dashboard', 'EpicDashboardController@index')->name('epic.dashboard');
+$router->middleware([AuthMiddleware::class])->prefix('epic')
+    ->get('dashboard/export', 'EpicDashboardController@export')->name('epic.dashboard.export');
 $router->middleware([AuthMiddleware::class])->prefix('epic')
     ->get('', 'EpicController@index')->name('epic.index');
 $router->middleware([AuthMiddleware::class])->prefix('epic')

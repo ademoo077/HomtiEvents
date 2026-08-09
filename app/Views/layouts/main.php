@@ -69,6 +69,13 @@ $controlNav = [
 ];
 
 $nav = $navMode === 'control' ? $controlNav : $adminNav;
+
+// Espace EPIC : entrée dédiée du tableau de bord en tête de navigation.
+if ($userRole === 'epic') {
+    $nav = array_merge([
+        ['label' => __('common.dashboard'), 'icon' => 'mdi-view-dashboard', 'href' => 'epic/dashboard', 'prefix' => 'epic/dashboard'],
+    ], $nav);
+}
 ?>
 <!DOCTYPE html>
 <html lang="<?= e($langAttr) ?>" dir="<?= e($dir) ?>">

@@ -911,3 +911,78 @@ body {
     100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
 }
 .wh-kpi-attention { animation: wh-pulse 2s infinite; }
+
+/* ═══ Calendrier EPIC (grille légère, sans FullCalendar) ═══ */
+.wh-cal { border: 1px solid var(--wh-border); border-radius: 12px; overflow: hidden; }
+.wh-cal-head {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background: var(--wh-bg-soft);
+    border-bottom: 1px solid var(--wh-border);
+}
+.wh-cal-head-cell {
+    padding: 8px 4px;
+    text-align: center;
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--wh-text-muted);
+}
+.wh-cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+}
+.wh-cal-cell {
+    min-height: 78px;
+    padding: 6px;
+    border-right: 1px solid var(--wh-border);
+    border-bottom: 1px solid var(--wh-border);
+    cursor: default;
+    transition: background .15s ease;
+}
+.wh-cal-cell:nth-child(7n) { border-right: none; }
+.wh-cal-cell.is-muted { background: transparent; cursor: default; }
+.wh-cal-cell.has-events { cursor: pointer; }
+.wh-cal-cell.has-events:hover { background: var(--wh-bg-soft); }
+.wh-cal-cell.is-today { background: var(--wh-blue-soft); }
+.wh-cal-cell.is-today .wh-cal-day {
+    background: var(--wh-blue);
+    color: #fff;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+}
+.wh-cal-day { font-size: .85rem; font-weight: 600; }
+.wh-cal-events {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+}
+.wh-cal-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.wh-cal-more { font-size: .62rem; color: var(--wh-text-muted); }
+.wh-cal-chip {
+    width: 44px;
+    flex-shrink: 0;
+    border: 1px solid var(--wh-border);
+    border-radius: 10px;
+    text-align: center;
+    line-height: 1.1;
+    padding: 5px 0;
+    background: var(--wh-bg-soft);
+}
+.wh-cal-chip strong { display: block; font-size: 1.05rem; }
+.wh-cal-chip small { font-size: .62rem; text-transform: uppercase; color: var(--wh-text-muted); }
+
+/* Badge souple (variante claire) */
+.badge-soft {
+    background: var(--wh-bg-soft);
+    color: var(--wh-text);
+    border: 1px solid var(--wh-border);
+    font-weight: 600;
+}
