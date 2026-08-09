@@ -55,7 +55,7 @@ final class EventGalleryController extends Controller
         $photos = [];
         if ($album !== null) {
             $photos = Database::all(
-                'SELECT * FROM photos WHERE album_id = ? ORDER BY uploaded_at DESC',
+                'SELECT * FROM photos WHERE album_id = ? ORDER BY sort_order ASC, uploaded_at DESC',
                 [(int) $album['id']]
             );
         }

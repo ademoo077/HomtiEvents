@@ -38,6 +38,11 @@ if (! is_array($sectionsOrder)) {
             <h1 class="wh-page-title"><?= e(__('landing.admin.title')) ?></h1>
             <p class="wh-page-sub"><?= e(__('landing.admin.subtitle')) ?></p>
         </div>
+        <div class="d-flex gap-2">
+            <a class="btn btn-primary" href="<?= url('admin/landing/preview') ?>" target="_blank" rel="noopener" title="<?= e(__('landing.admin.preview_hint')) ?>">
+                <i class="mdi mdi-eye-outline me-1"></i><?= e(__('landing.admin.preview')) ?>
+            </a>
+        </div>
     </div>
 
     <div class="d-flex gap-2 mb-3 flex-wrap">

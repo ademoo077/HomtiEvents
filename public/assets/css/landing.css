@@ -1572,3 +1572,52 @@ hr { border: none; border-top: 1px solid var(--border); margin: 22px 0; }
     font-size: .66rem;
     font-weight: 700;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   BANDEAU APERÇU ADMIN (rendu du landing en mode prévisualisation)
+   ═══════════════════════════════════════════════════════════════════ */
+.wh-preview-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem 1.25rem;
+    flex-wrap: wrap;
+    padding: .65rem 1.25rem;
+    background: linear-gradient(135deg, #1e1b4b, #312e81);
+    color: #e0e7ff;
+    font-size: .9rem;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    box-shadow: 0 -8px 28px rgba(15, 23, 42, .4);
+}
+.wh-preview-bar-inner { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.wh-preview-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #34d399;
+    box-shadow: 0 0 0 4px rgba(52, 211, 153, .22);
+    animation: wh-pulse 1.6s ease-in-out infinite;
+}
+@keyframes wh-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+.wh-preview-sep { opacity: .5; }
+.wh-preview-back {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    background: #fff;
+    color: #312e81;
+    font-weight: 600;
+    padding: .45rem 1rem;
+    border-radius: .6rem;
+    text-decoration: none;
+    transition: background .15s, color .15s;
+}
+.wh-preview-back:hover { background: #eef2ff; color: #1e1b4b; }
+@media (max-width: 575.98px) {
+    .wh-preview-bar { justify-content: center; text-align: center; }
+}

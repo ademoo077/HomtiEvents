@@ -28,6 +28,21 @@ $appName = e(settings('app.name') ?: __('app.name'));
 </head>
 <body class="landing-body">
 
+<?php if (! empty($previewMode ?? null)): ?>
+    <!-- ═══ BANDEAU APERÇU ADMIN ═══ -->
+    <div class="wh-preview-bar" role="banner">
+        <div class="wh-preview-bar-inner">
+            <span class="wh-preview-dot" aria-hidden="true"></span>
+            <strong><?= $isAr ? 'وضع المعاينة' : 'Mode aperçu' ?></strong>
+            <span class="wh-preview-sep" aria-hidden="true">—</span>
+            <span><?= $isAr ? 'المحتوى المعروض يعكس بيانات CMS الحالية.' : 'Le contenu affiché reflète les données CMS actuelles.' ?></span>
+        </div>
+        <a class="wh-preview-back" href="<?= e($previewBackUrl ?? url('admin/landing')) ?>">
+            <i class="mdi mdi-arrow-left me-1"></i><?= $isAr ? 'العودة إلى الإدارة' : "Retour à l'administration" ?>
+        </a>
+    </div>
+<?php endif; ?>
+
 <a class="skip-link" href="#main"><?= $isAr ? 'تخطّ إلى المحتوى' : 'Aller au contenu' ?></a>
 
 <!-- ═══ HEADER UNIQUE — sticky glassmorphism ═══ -->

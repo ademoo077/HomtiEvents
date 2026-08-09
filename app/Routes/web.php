@@ -147,6 +147,8 @@ $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])-
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
     ->get('landing', 'LandingAdminController@index')->name('admin.landing');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
+    ->get('landing/preview', 'LandingAdminController@preview')->name('admin.landing.preview');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
     ->post('landing/settings', 'LandingAdminController@saveSettings');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
     ->post('landing/faq', 'LandingAdminController@saveFaq');

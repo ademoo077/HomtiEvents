@@ -6,10 +6,25 @@ namespace App\Controllers;
 
 use App\Helpers\Database;
 use App\Helpers\I18n;
+use App\Helpers\LandingService;
 use App\Helpers\Validator;
 
 final class LandingAdminController extends Controller
 {
+    /**
+     * Aperçu en direct de la landing page avec les données CMS actuelles.
+     */
+    public function preview(): never
+    {
+        $this->requirePermission('landing.manage');
+
+        $data = LandingService::data();
+        $data['previewMode'] = true;
+        $data['previewBackUrl'] = url('admin/landing');
+
+        $this->view('landing.index', $data, 'landing');
+    }
+
     /**
      * Retourne le contenu CMS en JSON (pour le dashboard futuriste).
      */
