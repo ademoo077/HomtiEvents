@@ -144,7 +144,7 @@ $isAr = I18n::direction() === 'rtl';
     </div>
 </div>
 
-<script src="https://unpkg.com/@zxing/library@0.21.0/dist/index.min.js"></script>
+<script src="<?= asset('assets/vendor/zxing/index.min.js') ?>"></script>
 <script>
 (function () {
     'use strict';
