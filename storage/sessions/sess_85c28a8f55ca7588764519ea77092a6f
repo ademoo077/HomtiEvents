@@ -1,1 +1,0 @@
-_csrf|s:64:"b0e11f29ab85553ff26086f36d0b964db8c7a7c64e865618341401e59ed22636";rl:login:::1:count|i:1;rl:login:::1:start|i:1785929059;_errors|a:1:{s:5:"email";s:24:"Identifiants incorrects.";}_old|a:3:{s:6:"_token";s:64:"b0e11f29ab85553ff26086f36d0b964db8c7a7c64e865618341401e59ed22636";s:5:"email";s:25:"wilaya@wilaya-harmonia.dz";s:8:"password";s:13:"wrongpassword";}

@@ -12,10 +12,12 @@
 /storage/queue/*
 /storage/pdfs/*
 /storage/backups/*
+/storage/sessions/*
 !/storage/logs/.gitkeep
 !/storage/queue/.gitkeep
 !/storage/pdfs/.gitkeep
 !/storage/backups/.gitkeep
+!/storage/sessions/.gitkeep
 
 # Uploads
 /public/uploads/*
