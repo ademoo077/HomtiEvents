@@ -234,6 +234,10 @@ $g()->post('modules/toggle', 'ControlCenterController@toggleModule')->name('cont
 
 $g()->get('utilisateurs', 'ControlCenterController@utilisateurs')->name('control.utilisateurs');
 $g()->post('utilisateurs/action', 'ControlCenterController@utilisateurAction')->name('control.utilisateurs.action');
+$g()->get('utilisateurs/create', 'ControlCenterController@userCreateForm')->name('control.utilisateurs.create');
+$g()->post('utilisateurs', 'ControlCenterController@userStore')->name('control.utilisateurs.store');
+$g()->get('utilisateurs/{id}/edit', 'ControlCenterController@userEditForm')->name('control.utilisateurs.edit');
+$g()->post('utilisateurs/{id}/update', 'ControlCenterController@userUpdate')->name('control.utilisateurs.update');
 
 $g()->get('associations', 'ControlCenterController@associations')->name('control.associations');
 $g()->post('associations/action', 'ControlCenterController@associationAction')->name('control.associations.action');

@@ -11,6 +11,7 @@ use App\Helpers\Database;
 use App\Helpers\Rbac;
 use App\Helpers\Security;
 use App\Helpers\Session;
+use App\Helpers\Validator;
 
 /**
  * Control Center — supervision et contrôle centralisé de la plateforme.
@@ -359,6 +360,134 @@ public function userAction(): never
     };
 
     json_response(['success' => true]);
+}
+
+// ── Création / édition de comptes (citoyen · président) ─────────
+public function userCreateForm(): never
+{
+    $this->requirePermission('control.users');
+
+    $this->view('control.user-form', [
+        'mode'         => 'create',
+        'user'         => null,
+        'roles'        => Database::all("SELECT * FROM roles WHERE nom IN ('citoyen', 'association') ORDER BY niveau"),
+        'associations' => Database::all('SELECT id, nom FROM associations ORDER BY nom'),
+        'errors'       => $this->errors(),
+        'old'          => $_SESSION['_old'] ?? [],
+    ], 'dashboard-futur');
+}
+
+public function userStore(): never
+{
+    $this->requirePermission('control.users');
+
+    $data = all_input();
+
+    // Les champs nullable vides doivent être null (le validateur gère null, pas '')
+    $data['telephone']      = (($data['telephone'] ?? '') === '') ? null : $data['telephone'];
+    $data['association_id'] = ((($data['association_id'] ?? '') === '') || (int) ($data['association_id'] ?? 0) === 0)
+        ? null
+        : $data['association_id'];
+
+    $validator = Validator::make($data, [
+        'nom'            => 'required|string|max:50',
+        'prenom'         => 'required|string|max:50',
+        'email'          => 'required|email|unique:users,email',
+        'telephone'      => 'nullable|phone',
+        'password'       => 'required|min:8|confirmed',
+        'role_user'      => 'required|in:citoyen,association',
+        'association_id' => 'nullable|integer',
+    ], [
+        'nom.required'      => 'Le nom est obligatoire.',
+        'prenom.required'   => 'Le prénom est obligatoire.',
+        'email.required'    => 'L\'email est obligatoire.',
+        'email.email'       => 'L\'email est invalide.',
+        'email.unique'      => 'Cette adresse email est déjà utilisée.',
+        'password.required' => 'Le mot de passe est obligatoire.',
+        'password.min'      => 'Le mot de passe doit contenir au moins 8 caractères.',
+        'password.confirmed'=> 'Les mots de passe ne correspondent pas.',
+        'role_user.required'=> 'Le rôle est obligatoire.',
+        'role_user.in'      => 'Le rôle sélectionné est invalide.',
+    ]);
+
+    if ($validator->fails()) {
+        $this->backWithErrors($validator->errors(), $data);
+    }
+
+    ControlCenter::creerUtilisateur($data);
+
+    flash('success', 'Compte créé avec succès.');
+    redirect('control/utilisateurs');
+}
+
+public function userEditForm(string $id): never
+{
+    $this->requirePermission('control.users');
+
+    $user = Database::one('SELECT * FROM users WHERE id = ?', [(int) $id]);
+    if ($user === null) {
+        abort(404, 'Utilisateur introuvable.');
+    }
+
+    $this->view('control.user-form', [
+        'mode'         => 'edit',
+        'user'         => $user,
+        'roles'        => Database::all("SELECT * FROM roles WHERE nom IN ('citoyen', 'association') ORDER BY niveau"),
+        'associations' => Database::all('SELECT id, nom FROM associations ORDER BY nom'),
+        'errors'       => $this->errors(),
+        'old'          => $_SESSION['_old'] ?? [],
+    ], 'dashboard-futur');
+}
+
+public function userUpdate(string $id): never
+{
+    $this->requirePermission('control.users');
+
+    $userId = (int) $id;
+    $user   = Database::one('SELECT * FROM users WHERE id = ?', [$userId]);
+    if ($user === null) {
+        abort(404, 'Utilisateur introuvable.');
+    }
+
+    $data = all_input();
+
+    // Les champs nullable vides doivent être null (le validateur gère null, pas '')
+    $data['telephone']      = (($data['telephone'] ?? '') === '') ? null : $data['telephone'];
+    $data['association_id'] = ((($data['association_id'] ?? '') === '') || (int) ($data['association_id'] ?? 0) === 0)
+        ? null
+        : $data['association_id'];
+
+    $validator = Validator::make($data, [
+        'nom'            => 'required|string|max:50',
+        'prenom'         => 'required|string|max:50',
+        'email'          => 'required|email|unique:users,email,' . $userId,
+        'telephone'      => 'nullable|phone',
+        'password'       => 'nullable|min:8',
+        'role_user'      => 'required|in:citoyen,association',
+        'association_id' => 'nullable|integer',
+    ], [
+        'nom.required'      => 'Le nom est obligatoire.',
+        'prenom.required'   => 'Le prénom est obligatoire.',
+        'email.required'    => 'L\'email est obligatoire.',
+        'email.email'       => 'L\'email est invalide.',
+        'email.unique'      => 'Cette adresse email est déjà utilisée.',
+        'password.min'      => 'Le mot de passe doit contenir au moins 8 caractères.',
+        'role_user.required'=> 'Le rôle est obligatoire.',
+        'role_user.in'      => 'Le rôle sélectionné est invalide.',
+    ]);
+
+    if ($validator->fails()) {
+        $this->backWithErrors($validator->errors(), $data);
+    }
+
+    ControlCenter::modifierUtilisateur(
+        $userId,
+        $data,
+        ! empty($data['password']) ? password_hash((string) $data['password'], PASSWORD_BCRYPT) : null
+    );
+
+    flash('success', 'Compte mis à jour.');
+    redirect('control/utilisateurs');
 }
 
 public function resetPassword(): never

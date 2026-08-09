@@ -13,6 +13,9 @@ $isAr  = $dir === 'rtl';
             <h2 class="futur-control-title"><i class="mdi mdi-account-multiple"></i> <?= e(__('common.users')) ?></h2>
             <p class="futur-control-sub"><?= $isAr ? 'إدارة حسابات المستخدمين — الحالة، الأدوار، الوقت' : 'Gestion des comptes utilisateurs — statut, rôles, accès' ?></p>
         </div>
+        <a class="btn btn-primary" href="<?= url('control/utilisateurs/create') ?>">
+            <i class="mdi mdi-plus me-1"></i><?= $isAr ? 'حساب جديد' : 'Nouveau compte' ?>
+        </a>
     </div>
 
     <div class="futur-card">
@@ -44,6 +47,9 @@ $isAr  = $dir === 'rtl';
                                 </td>
                                 <td><?= e($u['last_login'] ?? '-') ?></td>
                                 <td class="text-center">
+                                    <a class="btn btn-sm btn-outline-primary" href="<?= url('control/utilisateurs/' . (int) $u['id'] . '/edit') ?>">
+                                        <i class="mdi mdi-pencil"></i>
+                                    </a>
                                     <button type="button" class="btn btn-sm btn-outline-danger"
                                             onclick="userAction(<?= (int) $u['id'] ?>, 'statut', 'banni')">
                                         <i class="mdi mdi-account-cancel-outline"></i>

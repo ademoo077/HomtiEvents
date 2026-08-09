@@ -163,6 +163,126 @@ final class ControlCenter
         ]);
     }
 
+    /**
+     * Crée un compte (citoyen ou président d'association).
+     *
+     * Attend les clés : nom, prenom, email, password, telephone, role_user,
+     * association_id. Enchaîne le lien RBAC (user_roles) et l'audit.
+     *
+     * @param array<string, mixed> $d
+     */
+    public static function creerUtilisateur(array $d): int
+    {
+        $role          = (string) ($d['role_user'] ?? 'citoyen');
+        $associationId = $role === 'association' ? (int) ($d['association_id'] ?? 0) : 0;
+        $email         = mb_strtolower(trim((string) ($d['email'] ?? '')));
+
+        $userId = Database::insert('users', [
+            'nom'            => trim((string) ($d['nom'] ?? '')),
+            'prenom'         => trim((string) ($d['prenom'] ?? '')),
+            'email'          => $email,
+            'password'       => password_hash((string) ($d['password'] ?? ''), PASSWORD_BCRYPT),
+            'telephone'      => trim((string) ($d['telephone'] ?? '')),
+            'role_user'      => $role,
+            'association_id' => $associationId > 0 ? $associationId : null,
+            'is_active'      => 1,
+        ]);
+
+        self::syncRoleRbac($userId, $role);
+
+        AuditLog::log('user.create', 'user', $userId, null, [
+            'email'          => $email,
+            'role_user'      => $role,
+            'association_id' => $associationId > 0 ? $associationId : null,
+        ]);
+
+        return $userId;
+    }
+
+    /**
+     * Modifie un compte existant (informations, rôle, rattachement,
+     * éventuellement mot de passe). Lève 404 si l'utilisateur n'existe pas.
+     *
+     * @param array<string, mixed> $d
+     * @return array<string, mixed> anciennes valeurs (utiles pour l'audit)
+     */
+    public static function modifierUtilisateur(int $userId, array $d, ?string $nouveauPassword = null): array
+    {
+        $avant = Database::one('SELECT * FROM users WHERE id = ?', [$userId]);
+        if ($avant === null) {
+            abort(404, 'Utilisateur introuvable.');
+        }
+
+        $role          = (string) ($d['role_user'] ?? ($avant['role_user'] ?? 'citoyen'));
+        $associationId = $role === 'association' ? (int) ($d['association_id'] ?? 0) : 0;
+        $email         = mb_strtolower(trim((string) ($d['email'] ?? '')));
+
+        $params = [
+            trim((string) ($d['nom'] ?? '')),
+            trim((string) ($d['prenom'] ?? '')),
+            $email,
+            trim((string) ($d['telephone'] ?? '')),
+            $role,
+            $associationId > 0 ? $associationId : null,
+        ];
+        $sql = 'UPDATE users SET nom = ?, prenom = ?, email = ?, telephone = ?, role_user = ?, association_id = ?';
+        if ($nouveauPassword !== null && $nouveauPassword !== '') {
+            $sql .= ', password = ?';
+            $params[] = $nouveauPassword;
+        }
+        $sql .= ' WHERE id = ?';
+        $params[] = $userId;
+
+        Database::run($sql, $params);
+
+        if ((string) ($avant['role_user'] ?? '') !== $role) {
+            self::syncRoleRbac($userId, $role);
+        }
+
+        AuditLog::log('user.update', 'user', $userId, [
+            'nom'            => $avant['nom'] ?? null,
+            'prenom'         => $avant['prenom'] ?? null,
+            'email'          => $avant['email'] ?? null,
+            'telephone'      => $avant['telephone'] ?? null,
+            'role_user'      => $avant['role_user'] ?? null,
+            'association_id' => $avant['association_id'] ?? null,
+        ], [
+            'nom'            => trim((string) ($d['nom'] ?? '')),
+            'prenom'         => trim((string) ($d['prenom'] ?? '')),
+            'email'          => $email,
+            'telephone'      => trim((string) ($d['telephone'] ?? '')),
+            'role_user'      => $role,
+            'association_id' => $associationId > 0 ? $associationId : null,
+            'password'       => ($nouveauPassword !== null && $nouveauPassword !== '') ? 'modifié' : null,
+        ]);
+
+        return $avant;
+    }
+
+    /**
+     * Synchronise le lien RBAC (user_roles) d'un utilisateur sur un rôle.
+     */
+    private static function syncRoleRbac(int $userId, string $role): void
+    {
+        $roleId = (int) Database::value('SELECT id FROM roles WHERE nom = ?', [$role]);
+        if ($roleId === 0) {
+            return;
+        }
+
+        Database::run(
+            'DELETE FROM user_roles WHERE user_id = ? AND role_id NOT IN (SELECT id FROM roles WHERE nom = ?)',
+            [$userId, $role]
+        );
+
+        $existe = (int) Database::value(
+            'SELECT COUNT(*) FROM user_roles WHERE user_id = ? AND role_id = ?',
+            [$userId, $roleId]
+        );
+        if ($existe === 0) {
+            Database::insert('user_roles', ['user_id' => $userId, 'role_id' => $roleId]);
+        }
+    }
+
     private static function warm(): void
     {
         if (self::$cache !== null) {
