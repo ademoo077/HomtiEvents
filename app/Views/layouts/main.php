@@ -50,6 +50,7 @@ $adminNav = [
     ['label' => __('common.anomalies'),    'icon' => 'mdi-alert-octagon',      'href' => 'admin/anomalies',    'prefix' => 'admin/anomalies'],
     ['label' => __('common.citoyens'),     'icon' => 'mdi-account-group',      'href' => 'admin/citoyens',     'prefix' => 'admin/citoyens'],
     ['label' => 'Demandes inscription',    'icon' => 'mdi-account-plus',        'href' => 'admin/association-requests', 'prefix' => 'admin/association-requests'],
+    ['label' => __('common.statistiques'), 'icon' => 'mdi-chart-box',           'href' => 'admin/stats',         'prefix' => 'admin/stats'],
     ['label' => __('landing.actualites'),  'icon' => 'mdi-web',                'href' => 'admin/landing',      'prefix' => 'admin/landing'],
     ['label' => __('common.gallery'),      'icon' => 'mdi-image-multiple',     'href' => 'wilaya/gallery',     'prefix' => 'wilaya/gallery'],
     ['label' => __('common.qrcode'),       'icon' => 'mdi-qrcode-scan',        'href' => 'qrcode/scan',        'prefix' => 'qrcode'],

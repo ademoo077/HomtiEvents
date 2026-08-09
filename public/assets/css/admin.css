@@ -334,6 +334,7 @@ body {
 .wh-kpi-icon.gray   { background: var(--wh-gray-soft); color: var(--wh-gray); }
 .wh-kpi-icon.amber  { background: #fff3cd; color: var(--wh-amber); }
 .wh-kpi-icon.red    { background: #f8d7da; color: var(--wh-red); }
+.wh-kpi-icon.purple { background: #ede9fe; color: #7c3aed; }
 .wh-kpi-value { font-size: 1.55rem; font-weight: 800; line-height: 1.1; }
 .wh-kpi-label { font-size: .8rem; color: var(--wh-text-muted); font-weight: 500; }
 .wh-kpi-trend { font-size: .76rem; }
