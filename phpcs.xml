@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<ruleset name="Wilaya Harmonia">
+    <description>Conventions de code - PSR-12</description>
+
+    <file>app</file>
+
+    <exclude-pattern>app/Views/*</exclude-pattern>
+    <exclude-pattern>*/storage/*</exclude-pattern>
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+
+    <arg name="extensions" value="php"/>
+    <arg value="p"/>
+
+    <rule ref="PSR12"/>
+</ruleset>

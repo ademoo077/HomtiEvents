@@ -1,0 +1,26 @@
+# Dépendances & outils
+/vendor/
+/.phpunit.cache/
+/phpunit.xml
+
+# Environnement & secrets
+/.env
+*.env.local
+
+# Stockage applicatif
+/storage/logs/*
+/storage/queue/*
+/storage/pdfs/*
+/storage/backups/*
+!/storage/logs/.gitkeep
+!/storage/queue/.gitkeep
+!/storage/pdfs/.gitkeep
+!/storage/backups/.gitkeep
+
+# Uploads
+/public/uploads/*
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/

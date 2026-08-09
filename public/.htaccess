@@ -1,0 +1,24 @@
+Options -Indexes
+RewriteEngine On
+
+# Forcer HTTPS (décommenter en production)
+# RewriteCond %{HTTPS} !=on
+# RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Ne pas réécrire les fichiers et répertoires existants
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Tout le reste vers le front controller
+RewriteRule ^ index.php [L]
+
+# Protection des fichiers sensibles
+<FilesMatch "\.(env|log|lock|job)$">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+</IfModule>

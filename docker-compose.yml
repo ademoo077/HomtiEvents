@@ -1,0 +1,51 @@
+services:
+  db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: root2026
+      MARIADB_DATABASE: wilaya_harmonia
+      MARIADB_USER: harmonia
+      MARIADB_PASSWORD: harmonia2026
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./sql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    image: php:8.3-cli
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+    ports:
+      - "8080:8080"
+    command: >
+      sh -c "docker-php-ext-install pdo_mysql
+      && php artisan migrate:all
+      && php -S 0.0.0.0:8080 -t public"
+
+  worker:
+    image: php:8.3-cli
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+    command: >
+      sh -c "docker-php-ext-install pdo_mysql
+      && php queue/worker.php --watch"
+
+volumes:
+  db_data:

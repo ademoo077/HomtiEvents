@@ -1,0 +1,133 @@
+{
+  "info": {
+    "_postman_id": "wilaya-harmonia-7f3c9a1e",
+    "name": "Wilaya Harmonia API",
+    "description": "Collection publique du projet Wilaya Harmonia — plateforme de gestion événementielle (Wilaya / Associations / EPIC / Citoyens).\n\nBase : http://localhost:8080\n\nVariables : {{base_url}}, {{csrf_token}}, {{user_id}}.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8080" },
+    { "key": "csrf_token", "value": "" },
+    { "key": "user_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Public — Page d'accueil",
+      "item": [
+        {
+          "name": "Landing (HTML)",
+          "request": { "method": "GET", "url": "{{base_url}}/" }
+        }
+      ]
+    },
+    {
+      "name": "API publique",
+      "item": [
+        {
+          "name": "Liste des événements programmés",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/evenements?statut=PROGRAMME&limit=10", "host": ["{{base_url}}"], "path": ["api", "evenements"], "query": [{ "key": "statut", "value": "PROGRAMME" }, { "key": "limit", "value": "10" }] }
+          }
+        },
+        {
+          "name": "Détail d'un événement",
+          "request": { "method": "GET", "url": "{{base_url}}/api/evenements/1" }
+        },
+        {
+          "name": "Carte (géolocalisation)",
+          "request": { "method": "GET", "url": "{{base_url}}/api/map" }
+        },
+        {
+          "name": "Statistiques globales",
+          "request": { "method": "GET", "url": "{{base_url}}/api/stats" }
+        },
+        {
+          "name": "Traductions i18n (fr)",
+          "request": { "method": "GET", "url": "{{base_url}}/api/lang/fr" }
+        },
+        {
+          "name": "Traductions i18n (ar)",
+          "request": { "method": "GET", "url": "{{base_url}}/api/lang/ar" }
+        }
+      ]
+    },
+    {
+      "name": "API Check-in (scan QR)",
+      "item": [
+        {
+          "name": "Vérifier un QR code",
+          "request": { "method": "GET", "url": "{{base_url}}/api/checkin/verify/{TOKEN}" }
+        },
+        {
+          "name": "Enregistrer une participation",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/checkin/{TOKEN}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{ \"user_id\": {{user_id}} }" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "API Push (PWA)",
+      "item": [
+        {
+          "name": "Abonnement push",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/push/subscribe",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{ \"endpoint\": \"...\", \"keys\": { \"p256dh\": \"...\", \"auth\": \"...\" } }" }
+          }
+        },
+        {
+          "name": "Désabonnement push",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/push/unsubscribe",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{ \"endpoint\": \"...\" }" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authentification (web)",
+      "item": [
+        {
+          "name": "Formulaire de connexion",
+          "request": { "method": "GET", "url": "{{base_url}}/auth/login" }
+        },
+        {
+          "name": "Connexion",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "body": { "mode": "urlencoded", "urlencoded": [{ "key": "email", "value": "wilaya@wilaya-harmonia.dz" }, { "key": "password", "value": "Harmonia@2026" }, { "key": "_token", "value": "{{csrf_token}}" }] }
+          }
+        },
+        {
+          "name": "Inscription d'une association",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/associations/inscription",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "body": { "mode": "urlencoded", "urlencoded": [{ "key": "nom", "value": "Nouvelle Association" }, { "key": "email", "value": "contact@nouvelle.dz" }, { "key": "password", "value": "MotDePasse@2026" }] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Check-in public (QR)",
+      "item": [
+        {
+          "name": "Page check-in (HTML)",
+          "request": { "method": "GET", "url": "{{base_url}}/checkin/{TOKEN}" }
+        }
+      ]
+    }
+  ]
+}

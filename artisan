@@ -1,0 +1,124 @@
+#!/usr/bin/env php
+<?php
+declare(strict_types=1);
+
+/**
+ * CLI artisan de Wilaya Harmonia.
+ *
+ * Commandes :
+ *   php artisan app:info          Affiche les informations du projet
+ *   php artisan migrate           Exécute les scripts SQL
+ *   php artisan seed              Insère les données de démonstration
+ *   php artisan migrate:all       Schéma + données de référence + seed + landing
+ *   php artisan queue:work        Traite les jobs de la file
+ *   php artisan queue:watch       Traitement continu de la file
+ *   php artisan sla:run           Exécute les alertes SLA dues
+ *   php artisan backup            Sauvegarde la base de données
+ *   php artisan key:generate      Génère une clé APP_KEY
+ */
+
+define('BASE_PATH', __DIR__);
+
+require BASE_PATH . '/vendor/autoload.php';
+require BASE_PATH . '/app/Bootstrap.php';
+
+use App\Bootstrap;
+use App\Helpers\Queue;
+use App\Helpers\SlaHelper;
+
+Bootstrap::boot();
+
+$command = $argv[1] ?? 'help';
+
+function runSqlFile(string $file): void
+{
+    if (! is_file($file)) {
+        echo "Fichier introuvable : {$file}\n";
+        return;
+    }
+
+    $sql = file_get_contents($file);
+    $pdo = \App\Helpers\Database::connection();
+
+    // Exécution requête par requête (gestion des DELIMITER implicites)
+    $pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
+    foreach (splitSql($sql) as $query) {
+        if (trim($query) !== '') {
+            $pdo->exec($query);
+        }
+    }
+    $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
+
+    echo "OK : " . basename($file) . "\n";
+}
+
+function splitSql(string $sql): array
+{
+    // Sépare en instructions simples sans gestion de procédures stockées.
+    $sql = preg_replace('/^--.*$/m', '', $sql);
+    $parts = array_filter(explode(';', $sql));
+    $result = [];
+    foreach ($parts as $part) {
+        $part = trim($part);
+        if ($part !== '') {
+            $result[] = $part;
+        }
+    }
+
+    return $result;
+}
+
+switch ($command) {
+    case 'help':
+    case '--help':
+        echo file_get_contents(__FILE__) ? '' : '';
+        break;
+
+    case 'app:info':
+        echo 'Wilaya Harmonia ' . "\n";
+        echo 'PHP      : ' . PHP_VERSION . "\n";
+        echo 'Environn.: ' . config('app.env') . "\n";
+        echo 'URL      : ' . config('app.url') . "\n";
+        echo 'Base     : ' . config('database.database') . "\n";
+        echo 'Queue    : ' . Queue::size() . " job(s) en attente\n";
+        break;
+
+    case 'key:generate':
+        $key = 'base64:' . base64_encode(random_bytes(32));
+        echo "Clé générée : {$key}\n";
+        $envFile = BASE_PATH . '/.env';
+        if (is_file($envFile)) {
+            file_put_contents(
+                $envFile,
+                preg_replace('/^APP_KEY=.*$/m', 'APP_KEY=' . $key, file_get_contents($envFile))
+            );
+            echo 'APP_KEY mise à jour dans .env' . "\n";
+        }
+        break;
+
+    case 'migrate':
+        foreach (glob(BASE_PATH . '/sql/*.sql') as $file) {
+            if (str_ends_with($file, '_schema.sql')) {
+                runSqlFile($file);
+            }
+        }
+        break;
+
+    case 'seed':
+        foreach (glob(BASE_PATH . '/sql/*.sql') as $file) {
+            if (! str_ends_with($file, '_schema.sql')) {
+                runSqlFile($file);
+            }
+        }
+        break;
+
+    case 'migrate:all':
+        foreach (glob(BASE_PATH . '/sql/*.sql') as $file) {
+            runSqlFile($file);
+        }
+        break;
+
+    default:
+        echo "Commande inconnue : {$command}\n";
+        echo "Utilisez : php artisan help\n";
+    }

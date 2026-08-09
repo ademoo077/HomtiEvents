@@ -1,0 +1,2 @@
+ALTER TABLE landing_testimonials
+    ADD COLUMN IF NOT EXISTS sort_order INT UNSIGNED NOT NULL DEFAULT 0 AFTER note;

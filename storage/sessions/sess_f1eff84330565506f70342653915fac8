@@ -1,0 +1,1 @@
+_csrf|s:64:"fe9e1dbbf049fa88df553d41eed1872a9772a52b5761661b00bcd31c4067bd86";rl:login:127.0.0.1:count|i:1;rl:login:127.0.0.1:start|i:1786006221;_errors|a:1:{s:5:"email";s:24:"Identifiants incorrects.";}_old|a:3:{s:6:"_token";s:64:"fe9e1dbbf049fa88df553d41eed1872a9772a52b5761661b00bcd31c4067bd86";s:5:"email";s:28:"pres-rej-1786006152@assoc.dz";s:8:"password";s:11:"Secret@2026";}

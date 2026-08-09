@@ -1,0 +1,43 @@
+{
+    "name": "wilaya/wilaya-harmonia",
+    "description": "Plateforme de gestion événementielle citoyenne — fusion des concepts Balagh Alger et gestion collaborative d'événements entre Wilaya, Associations, EPIC et Citoyens.",
+    "type": "project",
+    "license": "proprietary",
+    "keywords": ["wilaya", "evenements", "citoyen", "rbac", "php"],
+    "require": {
+        "php": ">=8.2",
+        "ext-pdo": "*",
+        "ext-mbstring": "*",
+        "ext-fileinfo": "*",
+        "ext-json": "*",
+        "endroid/qr-code": "^5.0",
+        "dompdf/dompdf": "^3.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.5",
+        "phpstan/phpstan": "^1.10",
+        "squizlabs/php_codesniffer": "^3.8"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        },
+        "files": [
+            "app/Helpers/Helper.php",
+            "app/Helpers/I18n.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    },
+    "scripts": {
+        "test": "phpunit",
+        "analyse": "phpstan analyse app --level=6"
+    }
+}
