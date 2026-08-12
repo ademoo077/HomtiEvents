@@ -6,7 +6,9 @@ namespace App\Controllers;
 
 use App\Helpers\Database;
 use App\Helpers\EvenementService;
+use App\Helpers\QrCodeService;
 use App\Helpers\Rbac;
+use App\Helpers\RoutingService;
 use App\Helpers\Validator;
 
 /**
@@ -109,7 +111,10 @@ final class AssociationController extends Controller
             abort(403, 'Accès refusé.');
         }
 
+        $associationId = (int) ($user['association_id'] ?? 0);
+
         $this->view('association/create', [
+            'association'     => $associationId > 0 ? Database::one('SELECT * FROM associations WHERE id = ?', [$associationId]) : null,
             'communes'    => Database::all(
                 'SELECT c.id, c.nom, c.ca_id, ca.nom AS daira_nom
                  FROM commune c
@@ -118,7 +123,7 @@ final class AssociationController extends Controller
                  ORDER BY ca.nom, c.nom'
             ),
             'anomalies'       => Database::all('SELECT id, nom FROM anomalies ORDER BY nom'),
-            'anomaliesParEpic'=> $this->anomaliesParEpic(),
+            'anomaliesParEpic' => $this->anomaliesParEpic(),
             'epics'           => Database::all('SELECT id, nom FROM epic ORDER BY nom'),
             'errors'          => $this->errors(),
             'old'             => $_SESSION['_old'] ?? [],
@@ -183,6 +188,9 @@ final class AssociationController extends Controller
 
         $this->view('association/show', [
             'event'        => $event,
+            'qrStreamUrl'  => QrCodeService::has($eventId) ? url('event/qr/stream/' . $eventId) : null,
+            'qrDownloadUrl' => QrCodeService::has($eventId) ? url('event/qr/download/' . $eventId) : null,
+            'qrShareUrl'   => QrCodeService::getQrCodeUrl($eventId),
             'participants' => Database::all(
                 'SELECT u.id, u.nom, u.prenom, u.email, u.telephone, ep.heure_scan
                  FROM evenement_participant ep
@@ -363,6 +371,18 @@ final class AssociationController extends Controller
 
         EvenementService::update((int) $id, $data, $event);
 
+        // Re-soumission : notifie la Wilaya que la demande corrigée est repartie.
+        if (in_array((string) ($event['statut'] ?? ''), ['REFUSE', 'MODIFICATION_DEMANDEE'], true)) {
+            $assoc = Database::one('SELECT nom FROM associations WHERE id = ?', [$associationId]);
+            Notification::sendToRole(
+                'wilaya',
+                'Demande re-soumise',
+                ($assoc ? $assoc['nom'] : 'L\'association') . " a re-soumis l'événement #{$id} après correction.",
+                'evenement_resoumis',
+                ['evenement_id' => (int) $id]
+            );
+        }
+
         flash('success', 'Événement mis à jour.');
         redirect('association');
     }
@@ -373,6 +393,33 @@ final class AssociationController extends Controller
      *
      * @return array<int, array{epic_nom: ?string, items: array<int, array{id:int,nom:string,icone:string,couleur:string}>}>
      */
+    public function routingPreview(): never
+    {
+        $this->requireAuth();
+        $user = $this->user();
+        if ($user === null || Rbac::role($user) !== 'association') {
+            abort(403, 'Accès refusé.');
+        }
+
+        $communeId = (int) (all_input()['commune_id'] ?? 0);
+        $anomalies = all_input()['anomalies'] ?? [];
+        $anomalies = is_array($anomalies) ? array_map('intval', $anomalies) : [];
+
+        $result = RoutingService::preview($communeId, $anomalies);
+
+        $epic = null;
+        if ($result['epic_id'] !== null) {
+            $epic = Database::one('SELECT id, nom FROM epic WHERE id = ?', [$result['epic_id']]);
+        }
+
+        json_response([
+            'success' => true,
+            'epic'    => $epic,
+            'matched' => $result['rule_matched'],
+            'detail'  => $result['detail'],
+        ]);
+    }
+
     private function anomaliesParEpic(): array
     {
         $rows = Database::all(

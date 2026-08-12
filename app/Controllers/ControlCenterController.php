@@ -8,6 +8,7 @@ use App\Helpers\AuditLog;
 use App\Helpers\BusinessRules;
 use App\Helpers\ControlCenter;
 use App\Helpers\Database;
+use App\Helpers\RoutingService;
 use App\Helpers\Rbac;
 use App\Helpers\Security;
 use App\Helpers\Session;
@@ -362,42 +363,47 @@ public function userAction(): never
     json_response(['success' => true]);
 }
 
-// ── Création / édition de comptes (citoyen · président) ─────────
-public function userCreateForm(): never
-{
-    $this->requirePermission('control.users');
+    // ── Création / édition de comptes (citoyen · président · EPIC) ─────────
+    public function userCreateForm(): never
+    {
+        $this->requirePermission('control.users');
 
-    $this->view('control.user-form', [
-        'mode'         => 'create',
-        'user'         => null,
-        'roles'        => Database::all("SELECT * FROM roles WHERE nom IN ('citoyen', 'association') ORDER BY niveau"),
-        'associations' => Database::all('SELECT id, nom FROM associations ORDER BY nom'),
-        'errors'       => $this->errors(),
-        'old'          => $_SESSION['_old'] ?? [],
-    ], 'dashboard-futur');
-}
+        $this->view('control.user-form', [
+            'mode'         => 'create',
+            'user'         => null,
+            'roles'        => Database::all("SELECT * FROM roles WHERE nom IN ('citoyen', 'association', 'epic') ORDER BY niveau"),
+            'associations' => Database::all('SELECT id, nom FROM associations ORDER BY nom'),
+            'epics'        => Database::all('SELECT id, nom FROM epic ORDER BY nom'),
+            'errors'       => $this->errors(),
+            'old'          => $_SESSION['_old'] ?? [],
+        ], 'dashboard-futur');
+    }
 
-public function userStore(): never
-{
-    $this->requirePermission('control.users');
+    public function userStore(): never
+    {
+        $this->requirePermission('control.users');
 
-    $data = all_input();
+        $data = all_input();
 
-    // Les champs nullable vides doivent être null (le validateur gère null, pas '')
-    $data['telephone']      = (($data['telephone'] ?? '') === '') ? null : $data['telephone'];
-    $data['association_id'] = ((($data['association_id'] ?? '') === '') || (int) ($data['association_id'] ?? 0) === 0)
-        ? null
-        : $data['association_id'];
+        // Les champs nullable vides doivent être null (le validateur gère null, pas '')
+        $data['telephone']      = (($data['telephone'] ?? '') === '') ? null : $data['telephone'];
+        $data['association_id'] = ((($data['association_id'] ?? '') === '') || (int) ($data['association_id'] ?? 0) === 0)
+            ? null
+            : $data['association_id'];
+        $data['epic_id']        = ((($data['epic_id'] ?? '') === '') || (int) ($data['epic_id'] ?? 0) === 0)
+            ? null
+            : $data['epic_id'];
 
-    $validator = Validator::make($data, [
-        'nom'            => 'required|string|max:50',
-        'prenom'         => 'required|string|max:50',
-        'email'          => 'required|email|unique:users,email',
-        'telephone'      => 'nullable|phone',
-        'password'       => 'required|min:8|confirmed',
-        'role_user'      => 'required|in:citoyen,association',
-        'association_id' => 'nullable|integer',
-    ], [
+        $validator = Validator::make($data, [
+            'nom'            => 'required|string|max:50',
+            'prenom'         => 'required|string|max:50',
+            'email'          => 'required|email|unique:users,email',
+            'telephone'      => 'nullable|phone',
+            'password'       => 'required|min:8|confirmed',
+            'role_user'      => 'required|in:citoyen,association,epic',
+            'association_id' => 'nullable|integer',
+            'epic_id'        => 'nullable|integer',
+        ], [
         'nom.required'      => 'Le nom est obligatoire.',
         'prenom.required'   => 'Le prénom est obligatoire.',
         'email.required'    => 'L\'email est obligatoire.',
@@ -420,52 +426,57 @@ public function userStore(): never
     redirect('control/utilisateurs');
 }
 
-public function userEditForm(string $id): never
-{
-    $this->requirePermission('control.users');
+    public function userEditForm(string $id): never
+    {
+        $this->requirePermission('control.users');
 
-    $user = Database::one('SELECT * FROM users WHERE id = ?', [(int) $id]);
-    if ($user === null) {
-        abort(404, 'Utilisateur introuvable.');
+        $user = Database::one('SELECT * FROM users WHERE id = ?', [(int) $id]);
+        if ($user === null) {
+            abort(404, 'Utilisateur introuvable.');
+        }
+
+        $this->view('control.user-form', [
+            'mode'         => 'edit',
+            'user'         => $user,
+            'roles'        => Database::all("SELECT * FROM roles WHERE nom IN ('citoyen', 'association', 'epic') ORDER BY niveau"),
+            'associations' => Database::all('SELECT id, nom FROM associations ORDER BY nom'),
+            'epics'        => Database::all('SELECT id, nom FROM epic ORDER BY nom'),
+            'errors'       => $this->errors(),
+            'old'          => $_SESSION['_old'] ?? [],
+        ], 'dashboard-futur');
     }
 
-    $this->view('control.user-form', [
-        'mode'         => 'edit',
-        'user'         => $user,
-        'roles'        => Database::all("SELECT * FROM roles WHERE nom IN ('citoyen', 'association') ORDER BY niveau"),
-        'associations' => Database::all('SELECT id, nom FROM associations ORDER BY nom'),
-        'errors'       => $this->errors(),
-        'old'          => $_SESSION['_old'] ?? [],
-    ], 'dashboard-futur');
-}
+    public function userUpdate(string $id): never
+    {
+        $this->requirePermission('control.users');
 
-public function userUpdate(string $id): never
-{
-    $this->requirePermission('control.users');
+        $userId = (int) $id;
+        $user   = Database::one('SELECT * FROM users WHERE id = ?', [$userId]);
+        if ($user === null) {
+            abort(404, 'Utilisateur introuvable.');
+        }
 
-    $userId = (int) $id;
-    $user   = Database::one('SELECT * FROM users WHERE id = ?', [$userId]);
-    if ($user === null) {
-        abort(404, 'Utilisateur introuvable.');
-    }
+        $data = all_input();
 
-    $data = all_input();
+        // Les champs nullable vides doivent être null (le validateur gère null, pas '')
+        $data['telephone']      = (($data['telephone'] ?? '') === '') ? null : $data['telephone'];
+        $data['association_id'] = ((($data['association_id'] ?? '') === '') || (int) ($data['association_id'] ?? 0) === 0)
+            ? null
+            : $data['association_id'];
+        $data['epic_id']        = ((($data['epic_id'] ?? '') === '') || (int) ($data['epic_id'] ?? 0) === 0)
+            ? null
+            : $data['epic_id'];
 
-    // Les champs nullable vides doivent être null (le validateur gère null, pas '')
-    $data['telephone']      = (($data['telephone'] ?? '') === '') ? null : $data['telephone'];
-    $data['association_id'] = ((($data['association_id'] ?? '') === '') || (int) ($data['association_id'] ?? 0) === 0)
-        ? null
-        : $data['association_id'];
-
-    $validator = Validator::make($data, [
-        'nom'            => 'required|string|max:50',
-        'prenom'         => 'required|string|max:50',
-        'email'          => 'required|email|unique:users,email,' . $userId,
-        'telephone'      => 'nullable|phone',
-        'password'       => 'nullable|min:8',
-        'role_user'      => 'required|in:citoyen,association',
-        'association_id' => 'nullable|integer',
-    ], [
+        $validator = Validator::make($data, [
+            'nom'            => 'required|string|max:50',
+            'prenom'         => 'required|string|max:50',
+            'email'          => 'required|email|unique:users,email,' . $userId,
+            'telephone'      => 'nullable|phone',
+            'password'       => 'nullable|min:8',
+            'role_user'      => 'required|in:citoyen,association,epic',
+            'association_id' => 'nullable|integer',
+            'epic_id'        => 'nullable|integer',
+        ], [
         'nom.required'      => 'Le nom est obligatoire.',
         'prenom.required'   => 'Le prénom est obligatoire.',
         'email.required'    => 'L\'email est obligatoire.',
@@ -550,19 +561,22 @@ public function epicAssign(): never
     $eventId   = (int) input('evenement_id');
     $observation = trim((string) input('observation', ''));
 
-    Database::run(
-        'INSERT INTO evenement_epic (evenement_id, epic_id, date_affectation, observation)
-         VALUES (?, ?, NOW(), ?)',
-        [$eventId, $epicId, $observation]
-    );
+        Database::run(
+            'INSERT INTO evenement_epic (evenement_id, epic_id, date_affectation, observation)
+             VALUES (?, ?, NOW(), ?)',
+            [$eventId, $epicId, $observation]
+        );
 
-    AuditLog::log('epic.assign', 'evenement_epic', 0, [
-        'epic_id' => $epicId,
-        'evenement_id' => $eventId,
-    ]);
+        AuditLog::log('epic.assign', 'evenement_epic', 0, [
+            'epic_id' => $epicId,
+            'evenement_id' => $eventId,
+        ]);
 
-    json_response(['success' => true]);
-}
+        // Traçabilité de l'organisation assignée (réaffectation manuelle).
+        RoutingService::reaffecter($eventId, $epicId, $observation);
+
+        json_response(['success' => true]);
+    }
 
 public function epicValidate(): never
 {

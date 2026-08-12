@@ -155,15 +155,29 @@ final class AdministrationController extends Controller
     public function anomalies(): never
     {
         $q = trim((string) input('q', ''));
+        $epicId = (int) input('epic_id', 0);
         $sql = 'SELECT a.*,
                        (SELECT COUNT(*) FROM anomalies_evenement ae WHERE ae.anomalie_id = a.id) AS signalements,
-                       (SELECT COUNT(*) FROM epic_anomalies ea WHERE ea.anomalie_id = a.id) AS epics
+                       (SELECT COUNT(*) FROM epic_anomalies ea WHERE ea.anomalie_id = a.id) AS epics,
+                       (SELECT COUNT(*) FROM routing_rules rr WHERE rr.anomalie_id = a.id AND rr.ca_id IS NULL AND rr.actif = 1) AS regles_routage,
+                       (SELECT GROUP_CONCAT(ep.nom SEPARATOR ", ") FROM epic_anomalies ea
+                        JOIN epic ep ON ep.id = ea.epic_id WHERE ea.anomalie_id = a.id ORDER BY ep.nom) AS epics_competents
                 FROM anomalies a';
+        $where = [];
         $params = [];
 
         if ($q !== '') {
-            $sql .= ' WHERE a.nom LIKE ?';
+            $where[] = 'a.nom LIKE ?';
             $params[] = '%' . $q . '%';
+        }
+
+        if ($epicId > 0) {
+            $where[] = 'a.id IN (SELECT anomalie_id FROM epic_anomalies WHERE epic_id = ?)';
+            $params[] = $epicId;
+        }
+
+        if ($where !== []) {
+            $sql .= ' WHERE ' . implode(' AND ', $where);
         }
         $sql .= ' ORDER BY a.nom';
 
@@ -172,9 +186,11 @@ final class AdministrationController extends Controller
         $this->view('admin.anomalies.index', [
             'anomalies' => $result['items'],
             'q'         => $q,
+            'epic_id'   => $epicId,
             'page'      => $result['page'],
             'lastPage'  => $result['last_page'],
             'total'     => $result['total'],
+            'epics'     => Database::all('SELECT id, nom FROM epic ORDER BY nom'),
             'errors'    => $this->errors(),
         ]);
     }

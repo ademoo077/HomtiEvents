@@ -10,6 +10,7 @@ use App\Controllers\Api\PushController;
 use App\Controllers\Api\StatsController;
 use App\Controllers\Api\CalendarController;
 use App\Controllers\Api\EpicDashboardApi;
+use App\Controllers\Api\RoutingDebugApi;
 use App\Controllers\NotificationController;
 use App\Helpers\Router;
 use App\Middleware\AuthMiddleware;
@@ -42,3 +43,7 @@ $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])-
 
 // ── API Dashboard EPIC (événements d'un jour, authentifiée) ───
 $router->middleware([AuthMiddleware::class])->get('api/epic/events', 'Api\EpicDashboardApi@eventsDuJour')->name('api.epic.events');
+
+// ── API Routage : diagnostic (wilaya) ─────────────────────────────
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])
+    ->get('api/routing/debug', 'Api\RoutingDebugApi@debug')->name('api.routing.debug');

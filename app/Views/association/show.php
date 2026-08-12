@@ -50,16 +50,39 @@ $countParticipants = count($participants);
                 </div>
             </div>
 
-            <?php if (in_array($statut, ['PROGRAMME', 'QR_GENERE'], true) && ! empty($event['date_evenement'])): ?>
-                <div class="card border-0 shadow-sm mb-3">
-                    <div class="card-body d-flex align-items-center gap-3">
-                        <i class="mdi mdi-qrcode" style="font-size:2rem"></i>
-                        <div>
-                            <h6 class="mb-1"><?= e(__('evenements.qr_code')) ?></h6>
-                            <a href="<?= url('checkin/' . \App\Helpers\QrCodeGenerator::tokenForEvent((int) $event['id'])) ?>">
-                                <?= e(__('evenements.qr_open')) ?>
-                            </a>
+            <?php $statutQr = (string) ($statut ?? $event['statut'] ?? ''); ?>
+            <?php if (! empty($qrStreamUrl) && in_array($statutQr, ['VALIDÉ', 'PROGRAMME', 'QR_GENERE', 'EN_COURS', 'TERMINE'], true)): ?>
+                <div class="card border-0 shadow-sm mb-3 text-center">
+                    <div class="card-header">
+                        <i class="mdi mdi-qrcode me-1"></i><?= e(__('evenements.qr_code')) ?>
+                    </div>
+                    <div class="card-body">
+                        <img src="<?= $qrStreamUrl ?>" alt="QR" class="img-fluid mb-3" style="max-width:200px">
+                        <div class="wh-qr-summary small wh-text-muted mb-3">
+                            <div class="fw-medium text-dark"><?= e(substr((string) ($event['description'] ?? ''), 0, 50) ?: 'Événement') ?></div>
+                            <div><i class="mdi mdi-map-marker me-1"></i><?= e($event['adresse'] ?? '-') ?></div>
+                            <div><i class="mdi mdi-calendar me-1"></i>
+                                <?= e($event['date_evenement'] ? date('d/m/Y H:i', strtotime((string) $event['date_evenement'] . ' ' . ((string) ($event['heure'] ?? '00:00:00')))) : '-') ?>
+                            </div>
                         </div>
+                        <div class="d-flex flex-wrap justify-content-center gap-2">
+                            <?php if (! empty($qrDownloadUrl)): ?>
+                                <a href="<?= $qrDownloadUrl ?>" class="btn btn-sm btn-outline-primary" download>
+                                    <i class="mdi mdi-download me-1"></i><?= e(__('evenements.qr_download')) ?>
+                                </a>
+                            <?php endif; ?>
+                            <?php if (! empty($qrShareUrl)): ?>
+                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                    onclick="navigator.clipboard.writeText('<?= e($qrShareUrl) ?>').then(function(){ alert('Lien copié dans le presse-papiers'); })">
+                                    <i class="mdi mdi-link-box me-1"></i><?= e(__('evenements.qr_share')) ?>
+                                </button>
+                            <?php endif; ?>
+                        </div>
+                        <?php if (! empty($qrShareUrl)): ?>
+                            <div class="wh-text-muted small mt-2 text-break">
+                                <?= e($qrShareUrl) ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             <?php endif; ?>

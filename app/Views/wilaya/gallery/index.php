@@ -160,9 +160,41 @@ $cover = (string) ($album['couverture'] ?? '');
                         </div>
                     <?php endif; ?>
                     <figcaption class="wh-photo-meta">
+                        <?php $statusBadge = match ($photo['status'] ?? 'active') {
+                            'pending'  => 'bg-warning text-dark',
+                            'rejected' => 'bg-danger',
+                            'active'   => 'bg-success',
+                            default    => 'bg-secondary',
+                        }; ?>
+                        <?php if (($photo['status'] ?? 'active') !== 'active'): ?>
+                            <span class="badge <?= $statusBadge ?> me-1">
+                                <?= $photo['status'] === 'pending' ? 'En attente' : 'Rejetée' ?>
+                            </span>
+                        <?php endif; ?>
+                        <?php if (! empty($photo['uploader_nom'])): ?>
+                            <small class="text-muted" title="Soumise par">
+                                <i class="mdi mdi-account me-1"></i><?= e(trim(($photo['uploader_prenom'] ?? '') . ' ' . ($photo['uploader_nom'] ?? ''))) ?>
+                            </small>
+                        <?php endif; ?>
                         <?= $photo['legende'] ? e($photo['legende']) : '<span class="text-muted fst-italic">—</span>' ?>
                     </figcaption>
                     <div class="wh-photo-actions">
+                        <?php if (($photo['status'] ?? 'active') === 'pending'): ?>
+                            <form method="post" action="<?= url('wilaya/photos/' . (int) $photo['id'] . '/approve') ?>" class="d-inline">
+                                <?= csrf_field() ?>
+                                <button type="submit" class="btn btn-sm btn-success" title="Valider et publier">
+                                    <i class="mdi mdi-check"></i>
+                                </button>
+                            </form>
+                            <form method="post" action="<?= url('wilaya/photos/' . (int) $photo['id'] . '/reject') ?>" class="d-inline reject-form"
+                                  onsubmit="const m=prompt('Motif du rejet (optionnel) :'); const i=this.querySelector('input[name=motif]'); if(m===null){return false;} i.value=m; return true;">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="motif" value="">
+                                <button type="submit" class="btn btn-sm btn-light text-danger" title="Rejeter">
+                                    <i class="mdi mdi-close"></i>
+                                </button>
+                            </form>
+                        <?php endif; ?>
                         <a class="btn btn-sm btn-light" href="<?= url('wilaya/photos/' . (int) $photo['id'] . '/edit') ?>" title="<?= e(__('common.edit')) ?>">
                             <i class="mdi mdi-pencil"></i>
                         </a>

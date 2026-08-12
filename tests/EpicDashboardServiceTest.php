@@ -39,8 +39,22 @@ final class EpicDashboardServiceTest extends DatabaseTestCase
 
     public function testEvenementsParJourNestIndexeQueParJourAvecEvenements(): void
     {
+        $aujourdhui = date('Y-m-d');
+
+        Database::insert('evenements', [
+            'adresse'        => 'Événement de test calendrier EPIC',
+            'description'    => 'Événement de test pour la grille calendrier.',
+            'statut'         => 'PROGRAMME',
+            'assigned_org_id' => 1,
+            'date_evenement' => $aujourdhui,
+            'heure'          => '09:00:00',
+        ]);
+
         $mois = date('Y-m');
         $parJour = EpicDashboardService::evenementsParJour(1, $mois);
+
+        $this->assertNotEmpty($parJour, 'Le calendrier doit contenir l\'événement de test du jour.');
+        $this->assertArrayHasKey($aujourdhui, $parJour);
 
         foreach ($parJour as $jour => $events) {
             $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}$/', (string) $jour);

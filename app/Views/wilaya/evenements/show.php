@@ -122,8 +122,15 @@ $permission = static function (string $p): bool {
                                     <i class="mdi mdi-image-off"></i>
                                 </div>
                             <?php endif; ?>
-                        </div>
                     </div>
+                </div>
+                <style>
+                    @media print {
+                        body * { visibility: hidden; }
+                        .wh-qr-print, .wh-qr-summary, .wh-qr-print *, .wh-qr-summary * { visibility: visible; }
+                        .wh-qr-print { position: absolute; left: 0; top: 0; }
+                    }
+                </style>
                 <?php endforeach; ?>
             </div>
             <?php if (count($photos) > 8): ?>
@@ -171,6 +178,68 @@ $permission = static function (string $p): bool {
                 </div>
                 <div class="col-md-3 d-grid">
                     <button type="submit" class="btn btn-primary"><i class="mdi mdi-check me-1"></i><?= e(__('common.validate')) ?></button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if ($statutActuel === 'EN_ATTENTE'): ?>
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <span><i class="mdi mdi-account-multiple-check me-2"></i>Validation et affectation</span>
+            <?php if ($association): ?>
+                <span class="wh-text-muted small">
+                    <strong><?= e($association['nom'] ?? '-') ?></strong>
+                    <?php if ($association['email'] ?? ''): ?>
+                        <a href="mailto:<?= e($association['email']) ?>" title="<?= e($association['email']) ?>"><?= e($association['email']) ?></a>
+                    <?php endif; ?>
+                    <?php if ($association['telephone'] ?? ''): ?>
+                        <a href="tel:<?= e($association['telephone']) ?>" title="<?= e($association['telephone']) ?>"><?= e($association['telephone']) ?></a>
+                    <?php endif; ?>
+                </span>
+            <?php endif; ?>
+        </div>
+        <div class="card-body">
+            <form method="post" action="<?= url('wilaya/evenements/' . (int) $event['id'] . '/validate') ?>" class="row g-3 align-items-end">
+                <?= csrf_field() ?>
+
+                <div class="col-md-3">
+                    <label class="form-label"><?= e(__('common.association')) ?></label>
+                    <input type="text" class="form-control" value="<?= e($association['nom'] ?? '-') ?>" readonly>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label"><?= e(__('evenements.date_proposee')) ?></label>
+                    <input type="text" class="form-control" value="<?= e($event['date_evenement'] ?? '-') ?>" readonly>
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label"><?= e(__('evenements.heure')) ?></label>
+                    <input type="text" class="form-control" value="<?= e($event['heure'] ? substr((string) $event['heure'], 0, 5) : '-') ?>" readonly>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="date_evenement"><?= e(__('common.date')) ?></label>
+                    <input type="date" class="form-control" id="date_evenement" name="date_evenement" required>
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label" for="heure"><?= e(__('evenements.program.heure')) ?></label>
+                    <input type="time" class="form-control" id="heure" name="heure" value="09:00" required>
+                </div>
+                <?php $epicIdsLies = array_column($epics ?? [], 'id'); ?>
+                <div class="col-md-3">
+                    <label class="form-label" for="epics"><?= e(__('evenements.epics_assigned')) ?> (multi)</label>
+                    <select class="form-select" id="epics" name="epics[]" multiple size="5" required>
+                        <?php foreach ($epicsListe as $ep): ?>
+                            <option value="<?= e($ep['id']) ?>" <?= in_array((int) $ep['id'], $epicIdsLies, true) ? 'selected' : '' ?>>
+                                <?= e($ep['nom']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <div class="form-text">Ctrl+clic pour sélectionner plusieurs EPICs.</div>
+                </div>
+                <div class="col-12 d-grid d-md-flex justify-content-md-end">
+                    <button type="submit" class="btn btn-success">
+                        <i class="mdi mdi-check-circle me-1"></i>Valider et affecter
+                    </button>
                 </div>
             </form>
         </div>
@@ -261,6 +330,51 @@ $permission = static function (string $p): bool {
             </div>
 
             <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <span><i class="mdi mdi-router-network-outline me-2"></i>Organisation assignée (routage)</span>
+                    <span class="wh-badge <?= ($event['assigned_org_id'] ?? null) ? 'badge-blue' : 'badge-gray' ?>">
+                        <?= ($event['assigned_org_id'] ?? null) ? 'Routé' : 'Non assigné' ?>
+                    </span>
+                </div>
+                <div class="card-body">
+                    <?php
+                    $orgNom = '';
+                    foreach ($epicsListe as $e) {
+                        if ((int) $e['id'] === (int) ($event['assigned_org_id'] ?? 0)) {
+                            $orgNom = $e['nom'];
+                            break;
+                        }
+                    }
+                    ?>
+                    <div class="mb-3">
+                        <strong>Organisation :</strong>
+                        <?= e($orgNom !== '' ? $orgNom : (($event['assigned_org_id'] ?? null) ? 'EPIC #' . (int) $event['assigned_org_id'] : '— aucune —')) ?>
+                    </div>
+                    <form method="post" action="<?= url('wilaya/evenements/' . (int) $event['id'] . '/reaffecter') ?>" class="row g-2" data-confirm="Réaffecter cet événement à une nouvelle organisation&nbsp;?">
+                        <?= csrf_field() ?>
+                        <div class="col-md-6">
+                            <select class="form-select" name="epic_id" required>
+                                <option value=""><?= e(__('common.choose')) ?></option>
+                                <?php foreach ($epicsListe as $ep): ?>
+                                    <option value="<?= (int) $ep['id'] ?>" <?= ((int) ($event['assigned_org_id'] ?? 0) === (int) $ep['id']) ? 'selected' : '' ?>>
+                                        <?= e($ep['nom']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                                <option value="0">— <?= e(__('common.none')) ?> —</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <input type="text" name="motif" class="form-control" placeholder="<?= e(__('common.details')) ?>">
+                        </div>
+                        <div class="col-md-2 d-grid">
+                            <button type="submit" class="btn btn-outline-primary"><i class="mdi mdi-router-network-outline me-1"></i><?= e(__('common.apply')) ?></button>
+                        </div>
+                    </form>
+                    <div class="form-text"><?= e(__('common.reassign_help')) ?></div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header">
                     <span><i class="mdi mdi-clock-outline me-2"></i><?= e(__('common.historique')) ?></span>
                 </div>
@@ -300,22 +414,43 @@ $permission = static function (string $p): bool {
                     <span><i class="mdi mdi-qrcode me-2"></i><?= e(__('common.qrcode')) ?></span>
                 </div>
                 <div class="card-body text-center">
-                    <img src="<?= QrCodeGenerator::pngDataUri(url('checkin/' . $qr['token_qr']), 220) ?>" alt="QR" class="img-fluid mb-2" style="max-width:200px">
+                    <img src="<?= $qrStreamUrl ? $qrStreamUrl : QrCodeGenerator::pngDataUri(url('checkin/' . $qr['token_qr']), 220) ?>"
+                         alt="QR" class="img-fluid mb-2 wh-qr-print" style="max-width:200px">
+                    <div class="wh-qr-summary small wh-text-muted mb-3">
+                        <div class="fw-medium text-dark"><?= e(substr((string) ($event['description'] ?? ''), 0, 50) ?: 'Événement') ?></div>
+                        <div><i class="mdi mdi-map-marker me-1"></i><?= e($event['adresse'] ?? '-') ?></div>
+                        <div><i class="mdi mdi-calendar me-1"></i><?= e($event['date_evenement'] ? date('d/m/Y', strtotime((string) $event['date_evenement'])) : '-') ?>
+                             à <?= e($event['heure'] ? substr((string) $event['heure'], 0, 5) : '-') ?></div>
+                        <?php if ($epics): ?>
+                            <div><i class="mdi mdi-account-multiple me-1"></i>
+                                <?= e(implode(', ', array_map(fn($ep) => (string) $ep['nom'], $epics))) ?></div>
+                        <?php endif; ?>
+                    </div>
                     <div class="wh-text-muted small mb-3">
-                        <a href="<?= url('checkin/' . $qr['token_qr']) ?>" class="text-decoration-none" target="_blank" rel="noopener">
+                        <a href="<?= url('checkin/' . $qr['token_qr']) ?>" class="text-decoration-none text-nowrap d-inline-block" target="_blank" rel="noopener">
                             <?= e(url('checkin/' . $qr['token_qr'])) ?>
                         </a>
                         <br>
                         <?php if ($qr['date_expiration']): ?>
-                            <?= e(date('d/m/Y H:i', strtotime((string) $qr['date_expiration']))) ?>
+                            ⏱ <?= e(date('d/m/Y H:i', strtotime((string) $qr['date_expiration']))) ?>
                         <?php endif; ?>
                     </div>
-                    <?php if (! $isDeleted && $permission('qrcode.generate')): ?>
-                        <form method="post" action="<?= url('wilaya/evenements/' . (int) $event['id'] . '/regen-qr') ?>" class="d-inline">
-                            <?= csrf_field() ?>
-                            <button type="submit" class="btn btn-outline-primary btn-sm"><i class="mdi mdi-refresh me-1"></i><?= e(__('common.regenerate')) ?></button>
-                        </form>
-                    <?php endif; ?>
+                    <div class="d-flex flex-wrap justify-content-center gap-2">
+                        <?php if ($qrDownloadUrl): ?>
+                            <a href="<?= $qrDownloadUrl ?>" class="btn btn-outline-primary btn-sm" download>
+                                <i class="mdi mdi-download me-1"></i>Télécharger
+                            </a>
+                        <?php endif; ?>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+                            <i class="mdi mdi-printer me-1"></i>Imprimer
+                        </button>
+                        <?php if (! $isDeleted && $permission('qrcode.generate')): ?>
+                            <form method="post" action="<?= url('wilaya/evenements/' . (int) $event['id'] . '/regen-qr') ?>" class="d-inline">
+                                <?= csrf_field() ?>
+                                <button type="submit" class="btn btn-outline-primary btn-sm"><i class="mdi mdi-refresh me-1"></i><?= e(__('common.regenerate')) ?></button>
+                            </form>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
             <?php endif; ?>

@@ -42,7 +42,7 @@ final class EpicDashboardService
     {
         $where = [
             'e.deleted_at IS NULL',
-            'e.id IN (SELECT evenement_id FROM evenement_epic WHERE epic_id = ?)',
+            'e.assigned_org_id = ?',
         ];
         $params = [$epicId];
 
@@ -119,10 +119,12 @@ final class EpicDashboardService
         $params = array_merge($params, [$du, $au], self::CALENDRIER_STATUTS);
 
         $sql = 'SELECT e.id, e.adresse, e.statut, e.date_evenement, e.heure, e.motif_refus,
-                       c.nom AS commune_nom, a.nom AS association_nom
+                       c.nom AS commune_nom, a.nom AS association_nom,
+                       q.token_qr, q.date_expiration
                 FROM evenements e
                 LEFT JOIN commune c ON c.id = e.commune_id
                 LEFT JOIN associations a ON a.id = e.association_id
+                LEFT JOIN qr_event q ON q.evenement_id = e.id
                 WHERE ' . $where . '
                   AND e.date_evenement BETWEEN ? AND ?
                   AND e.statut IN (' . $statuts . ')

@@ -52,17 +52,17 @@ $heroSub   = $pick((string) settings('hero_sous_titre_fr', ''), (string) setting
 
                 <div class="hero-trust">
                     <div class="trust-avatars" aria-hidden="true">
-                        <span class="t-avatar">A</span>
-                        <span class="t-avatar">B</span>
-                        <span class="t-avatar">C</span>
-                        <span class="t-avatar">+</span>
+                        <span class="t-avatar"><i class="mdi mdi-account"></i></span>
+                        <span class="t-avatar"><i class="mdi mdi-account"></i></span>
+                        <span class="t-avatar"><i class="mdi mdi-account"></i></span>
+                        <span class="t-avatar t-avatar-plus"><i class="mdi mdi-plus"></i></span>
                     </div>
                     <span><strong>+<?= (int) $totalParticipants ?></strong> <?= $isAr ? 'مشاركة مواطنة' : __('landing.citoyen_participations') ?></span>
                 </div>
             </div>
 
             <!-- Illustration moderne (100% CSS/HTML) -->
-            <div class="hero-visual" aria-hidden="true">
+            <div class="hero-visual parallax-slow" aria-hidden="true">
                 <div class="mock-window">
                     <div class="mock-topbar">
                         <span class="mock-dots"><i></i><i></i><i></i></span>
@@ -126,49 +126,336 @@ $heroSub   = $pick((string) settings('hero_sous_titre_fr', ''), (string) setting
     </section>
 
     <!-- ═══════════════ SECTIONS ═══════════════ -->
+    <style>
+    /* ═══ Albums — filtres ═══ */
+    .album-filters-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 24px;
+    }
+    .album-filters-row .filter-btn {
+        border: 1px solid var(--lnd-border, rgba(148, 163, 184, 0.3));
+        background: transparent;
+        color: var(--text-muted, #94a3b8);
+        padding: 7px 14px;
+        border-radius: 999px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .album-filters-row .filter-btn:hover {
+        transform: translateY(-1px);
+        color: var(--text, #fff);
+        border-color: var(--lnd-accent, #16a34a);
+    }
+    .album-filters-row .filter-btn.active {
+        background: var(--lnd-accent, #16a34a);
+        color: #fff;
+        border-color: var(--lnd-accent, #16a34a);
+    }
+
+    /* Couverture cliquable (bouton) */
+    .album-cover.album-open {
+        display: grid;
+        place-items: center;
+        width: 100%;
+        padding: 0;
+        border: 0;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(34, 211, 238, 0.12));
+        cursor: pointer;
+    }
+    .album-cover.album-open:focus-visible {
+        outline: 2px solid var(--lnd-accent, #16a34a);
+        outline-offset: 2px;
+    }
+
+    /* Métadonnées */
+    .album-assoc { margin-top: 6px; }
+    .album-meta { color: var(--text-muted, #94a3b8); }
+
+    /* Placeholder de couverture */
+    .placeholder-cover {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        background: var(--bg-muted, #f8f9fa);
+        color: var(--text-muted, #6c757d);
+    }
+    .placeholder-cover .mdi { font-size: 3rem; opacity: 0.5; }
+
+    /* Placeholder grille */
+    .albums-placeholder {
+        grid-column: 1 / -1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 48px 16px;
+        color: var(--text-muted, #94a3b8);
+        text-align: center;
+    }
+    .albums-placeholder .mdi { font-size: 3rem; opacity: 0.5; }
+
+    /* Utilitaires */
+    .mdi-48px { font-size: 3rem; }
+    .mt-1 { margin-top: 6px; }
+    .py-4 { padding-block: 1.5rem; }
+
+    /* ═══ Album Lightbox (personnalisé) ═══ */
+    .wh-lightbox {
+        position: fixed;
+        inset: 0;
+        z-index: 2000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        opacity: 0;
+        visibility: hidden;
+        display: none;
+        transition: opacity 0.28s ease, visibility 0.28s ease;
+    }
+    .wh-lightbox.open { opacity: 1; visibility: visible; display: flex; }
+    body.wh-lb-open { overflow: hidden; }
+
+    .wh-lightbox-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(2, 6, 23, 0.88);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+    }
+
+    .wh-lightbox-panel {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        max-width: min(1080px, 100%);
+        max-height: 94vh;
+        width: 100%;
+        border-radius: 20px;
+        overflow: hidden;
+        background: var(--card-bg, #0f172a);
+        border: 1px solid var(--lnd-border, rgba(148, 163, 184, 0.25));
+        box-shadow: 0 40px 90px rgba(0, 0, 0, 0.6);
+        transform: translateY(16px) scale(0.98);
+        transition: transform 0.28s ease;
+    }
+    .wh-lightbox.open .wh-lightbox-panel { transform: translateY(0) scale(1); }
+
+    .wh-lightbox-close {
+        position: absolute;
+        top: 14px;
+        inset-inline-end: 14px;
+        z-index: 3;
+        width: 40px;
+        height: 40px;
+        border: none;
+        border-radius: 50%;
+        background: rgba(15, 23, 42, 0.65);
+        color: #fff;
+        font-size: 1.2rem;
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        transition: background 0.2s ease, transform 0.2s ease;
+    }
+    .wh-lightbox-close:hover { background: rgba(220, 38, 38, 0.85); transform: rotate(90deg); }
+
+    .wh-lightbox-stage {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #05070f;
+        min-height: 220px;
+    }
+    .wh-lightbox-img {
+        width: 100%;
+        max-height: 66vh;
+        object-fit: contain;
+    }
+
+    .wh-lightbox-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 46px;
+        height: 46px;
+        border: none;
+        border-radius: 50%;
+        background: rgba(15, 23, 42, 0.65);
+        color: #fff;
+        font-size: 1.4rem;
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        transition: background 0.2s ease;
+        z-index: 2;
+    }
+    .wh-lightbox-nav:hover { background: rgba(99, 102, 241, 0.9); }
+    .wh-lightbox-nav.prev { inset-inline-start: 14px; }
+    .wh-lightbox-nav.next { inset-inline-end: 14px; }
+
+    .wh-lightbox-counter {
+        position: absolute;
+        bottom: 12px;
+        inset-inline-start: 16px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #fff;
+        background: rgba(15, 23, 42, 0.65);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        z-index: 2;
+    }
+
+    .wh-lightbox-caption {
+        position: absolute;
+        bottom: 12px;
+        inset-inline-end: 16px;
+        max-width: 60%;
+        margin: 0;
+        padding: 5px 12px;
+        border-radius: 10px;
+        font-size: 0.82rem;
+        color: #e2e8f0;
+        background: rgba(15, 23, 42, 0.65);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        z-index: 2;
+    }
+
+    .wh-lightbox-narrative {
+        padding: 18px 22px 22px;
+        border-top: 1px solid var(--lnd-border, rgba(148, 163, 184, 0.2));
+        background: var(--card-bg, #0f172a);
+        max-height: 26vh;
+        overflow-y: auto;
+    }
+    .wh-lightbox-narrative h4 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 8px;
+        font-size: 0.95rem;
+        color: var(--accent-soft, #818cf8);
+    }
+    .wh-lightbox-narrative p {
+        margin: 0;
+        font-size: 0.9rem;
+        line-height: 1.7;
+        color: var(--text, #e2e8f0);
+    }
+
+    /* Gallery type styling */
+    .gallery-type.album-link {
+        background: var(--lnd-accent, #16a34a);
+        color: #fff;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.8em;
+    }
+    .btn-outline-primary {
+        border: 2px solid var(--lnd-accent, #16a34a);
+        color: var(--lnd-accent, #16a34a);
+        transition: all 0.3s ease;
+    }
+    .btn-outline-primary:hover {
+        background: var(--lnd-accent, #16a34a);
+        color: #fff;
+    }
+    </style>
+
     <?php foreach ($ordre as $section): ?>
         <?php if (! $visible((string) $section)) { continue; } ?>
 
-        <?php if ($section === 'actualites'): ?>
+<?php if ($section === 'actualites'): ?>
             <section class="section section-events" id="actualites">
                 <div class="container">
                     <div class="section-head" data-reveal>
                         <span class="eyebrow"><i class="mdi mdi-calendar-star"></i><?= $isAr ? 'آخر الفعاليات' : 'À la une' ?></span>
                         <h2 class="section-title"><?= e(__('landing.actualites')) ?></h2>
                         <p class="section-lead"><?= $isAr ? 'تعرّف على الفعاليات القادمة المبرمجة عبر الولاية.' : 'Les prochaines opérations programmées à travers la wilaya.' ?></p>
+                        <?php if (! empty($upcoming)): ?>
+                            <span class="section-count"><i class="mdi mdi-calendar-clock-outline"></i><?= (int) count($upcoming) ?> <?= $isAr ? 'فعالية قادمة' : 'événements à venir' ?></span>
+                        <?php endif; ?>
                     </div>
-                     <div class="cards-grid">
-                         <?php foreach ($upcoming as $ev):
-                             $assoc = null;
-                             if (! empty($ev['association_id'])) {
-                                 $assoc = Database::one('SELECT id, nom, numero_agrement, valide FROM associations WHERE id = ?', [(int) $ev['association_id']]);
-                             }
-                         ?>
-                             <a class="card event-card hover" href="<?= url('checkin/' . \App\Helpers\QrCodeGenerator::tokenForEvent((int) $ev['id'])) ?>" data-reveal data-reveal-delay="0">
-                                 <div class="event-card-top">
-                                     <span class="date-badge">
-                                         <span class="day"><?= e((new DateTimeImmutable((string) $ev['date_evenement']))->format('d')) ?></span>
-                                         <span class="month"><?= e((new DateTimeImmutable((string) $ev['date_evenement']))->format('M')) ?></span>
-                                     </span>
-                                     <span class="status programme"><?= e(__('evenements.statut_programme')) ?></span>
-                                 </div>
-                                 <h3><?= e($ev['adresse']) ?></h3>
-                                 <?php if ($assoc !== null): ?>
-                                     <div class="mt-1"><?= association_badge($assoc) ?></div>
-                                 <?php endif; ?>
-                                 <p class="text-muted event-meta">
-                                     <i class="mdi mdi-clock-outline"></i><?= e($ev['heure'] ?? '') ?>&nbsp;&nbsp;
-                                     <i class="mdi mdi-map-marker-outline"></i><?= e($ev['commune_nom'] ?? '') ?>
-                                 </p>
-                                 <span class="event-voir"><?= $isAr ? 'التفاصيل' : 'Voir les détails' ?> <i class="mdi mdi-arrow-right"></i></span>
-                             </a>
-                         <?php endforeach; ?>
-                        <?php if (empty($upcoming)): ?><div class="card empty"><?= e(__('landing.actualites_vide')) ?></div><?php endif; ?>
+                    <div class="cards-grid">
+                        <?php foreach ($upcoming as $idx => $ev):
+                            $assoc = null;
+                            if (! empty($ev['association_id'])) {
+                                $assoc = Database::one('SELECT id, nom, numero_agrement, valide FROM associations WHERE id = ?', [(int) $ev['association_id']]);
+                            }
+                            $dtEv = new DateTimeImmutable((string) $ev['date_evenement']);
+                            $moisFr = ['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'];
+                            $moisAr = ['جانفي', 'فيفري', 'مارس', 'أفريل', 'ماي', 'جوان', 'جويلية', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+                            $nomMois = $isAr ? $moisAr[(int) $dtEv->format('n') - 1] : $moisFr[(int) $dtEv->format('n') - 1];
+                            $heure = ! empty($ev['heure']) ? substr((string) $ev['heure'], 0, 5) : '';
+                            $desc = trim((string) ($ev['description'] ?? ''));
+                        ?>
+                            <a class="card event-card hover" href="<?= url('checkin/' . \App\Helpers\QrCodeGenerator::tokenForEvent((int) $ev['id'])) ?>" data-reveal data-reveal-delay="<?= $idx * 100 ?>">
+                                <div class="event-card-top">
+                                    <span class="date-badge">
+                                        <span class="day"><?= e($dtEv->format('d')) ?></span>
+                                        <span class="month"><?= e($nomMois) ?></span>
+                                        <span class="year"><?= e($dtEv->format('Y')) ?></span>
+                                    </span>
+                                    <span class="event-status <?= e(statut_key((string) ($ev['statut'] ?? ''))) ?>">
+                                        <i class="mdi mdi-calendar-check"></i><?= e(statut_label((string) ($ev['statut'] ?? ''))) ?>
+                                    </span>
+                                </div>
+                                <h3 class="event-title"><?= e($ev['adresse']) ?></h3>
+                                <?php if ($desc !== ''): ?>
+                                    <p class="event-desc"><?= e($desc) ?></p>
+                                <?php endif; ?>
+                                <?php if ($assoc !== null): ?>
+                                    <div class="event-assoc"><?= association_badge($assoc) ?></div>
+                                <?php endif; ?>
+                                <div class="event-card-footer">
+                                    <div class="event-meta">
+                                        <?php if ($heure !== ''): ?>
+                                            <span class="event-meta-chip"><i class="mdi mdi-clock-outline"></i><?= e($heure) ?></span>
+                                        <?php endif; ?>
+                                        <?php if (! empty($ev['commune_nom'])): ?>
+                                            <span class="event-meta-chip"><i class="mdi mdi-map-marker-outline"></i><?= e($ev['commune_nom']) ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <span class="event-voir"><?= $isAr ? 'التفاصيل' : 'Détails' ?> <i class="mdi mdi-arrow-right"></i></span>
+                                </div>
+                            </a>
+                        <?php endforeach; ?>
+                        <?php if (empty($upcoming)): ?>
+                            <div class="card empty events-empty" style="grid-column: 1 / -1;">
+                                <i class="mdi mdi-calendar-outline mdi-48px"></i>
+                                <p><?= e(__('landing.actualites_vide')) ?></p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="section-cta" data-reveal data-reveal-delay="200">
+                        <a class="btn btn-outline" href="<?= url('evenements') ?>">
+                            <i class="mdi mdi-calendar-multiple"></i>
+                            <?= $isAr ? 'جميع الفعاليات' : 'Voir tous les événements' ?>
+                        </a>
                     </div>
                 </div>
             </section>
 
-        <?php elseif ($section === 'apropos'): ?>
+                <?php elseif ($section === 'apropos'): ?>
             <section class="section section-about bg-muted" id="apropos">
                 <div class="container about-inner">
                     <div class="about-visual" data-reveal aria-hidden="true">
@@ -251,7 +538,12 @@ $heroSub   = $pick((string) settings('hero_sous_titre_fr', ''), (string) setting
                         </button>
                         <?php foreach ($anomalies as $anomaly): ?>
                             <button type="button" class="filter-btn" data-filter="anomaly-<?= (int) $anomaly['id'] ?>">
-                                <?= $anomaly['icone'] ? e($anomaly['icone']) . ' ' : '' ?><?= e($anomaly['nom']) ?>
+                                <?php
+                                $ico = (string) ($anomaly['icone'] ?? '');
+                                $icoMdi = str_starts_with($ico, 'fa-') ? 'mdi-' . substr($ico, 3) : $ico;
+                                if (! $icoMdi) $icoMdi = 'mdi-alert-octagon';
+                                ?>
+                                <i class="mdi <?= e($icoMdi) ?>"></i> <?= e($anomaly['nom']) ?>
                             </button>
                         <?php endforeach; ?>
                     </div>
@@ -269,12 +561,16 @@ $heroSub   = $pick((string) settings('hero_sous_titre_fr', ''), (string) setting
                                 );
                             }
                             ?>
-                            <article class="album-card" data-reveal data-album-id="<?= (int) $al['id'] ?>" data-anomalies="<?= implode(',', array_column($albumAnomalies, 'id')) ?>">
-                                <button type="button" class="album-cover album-open" onclick="openAlbumLightbox(<?= (int) $al['id'] ?>)" aria-label="<?= e($al['titre']) ?>">
-                                    <?php if (! empty($al['display_image'])): ?>
-                                        <img src="<?= asset((string) $al['display_image']) ?>" alt="<?= e($al['titre']) ?>" loading="lazy">
-                                    <?php else: ?>
-                                        <div class="placeholder-cover">
+<article class="album-card" data-reveal data-album-id="<?= (int) $al['id'] ?>" data-anomalies="<?= implode(',', array_column($albumAnomalies, 'id')) ?>">
+                                        <button type="button" class="album-cover album-open" onclick="openAlbumLightbox(<?= (int) $al['id'] ?>)" aria-label="<?= e($al['titre']) ?>">
+                                            <?php
+                                            $imgPath = (string) ($al['display_image'] ?? '');
+                                            $imgExists = $imgPath && is_file(public_path($imgPath));
+                                            ?>
+                                            <?php if ($imgExists): ?>
+                                                <img src="<?= asset($imgPath) ?>" alt="<?= e($al['titre']) ?>" loading="lazy">
+                                                <?php else: ?>
+                                                <div class="placeholder-cover">
                                             <i class="mdi mdi-image-multiple mdi-48px"></i>
                                         </div>
                                     <?php endif; ?>
@@ -372,258 +668,7 @@ $heroSub   = $pick((string) settings('hero_sous_titre_fr', ''), (string) setting
                         <?php if (empty($partners)): ?><div class="card empty"><?= $isAr ? 'لا يوجد شركاء حالياً.' : 'Aucun partenaire pour le moment.' ?></div><?php endif; ?>
                     </div>
                 </div>
-            </section>
-
-<style>
-/* ═══ Albums — filtres ═══ */
-.album-filters-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 24px;
-}
-.album-filters-row .filter-btn {
-    border: 1px solid var(--lnd-border, rgba(148, 163, 184, 0.3));
-    background: transparent;
-    color: var(--text-muted, #94a3b8);
-    padding: 7px 14px;
-    border-radius: 999px;
-    font-size: 0.82rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-.album-filters-row .filter-btn:hover {
-    transform: translateY(-1px);
-    color: var(--text, #fff);
-    border-color: var(--lnd-accent, #6366f1);
-}
-.album-filters-row .filter-btn.active {
-    background: var(--lnd-accent, #6366f1);
-    color: #fff;
-    border-color: var(--lnd-accent, #6366f1);
-}
-
-/* Couverture cliquable (bouton) */
-.album-cover.album-open {
-    display: grid;
-    place-items: center;
-    width: 100%;
-    padding: 0;
-    border: 0;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(34, 211, 238, 0.12));
-    cursor: pointer;
-}
-.album-cover.album-open:focus-visible {
-    outline: 2px solid var(--lnd-accent, #6366f1);
-    outline-offset: 2px;
-}
-
-/* Métadonnées */
-.album-assoc { margin-top: 6px; }
-.album-meta { color: var(--text-muted, #94a3b8); }
-
-/* Placeholder de couverture */
-.placeholder-cover {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    background: var(--bg-muted, #f8f9fa);
-    color: var(--text-muted, #6c757d);
-}
-.placeholder-cover .mdi { font-size: 3rem; opacity: 0.5; }
-
-/* Placeholder grille */
-.albums-placeholder {
-    grid-column: 1 / -1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 48px 16px;
-    color: var(--text-muted, #94a3b8);
-    text-align: center;
-}
-.albums-placeholder .mdi { font-size: 3rem; opacity: 0.5; }
-
-/* Utilitaires */
-.mdi-48px { font-size: 3rem; }
-.mt-1 { margin-top: 6px; }
-.py-4 { padding-block: 1.5rem; }
-
-/* ═══ Album Lightbox (personnalisé) ═══ */
-.wh-lightbox {
-    position: fixed;
-    inset: 0;
-    z-index: 2000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.28s ease, visibility 0.28s ease;
-}
-.wh-lightbox.open { opacity: 1; visibility: visible; }
-body.wh-lb-open { overflow: hidden; }
-
-.wh-lightbox-backdrop {
-    position: absolute;
-    inset: 0;
-    background: rgba(2, 6, 23, 0.88);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-}
-
-.wh-lightbox-panel {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    max-width: min(1080px, 100%);
-    max-height: 94vh;
-    width: 100%;
-    border-radius: 20px;
-    overflow: hidden;
-    background: var(--card-bg, #0f172a);
-    border: 1px solid var(--lnd-border, rgba(148, 163, 184, 0.25));
-    box-shadow: 0 40px 90px rgba(0, 0, 0, 0.6);
-    transform: translateY(16px) scale(0.98);
-    transition: transform 0.28s ease;
-}
-.wh-lightbox.open .wh-lightbox-panel { transform: translateY(0) scale(1); }
-
-.wh-lightbox-close {
-    position: absolute;
-    top: 14px;
-    inset-inline-end: 14px;
-    z-index: 3;
-    width: 40px;
-    height: 40px;
-    border: none;
-    border-radius: 50%;
-    background: rgba(15, 23, 42, 0.65);
-    color: #fff;
-    font-size: 1.2rem;
-    cursor: pointer;
-    display: grid;
-    place-items: center;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    transition: background 0.2s ease, transform 0.2s ease;
-}
-.wh-lightbox-close:hover { background: rgba(220, 38, 38, 0.85); transform: rotate(90deg); }
-
-.wh-lightbox-stage {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #05070f;
-    min-height: 220px;
-}
-.wh-lightbox-img {
-    width: 100%;
-    max-height: 66vh;
-    object-fit: contain;
-}
-
-.wh-lightbox-nav {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 46px;
-    height: 46px;
-    border: none;
-    border-radius: 50%;
-    background: rgba(15, 23, 42, 0.65);
-    color: #fff;
-    font-size: 1.4rem;
-    cursor: pointer;
-    display: grid;
-    place-items: center;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    transition: background 0.2s ease;
-    z-index: 2;
-}
-.wh-lightbox-nav:hover { background: rgba(99, 102, 241, 0.9); }
-.wh-lightbox-nav.prev { inset-inline-start: 14px; }
-.wh-lightbox-nav.next { inset-inline-end: 14px; }
-
-.wh-lightbox-counter {
-    position: absolute;
-    bottom: 12px;
-    inset-inline-start: 16px;
-    padding: 3px 10px;
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: #fff;
-    background: rgba(15, 23, 42, 0.65);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    z-index: 2;
-}
-
-.wh-lightbox-caption {
-    position: absolute;
-    bottom: 12px;
-    inset-inline-end: 16px;
-    max-width: 60%;
-    margin: 0;
-    padding: 5px 12px;
-    border-radius: 10px;
-    font-size: 0.82rem;
-    color: #e2e8f0;
-    background: rgba(15, 23, 42, 0.65);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    z-index: 2;
-}
-
-.wh-lightbox-narrative {
-    padding: 18px 22px 22px;
-    border-top: 1px solid var(--lnd-border, rgba(148, 163, 184, 0.2));
-    background: var(--card-bg, #0f172a);
-    max-height: 26vh;
-    overflow-y: auto;
-}
-.wh-lightbox-narrative h4 {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 0 0 8px;
-    font-size: 0.95rem;
-    color: var(--accent-soft, #818cf8);
-}
-.wh-lightbox-narrative p {
-    margin: 0;
-    font-size: 0.9rem;
-    line-height: 1.7;
-    color: var(--text, #e2e8f0);
-}
-
-/* Gallery type styling */
-.gallery-type.album-link {
-    background: var(--color-primary);
-    color: #fff;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.8em;
-}
-.btn-outline-primary {
-    border: 2px solid var(--color-primary);
-    color: var(--color-primary);
-    transition: all 0.3s ease;
-}
-.btn-outline-primary:hover {
-    background: var(--color-primary);
-    color: #fff;
-}
-</style>
+             </section>
 
         <?php elseif ($section === 'galerie'): ?>
             <section class="section section-gallery bg-muted" id="galerie">
@@ -636,8 +681,10 @@ body.wh-lb-open { overflow: hidden; }
                     <?php if (! empty($gallery)): ?>
                         <div class="gallery-grid">
                             <?php foreach ($gallery as $g): ?>
-                                <a class="gallery-item" href="<?= e($g['lien'] ?? ($g['type'] === 'album' ? url('citoyen/albums/' . ($g['sort_order'] ?? '')) : '#')) ?>"
-                                   <?= ($g['lien'] && $g['type'] !== 'album') ? 'target="_blank" rel="noopener"' : '' ?> data-reveal>
+                                <?php $isPhoto = (($g['type'] ?? '') !== 'album') && empty($g['lien']); ?>
+                                <a class="gallery-item" href="<?= e($isPhoto ? '#' : ($g['lien'] ?? ($g['type'] === 'album' ? url('citoyen/albums/' . ($g['sort_order'] ?? '')) : '#'))) ?>"
+                                   <?= ($g['lien'] && $g['type'] !== 'album') ? 'target="_blank" rel="noopener"' : '' ?>
+                                   <?= $isPhoto ? 'data-lightbox="landing" data-title="' . e($pick((string) ($g['titre_fr'] ?? ''), (string) ($g['titre_ar'] ?? ''))) . '" data-full="' . e($g['image']) . '"' : '' ?> data-reveal>
                                     <img src="<?= e($g['image']) ?>" alt="<?= e($g['titre_fr'] ?? '') ?>" loading="lazy">
                                     <div class="gallery-overlay">
                                         <span class="gallery-title"><?= e($pick((string) ($g['titre_fr'] ?? ''), (string) ($g['titre_ar'] ?? ''))) ?></span>
@@ -650,15 +697,23 @@ body.wh-lb-open { overflow: hidden; }
                                 </a>
                             <?php endforeach; ?>
                         </div>
+                        <!-- Lightbox (simple, zero-dépendance) -->
+                        <div id="landingLightbox" class="lb-modal" role="dialog" aria-modal="true" aria-hidden="true" tabindex="-1">
+                            <div class="lb-content">
+                                <button type="button" class="lb-close" aria-label="Fermer"><i class="mdi mdi-close"></i></button>
+                                <img class="lb-img" alt="">
+                                <span class="lb-title"></span>
+                            </div>
+                        </div>
                         <!-- Bouton pour voir tous les albums -->
                         <div class="text-center mt-4">
                             <a href="<?= url('citoyen/albums') ?>" class="btn btn-outline-primary">
                                 <i class="mdi mdi-album"></i> <?= $isAr ? 'جميع الألبومات' : 'Tous les albums' ?>
                             </a>
                         </div>
-                    <?php else: ?>
+                     <?php else: ?>
                         <p class="text-muted text-center"><?= $isAr ? 'لا توجد صور حالياً.' : 'Aucune image disponible.' ?></p>
-                    <?php endif; ?>
+                     <?php endif; ?>
                 </div>
             </section>
 
@@ -689,12 +744,10 @@ body.wh-lb-open { overflow: hidden; }
                                     </div>
                                 </div>
                             <?php endforeach; ?>
-                        </div>
-                    <?php else: ?>
-                        <p class="text-muted text-center"><?= $isAr ? 'لا توجد مقارنات حالياً.' : 'Aucune comparaison disponible.' ?></p>
-                    <?php endif; ?>
-                </div>
-            </section>
+                         </div>
+                     <?php endif; ?>
+                 </div>
+             </section>
 
         <?php elseif ($section === 'faq'): ?>
             <section class="section section-faq bg-muted" id="faq">

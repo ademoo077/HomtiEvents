@@ -320,6 +320,18 @@ body {
     box-shadow: var(--wh-shadow);
     height: 100%;
 }
+.wh-kpi-sm {
+    flex: 0 1 auto;
+    padding: .5rem .75rem;
+    gap: .4rem;
+    border: 1px solid var(--wh-border);
+    border-radius: .5rem;
+    background: var(--wh-white);
+    height: auto;
+    white-space: nowrap;
+}
+.wh-kpi-sm .wh-kpi-icon { width: 28px; height: 28px; font-size: 1rem; }
+.wh-kpi-sm .wh-kpi-label { font-size: .78rem; }
 .wh-kpi-icon {
     width: 52px;
     height: 52px;
@@ -986,3 +998,62 @@ body {
     border: 1px solid var(--wh-border);
     font-weight: 600;
 }
+
+/* ═══════════ BADGES DE RÔLE (profil) ═══════════ */
+.wh-role {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .78rem;
+    font-weight: 600;
+    padding: .3rem .7rem;
+}
+.wh-role::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: .8;
+}
+.wh-role.wilaya      { background: var(--wh-blue-soft);  color: var(--wh-blue); }
+.wh-role.association { background: var(--wh-green-soft); color: var(--wh-green); }
+.wh-role.epic        { background: #ede9fe;             color: #7c3aed; }
+.wh-role.membre      { background: var(--wh-gray-soft); color: var(--wh-gray); }
+.wh-role.citoyen     { background: var(--wh-gray-soft); color: var(--wh-gray); }
+
+/* ═══════════ EN-TÊTE DE PAGE AVEC ICÔNE ═══════════ */
+.wh-page-title-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: .75rem;
+    display: grid;
+    place-items: center;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+}
+.wh-page-title-icon.blue   { background: var(--wh-blue-soft);  color: var(--wh-blue); }
+.wh-page-title-icon.green  { background: var(--wh-green-soft); color: var(--wh-green); }
+.wh-page-title-icon.purple { background: #ede9fe;             color: #7c3aed; }
+
+/* Champs avec icône */
+.wh-input-icon-wrap { position: relative; }
+.wh-input-icon-wrap > .mdi {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    inset-inline-start: .85rem;
+    color: var(--wh-text-muted);
+    font-size: 1.1rem;
+    pointer-events: none;
+}
+.wh-input-icon-wrap .form-control,
+.wh-input-icon-wrap .form-select {
+    padding-inline-start: 2.5rem;
+}
+.wh-label-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+}
+.wh-label-icon .mdi { color: var(--wh-blue); font-size: 1rem; }

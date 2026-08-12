@@ -5,6 +5,7 @@
  * @var string $content
  */
 use App\Helpers\I18n;
+use App\Helpers\Notification;
 use App\Helpers\Rbac;
 
 $locale   = I18n::locale();
@@ -15,6 +16,36 @@ $user     = current_user();
 $appName  = e(settings('app.name') ?: __('app.name'));
 $current  = $page ?? request_path();
 $userRole = user_role();
+
+// Notifications in-app (cloche du header) — mêmes helpers que le back-office.
+$unreadNotifs = 0;
+$recentNotifs = [];
+if ($user !== null) {
+    $unreadNotifs = Notification::unreadCount((int) $user['id']);
+    $recentNotifs = Notification::recent((int) $user['id'], 8);
+}
+
+// Lien d'une notification selon le rôle : association → fiche événement association,
+// wilaya → fiche événement back-office.
+$notifUrl = static function (array $n): ?string {
+    $data = json_decode((string) ($n['data_json'] ?? 'null'), true) ?? [];
+    $role = user_role();
+
+    if (isset($data['evenement_id'])) {
+        $eventId = (int) $data['evenement_id'];
+        return $role === 'association' ? url('association/' . $eventId) : url('wilaya/evenements/' . $eventId);
+    }
+    if (isset($data['request_id'])) {
+        return $role === 'wilaya'
+            ? url('admin/association-requests/' . (int) $data['request_id'])
+            : url('association/demande');
+    }
+    if (isset($data['link'])) {
+        return url((string) $data['link']);
+    }
+
+    return null;
+};
 
 $bootstrapCss = $isAr
     ? '/assets/vendor/bootstrap/bootstrap.rtl.min.css'
@@ -28,12 +59,24 @@ $association  = \App\Helpers\Database::one(
 );
 
 $isActive = static function (string $prefix) use ($current): bool {
+    if ($prefix === 'association') {
+        return $current === 'association';
+    }
+    if ($prefix === 'association/events') {
+        return $current === 'association/events'
+            || preg_match('#^association/\d+$#', $current) === 1
+            || preg_match('#^association/\d+/edit$#', $current) === 1;
+    }
+
     return str_starts_with($current, $prefix);
 };
 
 $navItems = [
-    ['label' => __('common.dashboard'),     'icon' => 'mdi-view-dashboard',  'href' => 'association',        'prefix' => 'association'],
-    ['label' => __('common.evenements'),     'icon' => 'mdi-calendar-star',   'href' => 'association/create', 'prefix' => 'association/create'],
+    ['label' => __('common.dashboard'),       'icon' => 'mdi-view-dashboard',  'href' => 'association',              'prefix' => 'association'],
+    ['label' => __('common.evenements'),       'icon' => 'mdi-calendar-star',   'href' => 'association/events',       'prefix' => 'association/events'],
+    ['label' => __('common.gallery'),          'icon' => 'mdi-image-multiple',  'href' => 'association/gallery',      'prefix' => 'association/gallery'],
+    ['label' => __('evenements.create'),       'icon' => 'mdi-plus-circle',     'href' => 'association/create',       'prefix' => 'association/create'],
+    ['label' => __('common.notifications'),    'icon' => 'mdi-bell-ring',       'href' => 'association/notifications','prefix' => 'association/notifications'],
 ];
 ?>
 <!DOCTYPE html>
@@ -97,6 +140,58 @@ $navItems = [
                         <i class="mdi mdi-earth"></i>
                     </a>
 
+                    <?php if ($user !== null): ?>
+                    <div class="dropdown wh-notif">
+                        <button type="button" class="wh-icon-btn" data-bs-toggle="dropdown" aria-expanded="false"
+                                aria-label="<?= $isAr ? 'التنبيهات' : 'Notifications' ?>">
+                            <i class="mdi mdi-bell-outline"></i>
+                            <span class="wh-notif-badge" data-notif-badge id="notifBadge"
+                                  <?= $unreadNotifs > 0 ? '' : 'style="display:none"' ?>><?= $unreadNotifs ?></span>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end shadow-sm wh-notif-menu">
+                            <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
+                                <strong class="small"><?= $isAr ? 'التنبيهات' : 'Notifications' ?></strong>
+                                <?php if ($unreadNotifs > 0): ?>
+                                    <button type="button" class="btn btn-sm btn-link p-0 text-primary text-decoration-none"
+                                            data-notif-read-all><?= $isAr ? 'قراءة الكل' : 'Tout marquer lu' ?></button>
+                                <?php endif; ?>
+                            </div>
+                            <?php if ($recentNotifs === []): ?>
+                                <div class="wh-empty p-3 text-center text-muted small">
+                                    <?= $isAr ? 'لا توجد تنبيهات' : 'Aucune notification' ?>
+                                </div>
+                            <?php else: ?>
+                                <?php foreach ($recentNotifs as $n): $nUrl = $notifUrl($n); $nRead = (int) ($n['lu'] ?? 0) === 1; ?>
+                                    <a class="dropdown-item wh-notif-item <?= $nRead ? 'read' : '' ?>"
+                                       href="<?= e($nUrl ?? '#') ?>"
+                                       data-notif-id="<?= (int) $n['id'] ?>"
+                                       <?= $nUrl === null ? 'data-notif-nolink="1"' : '' ?>>
+                                        <div class="d-flex gap-2 align-items-start">
+                                            <i class="mdi <?= $nRead ? 'mdi-bell-outline' : 'mdi-bell-ring' ?> wh-notif-icon"></i>
+                                            <div class="min-w-0 flex-grow-1">
+                                                <div class="fw-semibold small wh-notif-title"><?= e($n['titre']) ?></div>
+                                                <div class="small text-muted text-truncate"><?= e($n['message_notif']) ?></div>
+                                                <small class="text-muted d-block" style="font-size:.7rem">
+                                                    <?= e(date('d/m H:i', strtotime((string) $n['date_creation']))) ?>
+                                                </small>
+                                            </div>
+                                            <?php if (! $nRead): ?>
+                                                <span class="wh-notif-dot"></span>
+                                            <?php endif; ?>
+                                        </div>
+                                    </a>
+                                <?php endforeach; ?>
+                                <div class="text-center py-2 border-top">
+                                    <a class="btn btn-sm btn-outline-primary w-100"
+                                       href="<?= url('association/notifications') ?>">
+                                        <?= $isAr ? 'عرض كل الإشعارات' : 'Voir toutes les notifications' ?>
+                                    </a>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
                     <?php if ($isAr): ?>
                         <a class="wh-icon-btn" href="<?= url('lang/fr') ?>" title="Français">FR</a>
                     <?php else: ?>
@@ -113,6 +208,8 @@ $navItems = [
                             </span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                            <li><a class="dropdown-item" href="<?= url('profile') ?>"><i class="mdi mdi-account-circle me-2"></i><?= $isAr ? 'ملفي الشخصي' : 'Mon profil' ?></a></li>
+                            <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="<?= url('auth/logout') ?>"><i class="mdi mdi-logout me-2"></i><?= e(__('common.logout')) ?></a></li>
                         </ul>
                     </div>

@@ -23,15 +23,18 @@ $badgeColor = static function (string $statut): string {
 ?>
 <div class="wh-page">
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-        <div>
-            <h1 class="wh-page-title"><?= e(__('common.dashboard')) ?></h1>
-            <p class="wh-page-sub">
-                <?= e(($association['nom'] ?? 'Association')) ?> — <?= $isAr ? 'مراقبة نشاطات الجمعية' : 'Suivi de l\'activité de votre association' ?>
-            </p>
-            <div class="mt-1"><?= association_badge($association) ?></div>
+        <div class="d-flex align-items-center gap-3">
+            <div class="wh-page-title-icon green"><i class="mdi mdi-view-dashboard-outline"></i></div>
+            <div>
+                <h1 class="wh-page-title"><?= e(__('common.dashboard')) ?></h1>
+                <p class="wh-page-sub">
+                    <?= e(($association['nom'] ?? 'Association')) ?> — <?= $isAr ? 'مراقبة نشاطات الجمعية' : 'Suivi de l\'activité de votre association' ?>
+                </p>
+                <div class="mt-1"><?= association_badge($association) ?></div>
+            </div>
         </div>
         <a class="btn btn-primary" href="<?= url('association/create') ?>">
-            <i class="mdi mdi-plus me-1"></i><?= e(__('evenements.create')) ?>
+            <i class="mdi mdi-plus-circle me-1"></i><?= e(__('evenements.create')) ?>
         </a>
     </div>
 
@@ -121,16 +124,16 @@ $badgeColor = static function (string $statut): string {
         </div>
         <div class="col-md-3 col-6">
             <div class="wh-kpi">
-                <div class="wh-kpi-icon green"><i class="mdi mdi-shield-check-outline"></i></div>
+                <div class="wh-kpi-icon blue"><i class="mdi mdi-check-decagram-outline"></i></div>
                 <div>
                     <div class="wh-kpi-count"><?= (int) ($stats['validated'] ?? 0) ?></div>
-                    <div class="wh-kpi-label"><?= $isAr ? 'المنجزة' : 'Validés' ?></div>
+                    <div class="wh-kpi-label"><?= $isAr ? 'المصدقة' : 'Validés' ?></div>
                 </div>
             </div>
         </div>
         <div class="col-md-3 col-6">
             <div class="wh-kpi">
-                <div class="wh-kpi-icon purple"><i class="mdi mdi-account-group"></i></div>
+                <div class="wh-kpi-icon purple"><i class="mdi mdi-account-group-outline"></i></div>
                 <div>
                     <div class="wh-kpi-count"><?= (int) ($stats['participants'] ?? 0) ?></div>
                     <div class="wh-kpi-label"><?= $isAr ? 'المشاركون' : 'Participants' ?></div>
@@ -139,9 +142,111 @@ $badgeColor = static function (string $statut): string {
         </div>
     </div>
 
+    <!-- Idées & conseils (suggestions intelligentes selon l'état du compte) -->
+    <?php
+        $suggestions = [];
+        if (($association['email'] ?? '') === '' || ($association['telephone'] ?? '') === '') {
+            $suggestions[] = ['icon' => 'mdi-account-edit-outline', 'color' => 'primary',
+                'texte' => $isAr ? 'أكمل معلومات الاتصال الخاصة بجمعيتك (البريد الإلكتروني / الهاتف) لضمان التواصل.' : 'Complétez vos coordonnées (email / téléphone) pour que la Wilaya puisse vous joindre.'];
+
+        }
+        if (($sc['EN_ATTENTE'] ?? 0) > 0) {
+            $suggestions[] = ['icon' => 'mdi-clock-outline', 'color' => 'warning',
+                'texte' => $isAr ? 'لديك ' . (int) $sc['EN_ATTENTE'] . ' طلب بانتظار موافقة الوالي، تابع حالة طلباتك.' : (int) $sc['EN_ATTENTE'] . ' demande(s) en attente de décision de la Wilaya — suivez leur avancement.'];
+        }
+        if (($sc['MODIFICATION_DEMANDEE'] ?? 0) > 0) {
+            $suggestions[] = ['icon' => 'mdi-pencil-circle-outline', 'color' => 'danger',
+                'texte' => $isAr ? 'طلبات بانتظار تعديلكم: انقر عليها وصحح البيانات المطلوبة ثم أعد إرسالها.' : 'Des événements attendent vos corrections — modifiez-les puis re-soumettez-les à la Wilaya.'];
+        }
+        if (($sc['VALIDÉ'] ?? 0) > 0) {
+            $suggestions[] = ['icon' => 'mdi-calendar-check-outline', 'color' => 'success',
+                'texte' => $isAr ? 'أحداث مؤكدة بانتظار تحديد التاريخ والوقت — قم ببرمجتها.' : 'Événement(s) validé(s) en attente de date/heure — programmez-les pour générer le QR code.'];
+        }
+        if (($sc['PROGRAMME'] ?? 0) > 0) {
+            $suggestions[] = ['icon' => 'mdi-qrcode-scan', 'color' => 'info',
+                'texte' => $isAr ? 'أحداث مبرمجة: شارك رمز QR مع المشاركين لتسجيل حضورهم.' : 'Événement(s) programmé(s) : partagez le QR code aux participants pour l\'enregistrement.'];
+        }
+        if (($sc['TERMINE'] ?? 0) > 0) {
+            $suggestions[] = ['icon' => 'mdi-star-circle-outline', 'color' => 'purple',
+                'texte' => $isAr ? 'أحداث منجزة: لا تنسَ إرسال تقييمك وتقرير المشاركة.' : 'Événement(s) terminé(s) : pensez à évaluer et renseigner le bilan de participation.'];
+        }
+        if ($suggestions === []) {
+            $suggestions[] = ['icon' => 'mdi-lightbulb-on-outline', 'color' => 'primary',
+                'texte' => $isAr ? 'ابدأ بإرسال طلب حدث جديد عبر زر "إنشاء حدث".' : 'Commencez par soumettre une nouvelle demande d\'événement via le bouton « Créer un événement ».'];
+        }
+    ?>
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-light d-flex align-items-center gap-2">
+            <i class="mdi mdi-lightbulb-on-outline text-warning"></i>
+            <h3 class="h6 mb-0"><?= $isAr ? 'أفكار ونصائح' : 'Idées & conseils' ?></h3>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <?php foreach ($suggestions as $s): ?>
+                    <div class="col-md-6">
+                        <div class="d-flex gap-2 align-items-start p-2 rounded-3 bg-light">
+                            <i class="mdi <?= e($s['icon']) ?> text-<?= e($s['color']) ?>" style="font-size:1.25rem"></i>
+                            <span class="small"><?= e($s['texte']) ?></span>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
+
+    <!-- Événements déjà envoyés à la Wilaya -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-light d-flex align-items-center gap-2">
+            <i class="mdi mdi-send-outline text-primary"></i>
+            <h3 class="h6 mb-0"><?= $isAr ? 'الطلبات المرسلة' : 'Événements envoyés' ?></h3>
+            <a class="ms-auto btn btn-sm btn-outline-primary" href="<?= url('association/events?tab=envoyes') ?>">
+                <?= $isAr ? 'عرض الكل' : 'Voir tout' ?>
+            </a>
+        </div>
+        <div class="card-body">
+            <?php if (!empty($envoyes)): ?>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th><?= $isAr ? 'الحدث' : 'Événement' ?></th>
+                                <th><?= $isAr ? 'البلدية' : 'Commune' ?></th>
+                                <th><?= $isAr ? 'أُرسل في' : 'Envoyé le' ?></th>
+                                <th><?= $isAr ? 'الحالة' : 'Statut' ?></th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($envoyes as $ev): ?>
+                                <tr>
+                                    <td><?= e(mb_substr((string) ($ev['description'] ?? ''), 0, 50)) ?: 'Événement #' . (int) $ev['id'] ?></td>
+                                    <td><?= e($ev['commune_nom'] ?? '-') ?></td>
+                                    <td class="text-nowrap"><?= e(date('d/m/Y', strtotime((string) ($ev['created_at'] ?? 'now')))) ?></td>
+                                    <td>
+                                        <span class="wh-badge <?= $badgeColor((string) ($ev['statut'] ?? 'EN_ATTENTE')) ?>">
+                                            <?= e(statut_label((string) ($ev['statut'] ?? 'EN_ATTENTE'))) ?>
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <a class="btn btn-sm btn-outline-primary" href="<?= url('association/' . (int) $ev['id']) ?>">
+                                            <i class="mdi mdi-eye me-1"></i><?= e(__('common.detail')) ?>
+                                        </a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php else: ?>
+                <p class="text-muted mb-0"><?= $isAr ? 'لا توجد طلبات مرسلة بعد.' : 'Aucun événement envoyé pour le moment.' ?></p>
+            <?php endif; ?>
+        </div>
+    </div>
+
     <!-- Historique des actions -->
     <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-light">
+        <div class="card-header bg-light d-flex align-items-center gap-2">
+            <i class="mdi mdi-history text-primary"></i>
             <h3 class="h6 mb-0"><?= $isAr ? 'النشاط الأخير' : 'Historique récent' ?></h3>
         </div>
         <div class="card-body">
@@ -150,6 +255,7 @@ $badgeColor = static function (string $statut): string {
                     <table class="table table-hover align-middle mb-0">
                         <thead>
                             <tr>
+                                <th><?= $isAr ? 'الحدث' : 'Événement' ?></th>
                                 <th><?= $isAr ? 'الإجراء' : 'Action' ?></th>
                                 <th><?= $isAr ? 'الحالة' : 'Statut' ?></th>
                                 <th><?= $isAr ? 'التاريخ' : 'Date' ?></th>
@@ -158,7 +264,13 @@ $badgeColor = static function (string $statut): string {
                         <tbody>
                             <?php foreach ($historique as $h): ?>
                                 <tr>
-                                    <td><?= e($h['action'] ?? '') ?></td>
+                                    <td class="text-nowrap"><?= e(mb_substr((string) ($h['adresse'] ?? '-'), 0, 40)) ?></td>
+                                    <td>
+                                        <?= e($h['action'] ?? '') ?>
+                                        <?php if (! empty($h['acteur_nom']) && ! str_contains((string) ($h['action'] ?? ''), 'Wilaya')): ?>
+                                            <small class="text-muted d-block"><?= e($h['acteur_nom']) ?></small>
+                                        <?php endif; ?>
+                                    </td>
                                     <td>
                                         <span class="badge <?= $badgeColor((string) ($h['nouveau_statut'] ?? 'EN_ATTENTE')) ?>">
                                             <?= e(statut_label((string) ($h['nouveau_statut'] ?? 'EN_ATTENTE'))) ?>
@@ -180,7 +292,8 @@ $badgeColor = static function (string $statut): string {
 
     <!-- Évaluations -->
     <div class="card border-0 shadow-sm">
-        <div class="card-header bg-light">
+        <div class="card-header bg-light d-flex align-items-center gap-2">
+            <i class="mdi mdi-star-circle text-warning"></i>
             <h3 class="h6 mb-0"><?= $isAr ? 'التقييمات الأخيرة' : 'Évaluations récentes' ?></h3>
         </div>
         <div class="card-body">

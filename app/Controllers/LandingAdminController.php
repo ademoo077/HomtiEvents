@@ -114,6 +114,20 @@ final class LandingAdminController extends Controller
             );
         }
 
+        // Handle section visibility from the main form
+        $allSections = (array) ($data['all_sections'] ?? []);
+        $visibles = (array) ($data['visibles'] ?? []);
+        $visiblesStr = array_map('strval', $visibles);
+        foreach ($allSections as $section) {
+            $section = (string) $section;
+            $visible = in_array($section, $visiblesStr, true) ? '1' : '0';
+            Database::run(
+                'INSERT INTO landing_settings (cle, valeur, type, groupe) VALUES (?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE valeur = VALUES(valeur)',
+                ['section_' . $section . '_visible', $visible, 'text', 'general']
+            );
+        }
+
         flash('success', 'Contenu enregistré.');
         redirect('admin/landing');
     }
@@ -429,7 +443,16 @@ final class LandingAdminController extends Controller
     public function saveOrdre(): never
     {
         $data = all_input();
-        $ordre = (string) ($data['ordre'] ?? '');
+
+        // Derive order from all_sections if ordre not explicitly provided
+        $allSections = (array) ($data['all_sections'] ?? []);
+        $visibles = (array) ($data['visibles'] ?? []);
+
+        if (isset($data['ordre']) && $data['ordre'] !== '') {
+            $ordre = (string) $data['ordre'];
+        } else {
+            $ordre = json_encode(array_map('strval', $allSections), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
 
         if (json_decode($ordre, true) === null) {
             $this->backWithErrors(['ordre' => 'Ordre JSON invalide.'], $data);
@@ -441,7 +464,9 @@ final class LandingAdminController extends Controller
             ['sections_order', $ordre, 'json', 'general']
         );
 
-        foreach ((array) ($data['visibles'] ?? []) as $section) {
+        // Mark visible sections
+        $visiblesStr = array_map('strval', $visibles);
+        foreach ($visiblesStr as $section) {
             Database::run(
                 'INSERT INTO landing_settings (cle, valeur, type, groupe) VALUES (?, ?, ?, ?)
                  ON DUPLICATE KEY UPDATE valeur = VALUES(valeur)',
@@ -449,9 +474,10 @@ final class LandingAdminController extends Controller
             );
         }
 
-        $visibles = array_map('strval', (array) ($data['visibles'] ?? []));
-        foreach ((array) ($data['all_sections'] ?? []) as $section) {
-            if (in_array((string) $section, $visibles, true)) {
+        // Mark hidden sections
+        foreach ($allSections as $section) {
+            $section = (string) $section;
+            if (in_array($section, $visiblesStr, true)) {
                 continue;
             }
             Database::run(
@@ -461,13 +487,123 @@ final class LandingAdminController extends Controller
             );
         }
 
-        flash('success', 'Ordre des sections mis à jour.');
+        flash('success', 'Ordre et visibilité des sections mis à jour.');
         redirect('admin/landing');
+    }
+
+    /**
+     * Réordonne les éléments d'une liste (FAQ, témoignages, partenaires, galerie, avant/après)
+     * via l'identifiant fourni dans l'ordre souhaité.
+     */
+    public function reorderItems(): never
+    {
+        $data = all_input();
+        $type = (string) ($data['type'] ?? '');
+        $ids  = array_values(array_filter(array_map('intval', (array) ($data['ids'] ?? []))));
+
+        $map = [
+            'faq'          => ['table' => 'landing_faq',          'col' => 'ordre'],
+            'partenaires'  => ['table' => 'landing_partners',     'col' => 'ordre'],
+            'temoignages'  => ['table' => 'landing_testimonials', 'col' => 'sort_order'],
+            'gallery'      => ['table' => 'landing_gallery',      'col' => 'sort_order'],
+            'before_after' => ['table' => 'landing_before_after', 'col' => 'sort_order'],
+        ];
+
+        if (! isset($map[$type]) || $ids === []) {
+            json_response(['success' => false, 'error' => 'Ordre invalide.'], 422);
+        }
+
+        $table = $map[$type]['table'];
+        $col   = $map[$type]['col'];
+
+        foreach ($ids as $i => $id) {
+            Database::run("UPDATE {$table} SET {$col} = ? WHERE id = ?", [$i + 1, $id]);
+        }
+
+        json_response(['success' => true, 'type' => $type, 'ids' => $ids]);
     }
 
     public function setLocale(string $locale): never
     {
         I18n::set($locale);
         redirect($_SERVER['HTTP_REFERER'] ?? '/');
+    }
+
+    /**
+     * Sauvegarde les paramètres de thème couleur depuis le CMS.
+     * Supporte le changement rapide de thème prédéfini ou l'édition manuelle.
+     */
+    public function saveTheme(): never
+    {
+        $data = all_input();
+
+        // ── Preset thème rapide ──
+        if (! empty($data['preset']) && $data['preset'] !== 'custom') {
+            $presets = json_decode((string) settings('theme_presets', '[]'), true);
+            $found = null;
+
+            foreach ((array) $presets as $p) {
+                if (($p['name'] ?? '') === $data['preset']) {
+                    $found = $p;
+                    break;
+                }
+            }
+
+            if ($found !== null && isset($found['colors'])) {
+                foreach ($found['colors'] as $subKey => $colorValue) {
+                    $cle = 'theme_' . $subKey;
+                    Database::run(
+                        'INSERT INTO landing_settings (cle, valeur, type, groupe) VALUES (?, ?, ?, ?)
+                         ON DUPLICATE KEY UPDATE valeur = VALUES(valeur)',
+                        [$cle, (string) $colorValue, 'color', 'theme']
+                    );
+                }
+                Database::run(
+                    'INSERT INTO landing_settings (cle, valeur, type, groupe) VALUES (?, ?, ?, ?)
+                     ON DUPLICATE KEY UPDATE valeur = VALUES(valeur)',
+                    ['theme_name', (string) $data['preset'], 'text', 'theme']
+                );
+
+                flash('success', 'Thème appliqué : ' . e($found['label'] ?? $data['preset']));
+                redirect('admin/landing');
+            }
+        }
+
+        // ── Édition manuelle des couleurs ──
+        $colorKeys = [
+            'theme_primary',
+            'theme_primary_hover',
+            'theme_secondary',
+            'theme_tertiary',
+            'theme_accent_glow',
+            'theme_hero_gradient_1',
+            'theme_hero_gradient_2',
+            'theme_hero_gradient_3',
+            'theme_navbar_bg',
+            'theme_navbar_bg_scrolled',
+            'theme_footer_bg',
+            'theme_footer_text',
+        ];
+
+        foreach ($colorKeys as $cle) {
+            if (array_key_exists($cle, $data)) {
+                $value = trim((string) $data[$cle]);
+                Database::run(
+                    'INSERT INTO landing_settings (cle, valeur, type, groupe) VALUES (?, ?, ?, ?)
+                     ON DUPLICATE KEY UPDATE valeur = VALUES(valeur)',
+                    [$cle, $value, 'color', 'theme']
+                );
+            }
+        }
+
+        // Thème custom
+        Database::run(
+            'INSERT INTO landing_settings (cle, valeur, type, groupe) VALUES (?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE valeur = VALUES(valeur)',
+            ['theme_name', 'custom', 'text', 'theme']
+        );
+
+        flash('success', 'Thème personnalisé enregistré.');
+        redirect('admin/landing');
     }
 }

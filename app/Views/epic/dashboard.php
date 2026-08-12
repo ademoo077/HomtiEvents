@@ -104,6 +104,37 @@ $joursSemaine = $isRtl
         </div>
     <?php endif; ?>
 
+    <!-- Idées & conseils : actions recommandées selon le contexte -->
+    <?php if (! empty($suggestions)): ?>
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-light d-flex align-items-center gap-2">
+                <i class="mdi mdi-lightbulb-on-outline text-warning"></i>
+                <h3 class="h6 mb-0"><?= $isRtl ? 'أفكار وتوصيات' : 'Idées & conseils' ?></h3>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <?php foreach ($suggestions as $s): ?>
+                        <div class="col-md-6">
+                            <?php if (! empty($s['lien'])): ?>
+                                <a href="<?= e($s['lien']) ?>" class="text-decoration-none d-block">
+                            <?php endif; ?>
+                            <div class="d-flex gap-2 align-items-start p-2 rounded-3 bg-light wh-kpi-hover h-100">
+                                <i class="mdi <?= e($s['icon']) ?> text-<?= e($s['color']) ?>" style="font-size:1.35rem"></i>
+                                <div>
+                                    <div class="fw-semibold small"><?= e($s['titre']) ?></div>
+                                    <span class="small text-muted"><?= e($s['texte']) ?></span>
+                                </div>
+                            </div>
+                            <?php if (! empty($s['lien'])): ?>
+                                </a>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <!-- Filtres (KPIs + anomalies) -->
     <form method="get" action="<?= url('epic/dashboard') ?>" class="card border-0 shadow-sm mb-4">
         <div class="card-body py-3">
@@ -197,10 +228,13 @@ $joursSemaine = $isRtl
                                 <div class="wh-cal-cell <?= $evs !== [] ? 'has-events' : '' ?> <?= $estAujourdhui ? 'is-today' : '' ?>"
                                      <?php if ($evs !== []): ?>data-events-date="<?= $date ?>" data-events-count="<?= count($evs) ?>"<?php endif; ?>>
                                     <span class="wh-cal-day"><?= $jour ?></span>
-                                    <?php if ($evs !== []): ?>
+<?php if ($evs !== []): ?>
                                         <div class="wh-cal-events" title="<?= count($evs) . ' ' . ($isRtl ? 'حدث' : 'événement(s)') ?>">
                                             <?php foreach (array_slice($evs, 0, 3) as $ev): ?>
                                                 <span class="wh-cal-dot" style="background:<?= $statutColor((string) $ev['statut']) ?>"></span>
+                                                <?php if (! empty($ev['token_qr'])): ?>
+                                                    <span class="wh-cal-qr" title="QR disponible"><i class="mdi mdi-qrcode"></i></span>
+                                                <?php endif; ?>
                                             <?php endforeach; ?>
                                             <?php if (count($evs) > 3): ?>
                                                 <small class="wh-cal-more">+<?= count($evs) - 3 ?></small>
@@ -227,7 +261,7 @@ $joursSemaine = $isRtl
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
                     <h6 class="fw-bold mb-3">
-                        <i class="mdi mdi-calendar-clock me-2"></i><?= $isRtl ? 'الأحداث القادمة (3 أيام)' : 'À venir (3 jours)' ?>
+                        <i class="mdi mdi-calendar-clock me-2"></i><?= $isRtl ? 'الأحداث القادمة (3 jours)' : 'À venir (3 jours)' ?>
                     </h6>
                     <?php if ($avenir === []): ?>
                         <div class="wh-empty text-center text-muted py-4">
@@ -248,12 +282,15 @@ $joursSemaine = $isRtl
                                             <div class="small text-muted">
                                                 <?= e($ev['commune_nom'] ?? '-') ?>
                                                 <?php if (! empty($ev['heure'])): ?> · <?= e(date('H:i', strtotime((string) $ev['heure']))) ?><?php endif; ?>
+                                                <?php if (! empty($ev['token_qr'])): ?>
+                                                    <span class="ms-2 text-primary" title="QR disponible"><i class="mdi mdi-qrcode"></i></span>
+                                                <?php endif; ?>
                                             </div>
                                             <span class="badge <?= $statutBadge((string) $ev['statut']) ?> mt-1"><?= e(statut_label((string) $ev['statut'])) ?></span>
                                         </div>
-                                        <a class="btn btn-sm btn-outline-primary flex-shrink-0" href="<?= url('wilaya/evenements/' . (int) $ev['id']) ?>" title="<?= $isRtl ? 'إدارة' : 'Gérer' ?>">
-                                            <i class="mdi mdi-open-in-new"></i>
-                                        </a>
+                                         <a class="btn btn-sm btn-outline-primary flex-shrink-0" href="<?= url('epic/' . (int) $ev['id']) ?>" title="<?= $isRtl ? 'إدارة' : 'Gérer' ?>">
+                                             <i class="mdi mdi-open-in-new"></i>
+                                         </a>
                                     </div>
                                 </li>
                             <?php endforeach; ?>
@@ -263,6 +300,39 @@ $joursSemaine = $isRtl
             </div>
         </div>
     </div>
+
+    <!-- Nouveaux événements routés (48h) -->
+    <?php if (! empty($nouveauxRoutages)): ?>
+    <div class="row g-4 mb-4">
+        <div class="col-lg-12">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <span><i class="mdi mdi-router-wireless-outline me-2"></i><?= $isRtl ? 'أحداث موكلة حديثًا (48 ساعة)' : 'Nouveaux événements routés (48 h)' ?></span>
+                    <span class="wh-badge badge-violet"><?= count($nouveauxRoutages) ?></span>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        <?php foreach ($nouveauxRoutages as $r): ?>
+                            <li class="list-group-item d-flex align-items-center justify-content-between gap-2">
+                                <div class="min-w-0">
+                                    <div class="fw-semibold text-truncate"><?= e($r['evenement_adresse'] ?? $r['adresse'] ?? '-') ?></div>
+                                    <div class="small text-muted">
+                                        <?= e(date('d/m/Y H:i', strtotime((string) ($r['created_at'] ?? $r['date_creation'] ?? 'now')))) ?> ·
+                                        <?= e($r['commune_nom'] ?? '-') ?> ·
+                                        <span class="text-capitalize"><?= e(strtolower((string) ($r['rule_matched'] ?? ''))) ?></span>
+                                    </div>
+                                </div>
+                                 <a class="btn btn-sm btn-outline-primary flex-shrink-0" href="<?= url('epic/' . (int) $r['evenement_id']) ?>" title="<?= $isRtl ? 'إدارة' : 'Gérer' ?>">
+                                     <i class="mdi mdi-open-in-new"></i>
+                                 </a>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <!-- Anomalies -->
     <div class="row g-4">
@@ -386,7 +456,7 @@ $joursSemaine = $isRtl
                 (ev.motif ? '<div class="small text-danger mt-1"><i class="mdi mdi-information-outline"></i> ' + ev.motif + '</div>' : '') +
                 '</div>' +
                 '<span class="badge badge-soft ms-1">' + ev.statut_lib + '</span>' +
-                '<a class="btn btn-sm btn-outline-primary ms-2" href="' + ev.url_admin + '" title="Gérer"><i class="mdi mdi-open-in-new"></i></a>' +
+                 '<a class="btn btn-sm btn-outline-primary ms-2" href="' + (ev.url_epic || ev.url_admin) + '" title="Gérer"><i class="mdi mdi-open-in-new"></i></a>' +
                 '</div></li>';
         });
         html += '</ul>';

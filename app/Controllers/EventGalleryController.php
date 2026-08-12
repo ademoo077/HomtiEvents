@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Helpers\AuditLog;
 use App\Helpers\Database;
+use App\Helpers\Notification;
 use App\Helpers\UploadHelper;
 
 /**
@@ -55,7 +56,11 @@ final class EventGalleryController extends Controller
         $photos = [];
         if ($album !== null) {
             $photos = Database::all(
-                'SELECT * FROM photos WHERE album_id = ? ORDER BY sort_order ASC, uploaded_at DESC',
+                'SELECT p.id, p.image, p.legende, p.status, p.motif_rejet, p.uploaded_at,
+                        u.nom AS uploader_nom, u.prenom AS uploader_prenom
+                 FROM photos p
+                 LEFT JOIN users u ON u.id = p.uploaded_by
+                 WHERE p.album_id = ? ORDER BY p.sort_order ASC, p.uploaded_at DESC',
                 [(int) $album['id']]
             );
         }
@@ -251,8 +256,50 @@ final class EventGalleryController extends Controller
         ], 'id = ?', [(int) $albumId]);
 
         AuditLog::log('album_published', 'albums', (int) $albumId, null, ['statut' => 'publie']);
+        $this->notifierAlbumPublie((int) $albumId);
         flash('success', 'Album publié.');
         $this->redirect('wilaya/evenements/' . $album['evenement_id'] . '/photos');
+    }
+
+    /**
+     * Notifie l'association porteuse (sinon la Wilaya) de la publication de l'album.
+     */
+    private function notifierAlbumPublie(int $albumId): void
+    {
+        $album = Database::one(
+            'SELECT a.titre, a.evenement_id, e.association_id, e.adresse, e.description
+             FROM albums a
+             JOIN evenements e ON e.id = a.evenement_id
+             WHERE a.id = ?',
+            [$albumId]
+        );
+        if ($album === null) {
+            return;
+        }
+
+        $titreEvenement = (string) ($album['description'] ?? $album['adresse'] ?? 'Événement n°' . (int) $album['evenement_id']);
+        $albumTitre     = (string) ($album['titre'] ?? 'album');
+        $message        = "L'album '{$albumTitre}' de votre événement '{$titreEvenement}' a été publié.";
+
+        if ((int) ($album['association_id'] ?? 0) > 0) {
+            Notification::sendToAssociation(
+                (int) $album['association_id'],
+                'Album publié',
+                $message,
+                'album_publie',
+                ['album_id' => $albumId]
+            );
+
+            return;
+        }
+
+        Notification::sendToRole(
+            'wilaya',
+            'Album publié',
+            $message,
+            'album_publie',
+            ['album_id' => $albumId]
+        );
     }
 
     /**
@@ -367,6 +414,88 @@ final class EventGalleryController extends Controller
         AuditLog::log('album_reordered', 'albums', (int) $albumId, null, ['order' => $order]);
         flash('success', 'Ordre des photos mis à jour.');
         $this->redirect('wilaya/evenements/' . $album['evenement_id'] . '/photos');
+    }
+
+    /**
+     * Valide une photo soumise par une association (pending → active).
+     */
+    public function approvePhoto(string $photoId): never
+    {
+        $this->requirePermission('gallery.validate');
+        $this->csrfCheck();
+
+        $photo = Database::one(
+            'SELECT p.*, a.evenement_id, e.association_id, e.adresse
+             FROM photos p
+             JOIN albums a ON a.id = p.album_id
+             JOIN evenements e ON e.id = a.evenement_id
+             WHERE p.id = ?',
+            [(int) $photoId]
+        );
+        if ($photo === null) {
+            abort(404, 'Photo introuvable.');
+        }
+
+        Database::update('photos', ['status' => 'active', 'motif_rejet' => null], 'id = ?', [(int) $photoId]);
+
+        AuditLog::log('photo_approved', 'photos', (int) $photoId, ['status' => 'pending'], ['status' => 'active']);
+
+        if ((int) ($photo['association_id'] ?? 0) > 0) {
+            Notification::sendToAssociation(
+                (int) $photo['association_id'],
+                'Photo publiée',
+                "Votre photo pour l'événement '" . ($photo['adresse'] ?? '') . "' a été publiée.",
+                'gallery_photo_approved',
+                ['evenement_id' => (int) $photo['evenement_id']]
+            );
+        }
+
+        flash('success', 'Photo validée et publiée.');
+        $this->redirect('wilaya/evenements/' . $photo['evenement_id'] . '/photos');
+    }
+
+    /**
+     * Rejette une photo soumise par une association (pending → rejected + motif).
+     */
+    public function rejectPhoto(string $photoId): never
+    {
+        $this->requirePermission('gallery.validate');
+        $this->csrfCheck();
+
+        $photo = Database::one(
+            'SELECT p.*, a.evenement_id, e.association_id, e.adresse
+             FROM photos p
+             JOIN albums a ON a.id = p.album_id
+             JOIN evenements e ON e.id = a.evenement_id
+             WHERE p.id = ?',
+            [(int) $photoId]
+        );
+        if ($photo === null) {
+            abort(404, 'Photo introuvable.');
+        }
+
+        $motif = trim((string) input('motif', ''));
+
+        Database::update('photos', [
+            'status'      => 'rejected',
+            'motif_rejet' => $motif !== '' ? mb_substr($motif, 0, 255) : null,
+        ], 'id = ?', [(int) $photoId]);
+
+        AuditLog::log('photo_rejected', 'photos', (int) $photoId, ['status' => 'pending'], ['status' => 'rejected', 'motif' => $motif]);
+
+        if ((int) ($photo['association_id'] ?? 0) > 0) {
+            Notification::sendToAssociation(
+                (int) $photo['association_id'],
+                'Photo rejetée',
+                "Votre photo pour l'événement '" . ($photo['adresse'] ?? '') . "' a été rejetée."
+                . ($motif !== '' ? ' Motif : ' . $motif : ''),
+                'gallery_photo_rejected',
+                ['evenement_id' => (int) $photo['evenement_id']]
+            );
+        }
+
+        flash('success', 'Photo rejetée.');
+        $this->redirect('wilaya/evenements/' . $photo['evenement_id'] . '/photos');
     }
 
     /**

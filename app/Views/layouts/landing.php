@@ -17,11 +17,30 @@ $appName = e(settings('app.name') ?: __('app.name'));
     <meta name="description" content="<?= e(settings('hero_sous_titre_fr', '')) ?>">
     <link rel="icon" href="<?= asset('/assets/img/icon-192.png') ?>">
     <link rel="manifest" href="<?= asset('/manifest.json') ?>">
-    <meta name="theme-color" content="#6366f1">
+    <meta name="theme-color" content="<?= e(settings('theme_primary', '#16a34a')) ?>">
     <link rel="stylesheet" href="<?= asset('/assets/css/fonts.css') ?>">
     <link rel="stylesheet" href="<?= asset('/assets/vendor/mdi/css/materialdesignicons.min.css') ?>">
     <link rel="stylesheet" href="<?= asset('/assets/vendor/leaflet/css/leaflet.css') ?>">
     <link rel="stylesheet" href="<?= asset('/assets/css/landing.css') ?>">
+
+    <!-- Thème couleur dynamique (injecté depuis le CMS) -->
+    <style>
+        :root {
+            <?php if (! empty($theme['primary'])): ?>--theme-primary: <?= e($theme['primary']) ?>;<?php endif; ?>
+            <?php if (! empty($theme['primary_hover'])): ?>--theme-primary-hover: <?= e($theme['primary_hover']) ?>;<?php endif; ?>
+            <?php if (! empty($theme['secondary'])): ?>--theme-secondary: <?= e($theme['secondary']) ?>;<?php endif; ?>
+            <?php if (! empty($theme['tertiary'])): ?>--theme-tertiary: <?= e($theme['tertiary']) ?>;<?php endif; ?>
+            <?php if (! empty($theme['accent_glow'])): ?>--theme-accent-glow: <?= e($theme['accent_glow']) ?>;<?php endif; ?>
+            <?php if (! empty($theme['hero_gradient_1'])): ?>--theme-hero-gradient-1: <?= e($theme['hero_gradient_1']) ?>;<?php endif; ?>
+            <?php if (! empty($theme['hero_gradient_2'])): ?>--theme-hero-gradient-2: <?= e($theme['hero_gradient_2']) ?>;<?php endif; ?>
+            <?php if (! empty($theme['hero_gradient_3'])): ?>--theme-hero-gradient-3: <?= e($theme['hero_gradient_3']) ?>;<?php endif; ?>
+            <?php if (! empty($theme['navbar_bg'])): ?>--theme-navbar-bg: <?= e($theme['navbar_bg']) ?>;<?php endif; ?>
+            <?php if (! empty($theme['navbar_bg_scrolled'])): ?>--theme-navbar-bg-scrolled: <?= e($theme['navbar_bg_scrolled']) ?>;<?php endif; ?>
+            <?php if (! empty($theme['footer_bg'])): ?>--theme-footer-bg: <?= e($theme['footer_bg']) ?>;<?php endif; ?>
+            <?php if (! empty($theme['footer_text'])): ?>--theme-footer-text: <?= e($theme['footer_text']) ?>;<?php endif; ?>
+        }
+    </style>
+
     <noscript>
         <style>[data-reveal]{opacity:1;transform:none;transition:none}</style>
     </noscript>
@@ -55,33 +74,37 @@ $appName = e(settings('app.name') ?: __('app.name'));
 
         <nav class="site-nav" id="siteNav" aria-label="<?= $isAr ? 'القائمة الرئيسية' : 'Navigation principale' ?>">
             <ul class="site-menu">
-                <li><a href="#top"><?= e(__('landing.nav_accueil')) ?></a></li>
-                <li><a href="#apropos"><?= e(__('landing.nav_apropos')) ?></a></li>
-                <li><a href="#fonctionnement"><?= e(__('landing.nav_fonctionnement')) ?></a></li>
-                <li><a href="#albums"><?= e(__('landing.nav_albums')) ?></a></li>
-                <li><a href="#galerie"><?= e(__('landing.galerie')) ?></a></li>
-                <li><a href="#before-after"><?= e(__('landing.before_after')) ?></a></li>
-                <li><a href="#partenaires"><?= e(__('landing.nav_partenaires')) ?></a></li>
-                <li><a href="#carte"><?= e(__('landing.interventions')) ?></a></li>
-                <li><a href="#faq"><?= e(__('landing.nav_faq')) ?></a></li>
+                <!-- Accueil & Carte as direct links -->
+                <li><a class="site-menu-link" href="#top"><?= e(__('landing.nav_accueil')) ?></a></li>
+                <li><a class="site-menu-link" href="#carte"><?= e(__('landing.interventions')) ?></a></li>
+
+                <!-- Médiathèque Dropdown -->
+                <li class="site-menu-item has-dropdown">
+                    <button type="button" class="site-menu-link dropdown-toggle" aria-expanded="false" aria-haspopup="true" aria-label="<?= e(__('landing.nav_mediatheque')) ?>">
+                        <span><?= e(__('landing.nav_mediatheque')) ?></span>
+                        <i class="mdi mdi-chevron-down dropdown-arrow"></i>
+                    </button>
+                    <ul class="dropdown-menu" role="menu">
+                        <li role="none"><a class="dropdown-item" href="#albums" role="menuitem"><?= e(__('landing.nav_albums')) ?></a></li>
+                        <li role="none"><a class="dropdown-item" href="#galerie" role="menuitem"><?= e(__('landing.galerie')) ?></a></li>
+                        <li role="none"><a class="dropdown-item" href="#before-after" role="menuitem"><?= e(__('landing.before_after')) ?></a></li>
+                    </ul>
+                </li>
+
+                <!-- À propos Dropdown -->
+                <li class="site-menu-item has-dropdown">
+                    <button type="button" class="site-menu-link dropdown-toggle" aria-expanded="false" aria-haspopup="true" aria-label="<?= e(__('landing.nav_a_propos')) ?>">
+                        <span><?= e(__('landing.nav_a_propos')) ?></span>
+                        <i class="mdi mdi-chevron-down dropdown-arrow"></i>
+                    </button>
+                    <ul class="dropdown-menu" role="menu">
+                        <li role="none"><a class="dropdown-item" href="#apropos" role="menuitem"><?= e(__('landing.nav_apropos')) ?></a></li>
+                        <li role="none"><a class="dropdown-item" href="#fonctionnement" role="menuitem"><?= e(__('landing.nav_fonctionnement')) ?></a></li>
+                        <li role="none"><a class="dropdown-item" href="#partenaires" role="menuitem"><?= e(__('landing.nav_partenaires')) ?></a></li>
+                        <li role="none"><a class="dropdown-item" href="#faq" role="menuitem"><?= e(__('landing.nav_faq')) ?></a></li>
+                    </ul>
+                </li>
             </ul>
-            <div class="mobile-cta">
-            <?php if (is_logged()): ?>
-                <a class="btn btn-primary btn-block" href="<?= e(dashboard_path()) ?>">
-                    <i class="mdi mdi-shield-lock-outline"></i><?= e(__('common.dashboard')) ?>
-                </a>
-            <?php else: ?>
-                    <a class="btn btn-outline btn-block" href="<?= url('auth/login') ?>">
-                        <i class="mdi mdi-login"></i><?= e(__('common.login')) ?>
-                    </a>
-                    <a class="btn btn-primary btn-block" href="<?= url('auth/register') ?>">
-                        <i class="mdi mdi-account-plus-outline"></i><?= e(__('common.register')) ?>
-                    </a>
-                    <a class="btn btn-outline btn-block" href="<?= url('auth/register-association') ?>">
-                        <i class="mdi mdi-domain"></i><?= e(__('associations.inscription')) ?>
-                    </a>
-                <?php endif; ?>
-            </div>
         </nav>
 
         <div class="header-actions">
@@ -91,21 +114,20 @@ $appName = e(settings('app.name') ?: __('app.name'));
                 <a class="lang-pill" href="<?= url('lang/ar') ?>" aria-label="التبديل إلى العربية" title="العربية">العربية</a>
             <?php endif; ?>
 
-            <?php if (is_logged()): ?>
-                <a class="btn btn-primary btn-sm header-cta" href="<?= e(dashboard_path()) ?>">
-                    <i class="mdi mdi-shield-lock-outline"></i><?= e(__('common.dashboard')) ?>
-                </a>
-            <?php else: ?>
-                <a class="btn btn-outline btn-sm header-cta" href="<?= url('auth/login') ?>">
-                    <i class="mdi mdi-login"></i><?= e(__('common.login')) ?>
-                </a>
-                <a class="btn btn-primary btn-sm header-cta" href="<?= url('auth/register') ?>">
-                    <i class="mdi mdi-account-plus-outline"></i><?= e(__('common.register')) ?>
-                </a>
-                <a class="btn btn-outline btn-sm header-cta" href="<?= url('auth/register-association') ?>">
-                    <i class="mdi mdi-domain"></i><?= e(__('associations.inscription')) ?>
-                </a>
-            <?php endif; ?>
+            <div class="header-cta-group">
+                <?php if (is_logged()): ?>
+                    <a class="btn btn-primary btn-sm" href="<?= e(dashboard_path()) ?>">
+                        <i class="mdi mdi-shield-lock-outline"></i><?= e(__('common.dashboard')) ?>
+                    </a>
+                <?php else: ?>
+                    <a class="btn btn-outline btn-sm" href="<?= url('auth/login') ?>">
+                        <i class="mdi mdi-login"></i><?= e(__('common.login')) ?>
+                    </a>
+                    <a class="btn btn-primary btn-sm" href="<?= url('auth/register') ?>">
+                        <i class="mdi mdi-account-plus-outline"></i><?= e(__('common.register')) ?>
+                    </a>
+                <?php endif; ?>
+            </div>
 
             <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="siteNav" aria-label="<?= $isAr ? 'فتح القائمة' : 'Ouvrir le menu' ?>">
                 <i class="mdi mdi-menu"></i>

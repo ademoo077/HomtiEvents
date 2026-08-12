@@ -23,6 +23,7 @@
 
 # Uploads
 /public/uploads/*
+/public/qr/*
 
 # OS / IDE
 .DS_Store

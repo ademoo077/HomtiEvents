@@ -35,7 +35,7 @@ final class EpicController extends Controller
             'statut' => input('statut'),
         ];
 
-        $where = ['ee.epic_id = ?'];
+        $where = ['e.assigned_org_id = ?'];
         $params = [$epicId];
 
         if (! empty($filters['q'])) {
@@ -45,14 +45,12 @@ final class EpicController extends Controller
             $params[] = $like;
         }
 
-        $sql = 'SELECT ee.*, e.adresse AS evenement_adresse, e.date_evenement AS evenement_date,
-                       e.statut AS evenement_statut, c.nom AS commune_nom, a.nom AS association_nom
-                FROM evenement_epic ee
-                JOIN evenements e ON e.id = ee.evenement_id
-                LEFT JOIN commune c ON c.id = e.commune_id
-                LEFT JOIN associations a ON a.id = e.association_id
-                WHERE ' . implode(' AND ', $where) . '
-                ORDER BY ee.date_affectation DESC';
+        $sql = 'SELECT e.*, c.nom AS commune_nom, a.nom AS association_nom
+                 FROM evenements e
+                 LEFT JOIN commune c ON c.id = e.commune_id
+                 LEFT JOIN associations a ON a.id = e.association_id
+                 WHERE ' . implode(' AND ', $where) . '
+                 ORDER BY e.date_evenement DESC, e.updated_at DESC';
 
         $result = Database::paginate($sql, $params, self::PER_PAGE, (int) input('page', 1));
 
@@ -77,15 +75,14 @@ final class EpicController extends Controller
         $epicId = (int) ($user['epic_id'] ?? 0);
 
         $intervention = Database::one(
-            'SELECT ee.*, ee.evenement_id AS id, e.adresse AS evenement_adresse, e.description,
+            'SELECT e.id AS evenement_id, e.adresse AS evenement_adresse, e.description,
                     e.statut AS evenement_statut, e.date_evenement, e.heure,
                     c.nom AS commune_nom, a.nom AS association_nom, q.token_qr
-             FROM evenement_epic ee
-             JOIN evenements e ON e.id = ee.evenement_id
+             FROM evenements e
              LEFT JOIN commune c ON c.id = e.commune_id
              LEFT JOIN associations a ON a.id = e.association_id
              LEFT JOIN qr_event q ON q.evenement_id = e.id
-             WHERE ee.evenement_id = ? AND ee.epic_id = ?',
+             WHERE e.id = ? AND e.assigned_org_id = ?',
             [(int) $id, $epicId]
         );
 

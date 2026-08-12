@@ -125,6 +125,30 @@ final class EvenementServiceTest extends DatabaseTestCase
         $this->assertTrue(QrCodeGenerator::isValid(QrCodeGenerator::findByToken((string) $qrRow['token_qr'])));
     }
 
+    public function testChangerStatutAnnulePersisteLeStatut(): void
+    {
+        $event = $this->eventByStatus('EN_ATTENTE');
+
+        $result = EvenementService::changerStatutAnnule((int) $event['id'], 'Plus disponible');
+
+        $this->assertSame('ANNULE', $result['statut']);
+        $this->assertSame('Plus disponible', $result['motif_refus']);
+
+        $transition = Database::one(
+            'SELECT * FROM transition_history WHERE evenement_id = ? ORDER BY id DESC LIMIT 1',
+            [(int) $event['id']]
+        );
+        $this->assertSame('ANNULE', $transition['statut_apres']);
+        $this->assertSame($event['statut'], $transition['statut_avant']);
+    }
+
+    public function testChangerStatutAnnuleRefuseLesTransitionsInterdites(): void
+    {
+        $this->assertFalse(EvenementService::transitionAutorisee('PROGRAMME', 'ANNULE'));
+        $this->assertTrue(EvenementService::transitionAutorisee('EN_ATTENTE', 'ANNULE'));
+        $this->assertTrue(EvenementService::transitionAutorisee('MODIFICATION_DEMANDEE', 'ANNULE'));
+    }
+
     public function testQueryFiltresAppliesConditions(): void
     {
         [$sql, $params] = EvenementService::queryFiltres(['statut' => 'PROGRAMME', 'q' => 'école', 'deleted' => false]);

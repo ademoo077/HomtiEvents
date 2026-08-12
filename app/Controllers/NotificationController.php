@@ -24,6 +24,49 @@ final class NotificationController extends Controller
         json_response(['success' => true, 'count' => $count]);
     }
 
+    /**
+     * Liste des notifications non lues (polled via AJAX pour la popup).
+     */
+    public function unread(): never
+    {
+        $this->requireAuth();
+
+        $user = Session::user();
+        $userId = $user['id'] ?? null;
+
+        if ($userId === null) {
+            json_response(['success' => true, 'notifications' => []]);
+        }
+
+        $items = Notification::getUnread((int) $userId);
+        $role = user_role();
+        $formatted = array_map(static function (array $n) use ($role): array {
+            $data = $n['data_json'] !== null ? json_decode((string) $n['data_json'], true) : [];
+
+            $link = null;
+            if (is_array($data)) {
+                if (isset($data['link'])) {
+                    $link = $data['link'];
+                } elseif (isset($data['evenement_id'])) {
+                    $link = $role === 'association'
+                        ? 'association/' . (int) $data['evenement_id']
+                        : 'wilaya/evenements/' . (int) $data['evenement_id'];
+                }
+            }
+
+            return [
+                'id'         => (int) $n['id'],
+                'titre'      => $n['titre'],
+                'message'    => $n['message_notif'],
+                'type'       => $n['type'],
+                'date'       => $n['date_creation'],
+                'link'       => $link,
+            ];
+        }, $items);
+
+        json_response(['success' => true, 'notifications' => $formatted]);
+    }
+
     public function read(string $id): never
     {
         $this->requireAuth();

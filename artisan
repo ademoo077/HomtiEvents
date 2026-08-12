@@ -68,6 +68,115 @@ function splitSql(string $sql): array
     return $result;
 }
 
+/**
+ * Traite les jobs de la file prêts à être exécutés.
+ *
+ * @return int nombre de jobs traités avec succès
+ */
+function processQueueJobs(): int
+{
+    $done = 0;
+    foreach (Queue::pull(10) as $item) {
+        $file = $item['file'];
+        $job  = $item['job'];
+
+        try {
+            $instance = new $job['job']();
+            $instance->handle($job['payload'] ?? []);
+            Queue::delete($file);
+            $done++;
+        } catch (Throwable $e) {
+            $attempts = ((int) ($job['attempts'] ?? 0)) + 1;
+
+            if ($attempts >= 3) {
+                Queue::delete($file);
+                $instance = new $job['job']();
+                $instance->failed($job['payload'] ?? [], $e);
+                echo "Job {$job['job']} abandonné après {$attempts} tentative(s) : " . $e->getMessage() . "\n";
+            } else {
+                $job['attempts'] = $attempts;
+                $job['delay']    = min(300, 10 * 2 ** ($attempts - 1));
+                Queue::delete($file);
+                file_put_contents(
+                    $file,
+                    json_encode($job, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                );
+                echo "Job {$job['job']} échoué (tentative {$attempts}) : " . $e->getMessage() . "\n";
+            }
+        }
+    }
+
+    return $done;
+}
+
+/**
+ * Sauvegarde la base de données (dump SQL + schéma) dans storage/backups.
+ * Passe par mysqldump si disponible, sinon dump PDO (CREATE + INSERT).
+ */
+function runBackup(): void
+{
+    $dir = BASE_PATH . '/storage/backups';
+    if (! is_dir($dir)) {
+        mkdir($dir, 0775, true);
+    }
+
+    $stamp = date('Ymd-His');
+    $file  = $dir . '/backup-' . $stamp . '.sql';
+    $pdo   = \App\Helpers\Database::connection();
+    $db    = $pdo->query('SELECT DATABASE()')->fetchColumn();
+
+    // Tentative mysqldump (plus fiable) sinon dump PHP.
+    $mysqldump = trim((string) shell_exec('command -v mysqldump 2>/dev/null'));
+    if ($mysqldump !== '') {
+        $config = config('database');
+        $cmd = escapeshellarg($mysqldump) . ' --single-transaction --routines --triggers'
+            . ' -h ' . escapeshellarg((string) $config['host'])
+            . ' -P ' . (int) $config['port']
+            . ' -u ' . escapeshellarg((string) $config['username'])
+            . ' ' . ($config['password'] !== '' ? '-p' . escapeshellarg((string) $config['password']) : '')
+            . ' ' . escapeshellarg((string) $db) . ' > ' . escapeshellarg($file);
+        shell_exec($cmd);
+    }
+
+    if (! is_file($file) || filesize($file) < 100) {
+        $sql = "-- Wilaya Harmonia — Sauvegarde " . date('Y-m-d H:i:s') . "\n"
+             . '-- Base : ' . $db . "\n\nSET FOREIGN_KEY_CHECKS = 0;\n\n";
+
+        $tables = $pdo->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN);
+        foreach ($tables as $table) {
+            $create = $pdo->query('SHOW CREATE TABLE `' . $table . '`')->fetch(PDO::FETCH_NUM);
+            $sql .= 'DROP TABLE IF EXISTS `' . $table . "`;\n";
+            $sql .= $create[1] . ";\n\n";
+
+            foreach ($pdo->query('SELECT * FROM `' . $table . '`') as $row) {
+                $columns = array_keys($row);
+                $values  = array_map(
+                    static fn ($v) => $v === null ? 'NULL' : $pdo->quote((string) $v),
+                    array_values($row)
+                );
+                $sql .= 'INSERT INTO `' . $table . '` (`' . implode('`, `', $columns) . '`) VALUES ('
+                    . implode(', ', $values) . ");\n";
+            }
+            $sql .= "\n";
+        }
+
+        $sql .= "SET FOREIGN_KEY_CHECKS = 1;\n";
+        file_put_contents($file, $sql);
+    }
+
+    // Compression gzip si disponible.
+    $gzip = $dir . '/backup-' . $stamp . '.sql.gz';
+    $gz   = gzopen($gzip, 'wb');
+    if ($gz !== false) {
+        gzwrite($gz, (string) file_get_contents($file));
+        gzclose($gz);
+        unlink($file);
+        $file = $gzip;
+    }
+
+    echo "Backup créé : {$file} (" . round(filesize($file) / 1024, 1) . " Ko)\n";
+}
+
 switch ($command) {
     case 'help':
     case '--help':
@@ -117,6 +226,41 @@ switch ($command) {
             runSqlFile($file);
         }
         break;
+
+    case 'sla:run':
+        $rappels = SlaHelper::runDue();
+        $retards = SlaHelper::checkAlbumDelai();
+        echo "SLA exécuté : {$rappels} rappel(s) envoyé(s), {$retards} alerte(s) retard créée(s).\n";
+        break;
+
+    case 'backup':
+        runBackup();
+        break;
+
+    case 'queue:work':
+        $count = processQueueJobs();
+        SlaHelper::runDue();
+        SlaHelper::checkAlbumDelai();
+        echo "Queue traitée : {$count} job(s).\n";
+        break;
+
+    case 'queue:watch':
+        echo "Watch de la queue démarré (Ctrl+C pour arrêter).\n";
+        $tick = 0;
+        while (true) {
+            $count = processQueueJobs();
+            if ($count > 0) {
+                echo '[' . date('Y-m-d H:i:s') . "] {$count} job(s) traité(s).\n";
+            }
+
+            if ($tick % 30 === 0) {
+                SlaHelper::runDue();
+                SlaHelper::checkAlbumDelai();
+            }
+
+            $tick++;
+            sleep(1);
+        }
 
     default:
         echo "Commande inconnue : {$command}\n";

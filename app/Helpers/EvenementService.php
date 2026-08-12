@@ -21,6 +21,7 @@ final class EvenementService
         'EN_COURS',
         'TERMINE',
         'REFUSE',
+        'ANNULE',
     ];
 
     /**
@@ -34,8 +35,8 @@ final class EvenementService
      *   VALIDÉ / PROGRAMME / QR_GENERE peuvent être rejoués ou re-programmés.
      */
     private const TRANSITIONS_AUTORISEES = [
-        'EN_ATTENTE'            => ['MODIFICATION_DEMANDEE', 'VALIDÉ', 'PROGRAMME', 'REFUSE'],
-        'MODIFICATION_DEMANDEE' => ['EN_ATTENTE', 'REFUSE'],
+        'EN_ATTENTE'            => ['MODIFICATION_DEMANDEE', 'VALIDÉ', 'PROGRAMME', 'REFUSE', 'ANNULE'],
+        'MODIFICATION_DEMANDEE' => ['EN_ATTENTE', 'REFUSE', 'ANNULE'],
         'VALIDÉ'                => ['PROGRAMME', 'MODIFICATION_DEMANDEE', 'REFUSE'],
         'PROGRAMME'             => ['QR_GENERE', 'EN_COURS', 'TERMINE'],
         'QR_GENERE'             => ['EN_COURS', 'PROGRAMME', 'TERMINE'],
@@ -56,6 +57,7 @@ final class EvenementService
     public static function queryFiltres(array $f = []): array
     {
         $sql = 'SELECT e.*, c.nom AS commune_nom, a.nom AS association_nom,
+                       a.email AS association_email, a.telephone AS association_telephone,
                        (SELECT COUNT(*) FROM evenement_participant ep WHERE ep.evenement_id = e.id) AS participants,
                        (SELECT COUNT(*) FROM anomalies_evenement ae WHERE ae.evenement_id = e.id) AS nb_anomalies,
                        (SELECT GROUP_CONCAT(ep.nom SEPARATOR ", ") FROM epic ep
@@ -96,6 +98,11 @@ final class EvenementService
         if (! empty($f['epic_id'])) {
             $where[] = 'e.id IN (SELECT evenement_id FROM evenement_epic WHERE epic_id = ?)';
             $params[] = (int) $f['epic_id'];
+        }
+
+        if (! empty($f['assigned_org_id'])) {
+            $where[] = 'e.assigned_org_id = ?';
+            $params[] = (int) $f['assigned_org_id'];
         }
 
         if (! empty($f['anomalie_id'])) {
@@ -173,6 +180,22 @@ final class EvenementService
             self::syncAnomalies($eventId, $anomalieIds);
         }
 
+        RoutingService::assignOrganization($eventId);
+
+        if ($associationId > 0) {
+            $assoc = Database::one('SELECT nom FROM associations WHERE id = ?', [$associationId]);
+            $commune = Database::one('SELECT nom FROM commune WHERE id = ?', [(int) ($d['commune_id'] ?? 0)]);
+            $titre = $assoc ? $assoc['nom'] : 'Association inconnue';
+            $lieu = ($commune['nom'] ?? '') . (! empty($d['adresse']) ? ' — ' . mb_strimwidth((string) $d['adresse'], 0, 60, '…') : '');
+            Notification::sendToRole(
+                'wilaya',
+                'Nouvelle demande d\'événement',
+                "Nouvelle demande de {$titre} : " . ($d['description'] ?? 'Événement sans titre') . ($lieu !== '' ? " ({$lieu})" : ''),
+                'evenement_create',
+                ['evenement_id' => $eventId]
+            );
+        }
+
         return $eventId;
     }
 
@@ -203,6 +226,8 @@ final class EvenementService
         if (isset($d['anomalies']) && is_array($d['anomalies'])) {
             self::syncAnomalies($id, array_map('intval', $d['anomalies']));
         }
+
+        RoutingService::assignOrganization((int) $id);
 
         AuditLog::log('evenement_modification', 'evenement', $id, $ancien, $data);
     }
@@ -243,6 +268,100 @@ final class EvenementService
     }
 
     /**
+     * Validation Wilaya d'un événement en attent — étape "Valider et affecter".
+     *
+     * Passe l'événement en VALIDÉ, affecte plusieurs EPICs (many-to-many),
+     * notifie l'association et chaque EPIC sélectionné, puis journalise.
+     *
+     * @param array<int> $epicIds EPICs sélectionnées (users.epic_id)
+     * @return array<string, mixed>
+     */
+    public static function validateEvent(int $eventId, ?string $date, ?string $heure, array $epicIds): array
+    {
+        $event = Database::one(
+            'SELECT id, association_id, description, adresse, date_evenement, heure, statut
+             FROM evenements WHERE id = ? AND deleted_at IS NULL',
+            [$eventId]
+        );
+
+        if ($event === null) {
+            abort(404, 'Événement introuvable.');
+        }
+
+        $statutActuel = (string) ($event['statut'] ?? 'EN_ATTENTE');
+        if (! self::transitionAutorisee($statutActuel, 'VALIDÉ')) {
+            abort(409, "Transition interdite : {$statutActuel} → VALIDÉ.");
+        }
+
+        $update = [
+            'statut'        => 'VALIDÉ',
+            'date_evenement' => $date,
+            'heure'         => $heure ?? '00:00:00',
+            'motif_refus'   => null,
+        ];
+        Database::update('evenements', $update, 'id = ?', [$eventId]);
+
+        // Many-to-many : affecte toutes les EPICs sélectionnées.
+        self::syncEpics((int) $event['id'], $epicIds);
+
+        // Organisation assignée (Wilaya→EPIC) : première EPIC ou désassignée.
+        RoutingService::reaffecter(
+            (int) $event['id'],
+            $epicIds !== [] ? $epicIds : null,
+            'Validation Wilaya + affectation EPIC'
+        );
+
+        // Date/heure déjà renseignées par la Wilaya → QR code généré directement
+        // (l'association n'a plus qu'à programmer ; le QR est disponible tout de suite).
+        if (! empty($date)) {
+            QrCodeService::generate($eventId, $date, $heure ?? '00:00:00');
+        }
+
+        $titre = (string) ($event['description'] ?? $event['adresse'] ?? 'Événement n°' . (int) $event['id']);
+
+        // Notification à l'association.
+        if ((int) ($event['association_id'] ?? 0) > 0) {
+            Notification::sendToAssociation(
+                (int) $event['association_id'],
+                'Événement validé',
+                "Votre événement '{$titre}' a été validé par la Waliya. Sélectionnez une date/heure.",
+                'evenement_valide',
+                ['evenement_id' => (int) $event['id']]
+            );
+        }
+
+        // Notification à chaque EPIC affectée.
+        foreach ($epicIds as $epicId) {
+            Notification::sendToEpic(
+                (int) $epicId,
+                'Nouvel événement affecté',
+                "Vous avez été affecté à l'événement '{$titre}'.",
+                'epic_affectation',
+                ['evenement_id' => (int) $event['id']]
+            );
+        }
+
+        AuditLog::log('evenement_valide', 'evenement', $eventId, ['statut' => $statutActuel], $update);
+        $historiqueMsg = 'Statut : ' . $statutActuel . ' → VALIDÉ';
+        AuditLog::historique((int) $event['id'], 'statut_valide', $historiqueMsg);
+
+        Database::insert('transition_history', [
+            'evenement_id' => $eventId,
+            'statut_avant' => $statutActuel,
+            'statut_apres' => 'VALIDÉ',
+            'user_id'      => Session::userId(),
+            'motif'        => null,
+        ]);
+
+        return [
+            'statut' => 'VALIDÉ',
+            'epics'  => $epicIds,
+            'date'   => $date,
+            'heure'  => $heure,
+        ];
+    }
+
+    /**
      * Change le statut d'un événement avec traçabilité et validation de transition.
      *
      * @throws \RuntimeException si la transition n'est pas autorisée
@@ -272,6 +391,19 @@ final class EvenementService
 
         Database::update('evenements', $data, 'id = ?', [$id]);
 
+        // Passage direct en PROGRAMME / QR_GENERE depuis le tableau de bord Wilaya :
+        // si une date/heure existe, génère (ou régénère) le QR code immédiatement.
+        if (in_array($statut, ['PROGRAMME', 'QR_GENERE'], true)
+            && ! empty($ancien['date_evenement'])) {
+            QrCodeService::generate(
+                $id,
+                (string) $ancien['date_evenement'],
+                (string) ($ancien['heure'] ?? '00:00:00')
+            );
+        }
+
+        self::notifierDecision((int) $id, (int) ($ancien['association_id'] ?? 0), $statut, $motif, $statutActuel);
+
         AuditLog::log('evenement_statut', 'evenement', $id, $ancien, $data);
         AuditLog::historique($id, 'statut_' . statut_key($statut), 'Statut : ' . $statutActuel . ' → ' . $statut . ($motif ? ' (' . $motif . ')' : ''));
 
@@ -284,6 +416,52 @@ final class EvenementService
         ]);
 
         return true;
+    }
+
+    /**
+     * Annulation d'une demande par l'association (EN_ATTENTE / MODIFICATION_DEMANDEE → ANNULE).
+     *
+     * @return array<string, mixed> l'événement concerné
+     */
+    public static function changerStatutAnnule(int $id, string $motif): array
+    {
+        $event = Database::one('SELECT * FROM evenements WHERE id = ? AND deleted_at IS NULL', [$id]);
+
+        if ($event === null) {
+            abort(404, 'Événement introuvable.');
+        }
+
+        $statutActuel = (string) ($event['statut'] ?? 'EN_ATTENTE');
+        if (! self::transitionAutorisee($statutActuel, 'ANNULE')) {
+            abort(409, "Transition interdite : {$statutActuel} → ANNULE.");
+        }
+
+        Database::update('evenements', ['statut' => 'ANNULE', 'motif_refus' => $motif], 'id = ?', [$id]);
+
+        // Notification à la Wilaya : une demande a été annulée par l'association.
+        if ((int) ($event['association_id'] ?? 0) > 0) {
+            $assoc = Database::one('SELECT nom FROM associations WHERE id = ?', [(int) $event['association_id']]);
+            Notification::sendToRole(
+                'wilaya',
+                'Demande annulée',
+                ($assoc ? $assoc['nom'] : 'L\'association') . " a annulé sa demande (#{$id}) : {$motif}",
+                'evenement_annule',
+                ['evenement_id' => $id]
+            );
+        }
+
+        AuditLog::log('evenement_statut', 'evenement', $id, ['statut' => $statutActuel], ['statut' => 'ANNULE', 'motif' => $motif]);
+        AuditLog::historique($id, 'statut_annule', 'Statut : ' . $statutActuel . ' → ANNULE (' . $motif . ')');
+
+        Database::insert('transition_history', [
+            'evenement_id' => $id,
+            'statut_avant' => $statutActuel,
+            'statut_apres' => 'ANNULE',
+            'user_id'      => Session::userId(),
+            'motif'        => $motif,
+        ]);
+
+        return Database::one('SELECT * FROM evenements WHERE id = ?', [$id]);
     }
 
     /**
@@ -316,6 +494,8 @@ final class EvenementService
         }
 
         Database::update('evenements', ['statut' => 'MODIFICATION_DEMANDEE', 'motif_refus' => $motif], 'id = ?', [$id]);
+
+        self::notifierDecision((int) $id, (int) ($event['association_id'] ?? 0), 'MODIFICATION_DEMANDEE', $motif, $statutActuel);
 
         AuditLog::log('evenement_statut', 'evenement', $id, ['statut' => $statutActuel], ['statut' => 'MODIFICATION_DEMANDEE', 'motif' => $motif]);
         AuditLog::historique($id, 'statut_modification_demandee', 'Statut : ' . $statutActuel . ' → MODIFICATION_DEMANDEE (' . $motif . ')');
@@ -358,7 +538,13 @@ final class EvenementService
         ], 'id = ?', [$id]);
 
         self::syncEpics($id, $epicIds);
-        QrCodeGenerator::createForEvenement($id, $date, $heure);
+
+        // Événement programmé : affecte les EPIC sélectionnés et trace la première EPIC comme organisation assignée (règle manuelle implicite).
+        if ($epicIds !== []) {
+            RoutingService::reaffecter($id, $epicIds, 'Programmation wilaya');
+        }
+
+        QrCodeService::generate($id, $date, $heure);
         SlaHelper::scheduleForEvenement($id, $date, $heure);
 
         if ($associationId > 0) {
@@ -474,15 +660,45 @@ final class EvenementService
 
     /**
      * Régénère le QR code d'un événement (nouveau token, nouvelle expiration).
+     *
+     * Délègue à QrCodeService::generate : régénère le token, régénère le fichier
+     * PNG, met à jour `qr_code_path` et notifie la disponibilité du QR.
      */
     public static function regenQr(int $evenementId): array
     {
-        $event = Database::one('SELECT date_evenement, heure FROM evenements WHERE id = ?', [$evenementId]);
+        return QrCodeService::generate($evenementId);
+    }
 
-        return QrCodeGenerator::createForEvenement(
-            $evenementId,
-            (string) ($event['date_evenement'] ?? ''),
-            (string) ($event['heure'] ?? '00:00:00')
-        );
+    /**
+     * Notifie l'association de la décision Wilaya (refus, modifications,
+     * clôture, etc.) et la Wilaya des annulations/re-soumissions.
+     *
+     * @param int    $associationId identifiant de l'association (0 si aucun)
+     * @param string $nouveauStatut statut décidé par la Wilaya
+     * @param string $ancienStatut  statut avant la décision
+     */
+    private static function notifierDecision(
+        int $id,
+        int $associationId,
+        string $nouveauStatut,
+        ?string $motif,
+        string $ancienStatut = ''
+    ): void {
+        if ($associationId <= 0) {
+            return;
+        }
+
+        $event    = Database::one('SELECT description, adresse FROM evenements WHERE id = ?', [$id]);
+        $titre    = $event ? (string) ($event['description'] ?? $event['adresse'] ?? 'Événement n°' . $id) : 'Événement n°' . $id;
+        $motifTxt = ! empty($motif) ? ' — Motif : ' . $motif : '';
+
+        match ($nouveauStatut) {
+            'REFUSE'                 => Notification::sendToAssociation($associationId, 'Demande refusée', "Votre événement '{$titre}' a été refusé par la Wilaya.{$motifTxt}", 'evenement_refuse', ['evenement_id' => $id]),
+            'MODIFICATION_DEMANDEE'  => Notification::sendToAssociation($associationId, 'Modifications demandées', "Des modifications sont demandées pour '{$titre}'.{$motifTxt}", 'evenement_modification', ['evenement_id' => $id]),
+            'VALIDÉ'                 => Notification::sendToAssociation($associationId, 'Événement validé', "Votre événement '{$titre}' a été validé par la Wilaya.", 'evenement_valide', ['evenement_id' => $id]),
+            'EN_COURS'               => Notification::sendToAssociation($associationId, 'Événement en cours', "Votre événement '{$titre}' est en cours de déroulement.", 'evenement_en_cours', ['evenement_id' => $id]),
+            'TERMINE'                => Notification::sendToAssociation($associationId, 'Événement terminé', "Votre événement '{$titre}' est terminé.{$motifTxt}", 'evenement_termine', ['evenement_id' => $id]),
+            default                  => null,
+        };
     }
 }

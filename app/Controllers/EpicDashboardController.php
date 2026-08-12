@@ -7,6 +7,7 @@ namespace App\Controllers;
 use App\Helpers\EpicDashboardService;
 use App\Helpers\I18n;
 use App\Helpers\Rbac;
+use App\Helpers\RoutingService;
 
 /**
  * Tableau de bord EPIC — événements attribués, calendrier, anomalies.
@@ -52,6 +53,43 @@ final class EpicDashboardController extends Controller
         $anomalies = EpicDashboardService::anomaliesParMotif($epicId, $f);
         $badgeAnomalies = EpicDashboardService::anomaliesNonTraitees($epicId);
         $communes = EpicDashboardService::communes();
+        $nouveauxRoutages = RoutingService::nouveauxRoutages($epicId);
+
+        // ── Idées & conseils contextuels (actions recommandées) ──
+        $suggestions = [];
+        if ($badgeAnomalies > 0) {
+            $suggestions[] = ['icon' => 'mdi-alert-octagon-outline', 'color' => 'danger',
+                'titre' => $badgeAnomalies . ' anomalie(s) à traiter',
+                'texte' => 'Des événements sont en attente de correction (modification demandée ou refus). Consultez-les pour relancer les associations.',
+                'lien'  => url('epic')];
+        }
+        if ($avenir !== []) {
+            $suggestions[] = ['icon' => 'mdi-calendar-clock-outline', 'color' => 'primary',
+                'titre' => count($avenir) . ' événement(s) dans les 3 prochains jours',
+                'texte' => 'Préparez vos équipes : ' . implode(', ', array_map(
+                    static fn ($e) => (string) ($e['commune_nom'] ?? '-'),
+                    array_slice($avenir, 0, 3)
+                )) . '.',
+                'lien'  => url('epic/dashboard')];
+        }
+        if ($kpis['EN_COURS'] > 0) {
+            $suggestions[] = ['icon' => 'mdi-progress-wrench', 'color' => 'amber',
+                'titre' => $kpis['EN_COURS'] . ' événement(s) en cours',
+                'texte' => 'Pensez à renseigner les interventions et à clôturer les événements terminés.',
+                'lien'  => url('epic')];
+        }
+        if (($kpis['total'] ?? 0) === 0) {
+            $suggestions[] = ['icon' => 'mdi-lightbulb-on-outline', 'color' => 'success',
+                'titre' => 'Aucun événement attribué',
+                'texte' => 'Votre EPIC n\'a pas encore d\'événements. Les nouvelles demandes de la Wilaya vous seront affectées automatiquement selon les anomalies.',
+                'lien'  => null];
+        }
+        if ($nouveauxRoutages !== [] && $suggestions === []) {
+            $suggestions[] = ['icon' => 'mdi-router-wireless-outline', 'color' => 'violet',
+                'titre' => count($nouveauxRoutages) . ' nouveau(x) routage(s)',
+                'texte' => 'Des événements viennent de vous être affectés. Vérifiez leur programme.',
+                'lien'  => url('epic')];
+        }
 
         $this->view('epic/dashboard', [
             'epic'            => $epic,
@@ -63,6 +101,8 @@ final class EpicDashboardController extends Controller
             'anomalies'       => $anomalies,
             'badgeAnomalies'  => $badgeAnomalies,
             'communes'        => $communes,
+            'nouveauxRoutages'=> $nouveauxRoutages,
+            'suggestions'     => $suggestions,
             'filters'         => $filters,
             'isRtl'           => I18n::direction() === 'rtl',
         ]);

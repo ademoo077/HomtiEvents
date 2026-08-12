@@ -8,6 +8,8 @@ use App\Helpers\AuditLog;
 use App\Helpers\Database;
 use App\Helpers\EvenementService;
 use App\Helpers\Notification;
+use App\Helpers\QrCodeService;
+use App\Helpers\RoutingService;
 use App\Helpers\Session;
 use App\Helpers\Validator;
 
@@ -106,6 +108,76 @@ final class AdminEvenementController extends Controller
             ? round(($kpis['termines'] / $kpis['total']) * 100)
             : 0;
 
+        // ── Idées & conseils contextuels (actions recommandées) ──
+        $validesSansDate = Database::all(
+            "SELECT e.id, e.adresse, e.description
+             FROM evenements e
+             WHERE e.statut = 'VALIDÉ' AND e.deleted_at IS NULL AND e.date_evenement IS NULL
+             ORDER BY e.created_at ASC LIMIT 5"
+        );
+        $programmesSansQr = Database::all(
+            "SELECT e.id, e.adresse, e.description
+             FROM evenements e
+             WHERE e.statut IN ('PROGRAMME', 'QR_GENERE') AND e.deleted_at IS NULL
+               AND NOT EXISTS (SELECT 1 FROM qr_event q WHERE q.evenement_id = e.id)
+             ORDER BY e.created_at ASC LIMIT 5"
+        );
+        $slaRetard = (int) Database::value(
+            "SELECT COUNT(*) FROM sla_alertes WHERE envoyee = 1 AND type = 'retard'"
+        );
+        $evenementsSansEpic = (int) Database::value(
+            "SELECT COUNT(*) FROM evenements e
+             WHERE e.deleted_at IS NULL AND e.statut NOT IN ('TERMINE', 'REFUSE', 'ANNULE')
+               AND NOT EXISTS (SELECT 1 FROM evenement_epic ee WHERE ee.evenement_id = e.id)"
+        );
+        $qrsActifs = (int) Database::value(
+            'SELECT COUNT(*) FROM qr_event WHERE date_expiration >= NOW() OR date_expiration IS NULL'
+        );
+
+        $suggestions = [];
+        if ($kpis['en_attente'] > 0) {
+            $suggestions[] = ['icon' => 'mdi-clock-outline', 'color' => 'amber',
+                'titre' => $kpis['en_attente'] . ' demande(s) en attente',
+                'texte' => 'Des demandes d\'événements attendent une décision. Validez, demandez des modifications ou refusez-les pour débloquer le circuit.',
+                'lien'  => url('wilaya/evenements?statut=EN_ATTENTE')];
+        }
+        if ($validesSansDate !== []) {
+            $suggestions[] = ['icon' => 'mdi-calendar-blank-outline', 'color' => 'violet',
+                'titre' => count($validesSansDate) . ' événement(s) validé(s) sans date',
+                'texte' => 'Programmez-les pour fixer une date/heure et générer le QR code automatiquement.',
+                'lien'  => url('wilaya/evenements?statut=VALIDÉ')];
+        }
+        if ($programmesSansQr !== []) {
+            $suggestions[] = ['icon' => 'mdi-qrcode-remove', 'color' => 'red',
+                'titre' => count($programmesSansQr) . ' événement(s) programmé(s) sans QR',
+                'texte' => 'Régénérez le QR code de ces événements pour permettre le contrôle d\'accès.',
+                'lien'  => url('wilaya/evenements?statut=PROGRAMME')];
+        }
+        if ($slaRetard > 0) {
+            $suggestions[] = ['icon' => 'mdi-image-off-outline', 'color' => 'red',
+                'titre' => $slaRetard . ' alerte(s) album en retard',
+                'texte' => 'Des événements terminés n\'ont toujours pas d\'album officiel. Relancez les associations concernées.',
+                'lien'  => url('wilaya/gallery')];
+        }
+        if ($evenementsSansEpic > 0) {
+            $suggestions[] = ['icon' => 'mdi-folder-account-outline', 'color' => 'info',
+                'titre' => $evenementsSansEpic . ' événement(s) sans EPIC',
+                'texte' => 'Affectez une EPIC compétente pour assurer le suivi des travaux sur le terrain.',
+                'lien'  => url('wilaya/evenements')];
+        }
+        if ($kpis['pending_requests'] > 0) {
+            $suggestions[] = ['icon' => 'mdi-account-check-outline', 'color' => 'green',
+                'titre' => $kpis['pending_requests'] . ' demande(s) d\'inscription en attente',
+                'texte' => 'Examinez les nouvelles demandes d\'associations pour agrandir le réseau.',
+                'lien'  => url('admin/association-requests?status=pending')];
+        }
+        if ($suggestions === []) {
+            $suggestions[] = ['icon' => 'mdi-lightbulb-on-outline', 'color' => 'primary',
+                'titre' => 'Tout est à jour',
+                'texte' => 'Aucune action urgente. Le circuit des demandes est fluide. Consultez les statistiques pour piloter votre territoire.',
+                'lien'  => null];
+        }
+
         // Demandes d'inscription récentes + ancienneté
         $latestRequests = Database::all(
             "SELECT r.*, DATEDIFF(CURDATE(), DATE(r.created_at)) AS age_jours
@@ -138,6 +210,32 @@ final class AdminEvenementController extends Controller
             'agingPending'     => $agingPending,
             'notifFeed'        => $notifFeed,
             'unreadNotifs'     => $unreadNotifs,
+            'repartitionOrg'   => RoutingService::repartition(),
+            'routing_alertes_non_traitees' => RoutingService::alertesNonTraitees(),
+            'suggestions'      => $suggestions,
+            'qrsActifs'        => $qrsActifs,
+            'slaRetard'        => $slaRetard,
+        ]);
+    }
+
+    /**
+     * Espace notifications Wilaya : historique complet, paginé,
+     * avec lien contextuel vers l'événement / la demande concernée.
+     */
+    public function notifications(): never
+    {
+        $this->requirePermission('evenement.view_all');
+
+        $currentUserId = Session::userId();
+        $page   = (int) input('page', 1);
+        $result = Notification::all((int) $currentUserId, 20, $page);
+
+        $this->view('wilaya/notifications', [
+            'notifications' => $result['items'],
+            'page'          => $result['page'],
+            'lastPage'      => $result['last_page'],
+            'total'         => $result['total'],
+            'unread'        => Notification::unreadCount((int) $currentUserId),
         ]);
     }
 
@@ -165,7 +263,7 @@ final class AdminEvenementController extends Controller
             $photos = Database::all('SELECT * FROM photos WHERE album_id = ? ORDER BY uploaded_at DESC', [(int) $album['id']]);
         }
 
-        $statutActuel = (string) ($event['statut'] ?? 'EN_ATTENTE');
+         $statutActuel = (string) ($event['statut'] ?? 'EN_ATTENTE');
         $this->view('wilaya.evenements.show', [
             'event'       => $event,
             'commune'     => $commune,
@@ -174,6 +272,9 @@ final class AdminEvenementController extends Controller
             'epics'       => $epics,
             'participants' => $participants,
             'qr'          => $qr,
+            'qrUrl'       => QrCodeService::getQrCodeUrl((int) $id),
+            'qrStreamUrl' => QrCodeService::has((int) $id) ? url('event/qr/stream/' . (int) $id) : null,
+            'qrDownloadUrl'=> QrCodeService::has((int) $id) ? url('event/qr/download/' . (int) $id) : null,
             'historique'  => $historique,
             'transitions' => $transitions,
             'statuts'     => EvenementService::STATUTS,
@@ -306,7 +407,47 @@ final class AdminEvenementController extends Controller
         $epics = (array) (input('epics', []) ?: []);
         EvenementService::syncEpics((int) $id, $epics);
 
+        // Traçabilité de l'organisation assignée (première EPIC ou désassignée).
+        RoutingService::reaffecter((int) $id, $epics, 'Affectation manuelle Wilaya');
+
         flash('success', 'EPIC affectées mises à jour.');
+        redirect('wilaya/evenements/' . $id);
+    }
+
+    /**
+     * Validation Wilaya + affectation multi-EPIC (bouton « Valider et affecter »).
+     * Passe l'événement en VALIDÉ, lie les EPIC sélectionnées, notifie l'association
+     * et chaque EPIC.
+     */
+    public function valider(string $id): never
+    {
+        $this->requirePermission('evenement.validate');
+        $this->find($id);
+
+        $epics = array_values(array_filter(array_map('intval', (array) input('epics', []))));
+        $date  = input('date_evenement') !== null ? (string) input('date_evenement') : null;
+        $heure = input('heure') !== null ? (string) input('heure') : null;
+
+        EvenementService::validateEvent((int) $id, $date, $heure, $epics);
+
+        flash('success', 'Événement validé et EPIC affectées.');
+        redirect('wilaya/evenements/' . $id);
+    }
+
+    /**
+     * Réaffectation manuelle d'une organisation (EPIC) — bouton "Réaffecter".
+     */
+    public function reaffecter(string $id): never
+    {
+        $this->requirePermission('epic.assign');
+        $this->find($id);
+
+        $epicIds = array_values(array_filter(array_map('intval', (array) input('epic_id', []))));
+        $motif  = trim((string) input('motif', ''));
+
+        RoutingService::reaffecter((int) $id, $epicIds, $motif);
+
+        flash('success', $epicIds !== [] ? 'Organisation réaffectée.' : 'Organisation désassignée.');
         redirect('wilaya/evenements/' . $id);
     }
 

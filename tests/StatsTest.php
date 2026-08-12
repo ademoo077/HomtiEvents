@@ -25,7 +25,7 @@ final class StatsTest extends DatabaseTestCase
     {
         $data = StatsService::data();
 
-        foreach (['kpis', 'parStatut', 'evolutionMensuelle', 'topAssociations', 'repartitionCommunes', 'topEpics', 'participationsJour', 'demandesParStatut', 'tauxParticipation'] as $cle) {
+        foreach (['kpis', 'parStatut', 'evolutionMensuelle', 'topAssociations', 'repartitionCommunes', 'repartitionAnomalies', 'topEpics', 'participationsJour', 'demandesParStatut', 'tauxParticipation'] as $cle) {
             $this->assertArrayHasKey($cle, $data, "Clé manquante : {$cle}");
         }
 
@@ -59,6 +59,17 @@ final class StatsTest extends DatabaseTestCase
         $this->assertCount(0, glob(BASE_PATH . '/storage/cache/*.json') ?: [], 'flush() doit vider le cache.');
     }
 
+    public function testRepartitionAnomaliesForme(): void
+    {
+        $rows = StatsService::repartitionAnomalies();
+
+        foreach ($rows as $row) {
+            $this->assertArrayHasKey('nom', $row);
+            $this->assertArrayHasKey('nb', $row);
+            $this->assertIsInt($row['nb']);
+        }
+    }
+
     public function testCsvContientLesSections(): void
     {
         $csv = StatsService::csv();
@@ -69,6 +80,7 @@ final class StatsTest extends DatabaseTestCase
         $this->assertStringContainsString('Répartition par statut', $csv);
         $this->assertStringContainsString('Évolution mensuelle', $csv);
         $this->assertStringContainsString('Top associations', $csv);
+        $this->assertStringContainsString('Répartition par anomalie', $csv);
         $this->assertStringContainsString('Demandes d\'inscription par statut', $csv);
     }
 }

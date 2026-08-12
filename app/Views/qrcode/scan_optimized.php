@@ -10,7 +10,7 @@ $isAr = I18n::direction() === 'rtl';
 
         <!-- ── Header avec bouton retour ── -->
         <div class="scan-header-bar">
-            <a href="<?= url('citoyen') ?>" class="scan-back-btn" aria-label="<?= $isAr ? 'رجوع' : 'Retour' ?>" title="<?= $isAr ? 'رجوع' : 'Retour' ?>">
+            <a href="<?= dashboard_path() ?>" class="scan-back-btn" aria-label="<?= $isAr ? 'رجوع' : 'Retour' ?>" title="<?= $isAr ? 'رجوع' : 'Retour' ?>">
                 <i class="mdi mdi-arrow-left"></i>
             </a>
             <h1 class="scan-header-title"><?= $isAr ? 'مسح رمز QR' : 'Scanner un QR Code' ?></h1>

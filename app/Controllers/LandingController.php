@@ -34,16 +34,16 @@ final class LandingController extends Controller
             'SELECT a.id, a.titre, a.recit, a.statut, a.couverture,
                          e.adresse, e.date_evenement, e.association_id, e.id AS evenement_id,
                          c.nom AS commune_nom,
-                         (SELECT COUNT(*) FROM photos p WHERE p.album_id = a.id) AS nb_photos_count,
-                         (SELECT p.image FROM photos p WHERE p.album_id = a.id ORDER BY p.uploaded_at ASC LIMIT 1) AS first_photo,
+                         (SELECT COUNT(*) FROM photos p WHERE p.album_id = a.id AND p.status = ?) AS nb_photos_count,
+                         (SELECT p.image FROM photos p WHERE p.album_id = a.id AND p.status = ? ORDER BY p.uploaded_at ASC LIMIT 1) AS first_photo,
                          a.updated_at, a.date_creation
                     FROM albums a
                     JOIN evenements e ON e.id = a.evenement_id
                     LEFT JOIN commune c ON c.id = e.commune_id
                     WHERE a.statut = ?
-                      AND (a.updated_at > ? OR EXISTS (SELECT 1 FROM photos p WHERE p.album_id = a.id AND p.uploaded_at > ?))
+                      AND (a.updated_at > ? OR EXISTS (SELECT 1 FROM photos p WHERE p.album_id = a.id AND p.status = ? AND p.uploaded_at > ?))
                     ORDER BY a.updated_at DESC LIMIT 10',
-            ['publie', $lastTimestamp, $lastTimestamp]
+            ['publie', 'active', 'active', $lastTimestamp, 'active', $lastTimestamp]
         );
 
         // Enrich associations, photos et anomalies
@@ -52,8 +52,8 @@ final class LandingController extends Controller
             $al['nb_photos'] = $al['nb_photos_count'];
 
             $al['photos'] = Database::all(
-                'SELECT id, image, title, legende, sort_order, uploaded_at FROM photos WHERE album_id = ? ORDER BY sort_order ASC, uploaded_at DESC',
-                [(int) $al['id']]
+                'SELECT id, image, titre, legende, sort_order, uploaded_at FROM photos WHERE album_id = ? AND status = ? ORDER BY sort_order ASC, uploaded_at DESC',
+                [(int) $al['id'], 'active']
             );
 
             $al['anomalies'] = Database::all(

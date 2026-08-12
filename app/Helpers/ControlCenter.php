@@ -175,6 +175,7 @@ final class ControlCenter
     {
         $role          = (string) ($d['role_user'] ?? 'citoyen');
         $associationId = $role === 'association' ? (int) ($d['association_id'] ?? 0) : 0;
+        $epicId        = $role === 'epic' ? (int) ($d['epic_id'] ?? 0) : 0;
         $email         = mb_strtolower(trim((string) ($d['email'] ?? '')));
 
         $userId = Database::insert('users', [
@@ -185,6 +186,7 @@ final class ControlCenter
             'telephone'      => trim((string) ($d['telephone'] ?? '')),
             'role_user'      => $role,
             'association_id' => $associationId > 0 ? $associationId : null,
+            'epic_id'        => $epicId > 0 ? $epicId : null,
             'is_active'      => 1,
         ]);
 
@@ -194,6 +196,7 @@ final class ControlCenter
             'email'          => $email,
             'role_user'      => $role,
             'association_id' => $associationId > 0 ? $associationId : null,
+            'epic_id'        => $epicId > 0 ? $epicId : null,
         ]);
 
         return $userId;
@@ -215,6 +218,7 @@ final class ControlCenter
 
         $role          = (string) ($d['role_user'] ?? ($avant['role_user'] ?? 'citoyen'));
         $associationId = $role === 'association' ? (int) ($d['association_id'] ?? 0) : 0;
+        $epicId        = $role === 'epic' ? (int) ($d['epic_id'] ?? 0) : 0;
         $email         = mb_strtolower(trim((string) ($d['email'] ?? '')));
 
         $params = [
@@ -224,8 +228,9 @@ final class ControlCenter
             trim((string) ($d['telephone'] ?? '')),
             $role,
             $associationId > 0 ? $associationId : null,
+            $epicId > 0 ? $epicId : null,
         ];
-        $sql = 'UPDATE users SET nom = ?, prenom = ?, email = ?, telephone = ?, role_user = ?, association_id = ?';
+        $sql = 'UPDATE users SET nom = ?, prenom = ?, email = ?, telephone = ?, role_user = ?, association_id = ?, epic_id = ?';
         if ($nouveauPassword !== null && $nouveauPassword !== '') {
             $sql .= ', password = ?';
             $params[] = $nouveauPassword;
@@ -246,6 +251,7 @@ final class ControlCenter
             'telephone'      => $avant['telephone'] ?? null,
             'role_user'      => $avant['role_user'] ?? null,
             'association_id' => $avant['association_id'] ?? null,
+            'epic_id'        => $avant['epic_id'] ?? null,
         ], [
             'nom'            => trim((string) ($d['nom'] ?? '')),
             'prenom'         => trim((string) ($d['prenom'] ?? '')),
@@ -253,6 +259,7 @@ final class ControlCenter
             'telephone'      => trim((string) ($d['telephone'] ?? '')),
             'role_user'      => $role,
             'association_id' => $associationId > 0 ? $associationId : null,
+            'epic_id'        => $epicId > 0 ? $epicId : null,
             'password'       => ($nouveauPassword !== null && $nouveauPassword !== '') ? 'modifié' : null,
         ]);
 

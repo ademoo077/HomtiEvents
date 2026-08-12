@@ -70,11 +70,14 @@ $controlNav = [
 
 $nav = $navMode === 'control' ? $controlNav : $adminNav;
 
-// Espace EPIC : entrée dédiée du tableau de bord en tête de navigation.
+// Espace EPIC : navigation réduite aux seules vues accessibles à un EPIC.
 if ($userRole === 'epic') {
-    $nav = array_merge([
-        ['label' => __('common.dashboard'), 'icon' => 'mdi-view-dashboard', 'href' => 'epic/dashboard', 'prefix' => 'epic/dashboard'],
-    ], $nav);
+    $epicNav = [
+        ['label' => __('common.dashboard'), 'icon' => 'mdi-view-dashboard', 'href' => 'epic/dashboard',       'prefix' => 'epic/dashboard'],
+        ['label' => __('common.evenements'), 'icon' => 'mdi-calendar-star', 'href' => 'epic',                 'prefix' => 'epic'],
+        ['label' => __('common.export'),     'icon' => 'mdi-file-export',  'href' => 'epic/dashboard/export',  'prefix' => 'epic/dashboard/export'],
+    ];
+    $nav = $epicNav;
 }
 ?>
 <!DOCTYPE html>
@@ -188,8 +191,13 @@ if ($userRole === 'epic') {
                                 <?php foreach ($recentNotifs as $n): $nData = json_decode((string) ($n['data_json'] ?? 'null'), true) ?? []; ?>
                                     <?php
                                         $nUrl = null;
-                                        if (($n['type'] ?? '') === 'association_request' && ! empty($nData['request_id']) && $userRole === 'wilaya') {
+                                        $nType = (string) ($n['type'] ?? '');
+                                        if ($nType === 'association_request' && ! empty($nData['request_id']) && $userRole === 'wilaya') {
                                             $nUrl = url('admin/association-requests/' . (int) $nData['request_id']);
+                                        } elseif (in_array($nType, ['evenement_create', 'evenement_annule', 'evenement_resoumis', 'routing_alerte', 'sla_retard'], true) && ! empty($nData['evenement_id'])) {
+                                            $nUrl = url('wilaya/evenements/' . (int) $nData['evenement_id']);
+                                        } elseif (isset($nData['link'])) {
+                                            $nUrl = url((string) $nData['link']);
                                         }
                                         $nRead = (int) ($n['lu'] ?? 0) === 1;
                                     ?>
@@ -213,6 +221,14 @@ if ($userRole === 'epic') {
                                     </a>
                                 <?php endforeach; ?>
                             <?php endif; ?>
+                            <?php if ($userRole === 'wilaya'): ?>
+                                <div class="text-center py-2 border-top">
+                                    <a class="btn btn-sm btn-outline-primary w-100"
+                                       href="<?= url('wilaya/notifications') ?>">
+                                        <?= $isAr ? 'عرض كل الإشعارات' : 'Voir toutes les notifications' ?>
+                                    </a>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <?php endif; ?>
@@ -231,6 +247,8 @@ if ($userRole === 'epic') {
                             </span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                            <li><a class="dropdown-item" href="<?= url('profile') ?>"><i class="mdi mdi-account-circle me-2"></i><?= $isAr ? 'ملفي الشخصي' : 'Mon profil' ?></a></li>
+                            <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="<?= url('auth/logout') ?>"><i class="mdi mdi-logout me-2"></i><?= e(__('common.logout')) ?></a></li>
                         </ul>
                     </div>

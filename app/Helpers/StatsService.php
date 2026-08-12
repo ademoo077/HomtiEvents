@@ -33,6 +33,7 @@ final class StatsService
             'evolutionMensuelle'    => self::evolutionMensuelle(),
             'topAssociations'       => self::topAssociations(),
             'repartitionCommunes'   => self::repartitionCommunes(),
+            'repartitionAnomalies'  => self::repartitionAnomalies(),
             'topEpics'              => self::topEpics(),
             'participationsJour'    => self::participationsQuotidiennes(),
             'demandesParStatut'     => self::demandesParStatut(),
@@ -156,6 +157,30 @@ final class StatsService
                      LEFT JOIN commune c ON c.id = e.commune_id
                      WHERE e.deleted_at IS NULL
                      GROUP BY c.id
+                     ORDER BY nb DESC LIMIT ?',
+                    [$limit]
+                )
+            );
+        });
+    }
+
+    /**
+     * Répartition des événements par anomalie signalée.
+     *
+     * @return array<int, array{nom: string, nb: int}>
+     */
+    public static function repartitionAnomalies(int $limit = 8): array
+    {
+        return Cache::remember(self::PREFIX . 'repartitionAnomalies:' . $limit, self::TTL, static function () use ($limit): array {
+            return array_map(
+                static fn (array $r): array => ['nom' => (string) $r['nom'], 'nb' => (int) $r['nb']],
+                Database::all(
+                    'SELECT an.nom, COUNT(ae.evenement_id) AS nb
+                     FROM anomalies_evenement ae
+                     JOIN anomalies an ON an.id = ae.anomalie_id
+                     JOIN evenements e ON e.id = ae.evenement_id
+                     WHERE e.deleted_at IS NULL
+                     GROUP BY an.id
                      ORDER BY nb DESC LIMIT ?',
                     [$limit]
                 )
@@ -292,6 +317,13 @@ final class StatsService
         fputcsv($out, ['Répartition par commune'], ';', '"', '\\');
         fputcsv($out, ['Commune', 'Événements'], ';', '"', '\\');
         foreach (self::repartitionCommunes() as $r) {
+            fputcsv($out, [$r['nom'], $r['nb']], ';', '"', '\\');
+        }
+
+        fputcsv($out, [], ';', '"', '\\');
+        fputcsv($out, ['Répartition par anomalie'], ';', '"', '\\');
+        fputcsv($out, ['Anomalie', 'Événements'], ';', '"', '\\');
+        foreach (self::repartitionAnomalies() as $r) {
             fputcsv($out, [$r['nom'], $r['nb']], ';', '"', '\\');
         }
 

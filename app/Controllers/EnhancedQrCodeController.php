@@ -101,14 +101,14 @@ final class EnhancedQrCodeController extends Controller
                     ep.heure_scan, ep.ip_address,
                     c.nom AS commune_nom,
                     a.id AS album_id, a.titre AS album_titre,
-                    (SELECT COUNT(*) FROM photos p WHERE p.album_id = a.id) AS nb_photos
+                    (SELECT COUNT(*) FROM photos p WHERE p.album_id = a.id AND p.status = ?) AS nb_photos
              FROM evenement_participant ep
              JOIN evenements e ON e.id = ep.evenement_id
              LEFT JOIN commune c ON c.id = e.commune_id
              LEFT JOIN albums a ON a.evenement_id = e.id AND a.statut = ?
              WHERE ep.user_id = ?
              ORDER BY ep.heure_scan DESC',
-            ['publie', $userId]
+            ['publie', 'active', $userId]
         );
 
         $this->view('citoyen/participations', [
@@ -146,7 +146,7 @@ final class EnhancedQrCodeController extends Controller
         $photos = [];
         $album = Database::one('SELECT id, titre, recit, statut FROM albums WHERE evenement_id = ? AND statut = ?', [(int) $id, 'publie']);
         if ($album !== null) {
-            $photos = Database::all('SELECT * FROM photos WHERE album_id = ? ORDER BY sort_order ASC, uploaded_at DESC', [(int) $album['id']]);
+            $photos = Database::all('SELECT * FROM photos WHERE album_id = ? AND status = ? ORDER BY sort_order ASC, uploaded_at DESC', [(int) $album['id'], 'active']);
         }
 
         $hasParticipated = Database::exists(

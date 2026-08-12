@@ -55,6 +55,7 @@ final class EpicDashboardApi
                     'association'=> $e['association_nom'] ?? '',
                     'motif'      => $e['motif_refus'] ?? '',
                     'url_admin'  => url('wilaya/evenements/' . (int) $e['id']),
+                    'url_epic'   => url('epic/' . (int) $e['id']),
                 ];
             }, $events),
         ]);

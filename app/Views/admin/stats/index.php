@@ -58,9 +58,9 @@ $demandeLabels = ['pending' => 'En attente', 'approved' => 'Approuvée', 'reject
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
                     <h6 class="fw-bold mb-3">
-                        <i class="mdi mdi-chart-bar me-2"></i><?= $isAr ? 'توزيع حسب الحالة' : 'Événements par statut' ?>
+                        <i class="mdi mdi-home-city-outline me-2"></i><?= $isAr ? 'توزيع حسب البلدية' : 'Répartition par commune' ?>
                     </h6>
-                    <div class="wh-chart"><canvas id="chartStatuts" style="height:240px"></canvas></div>
+                    <div class="wh-chart"><canvas id="chartCommunes" style="height:240px"></canvas></div>
                 </div>
             </div>
         </div>
@@ -68,9 +68,32 @@ $demandeLabels = ['pending' => 'En attente', 'approved' => 'Approuvée', 'reject
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
                     <h6 class="fw-bold mb-3">
+                        <i class="mdi mdi-alert-octagon-outline me-2"></i><?= $isAr ? 'توزيع حسب الإعاقة' : 'Répartition par anomalie' ?>
+                    </h6>
+                    <div class="wh-chart"><canvas id="chartAnomalies" style="height:240px"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3">
                         <i class="mdi mdi-chart-line me-2"></i><?= $isAr ? 'التطور الشهري' : 'Évolution mensuelle (6 mois)' ?>
                     </h6>
                     <div class="wh-chart"><canvas id="chartMois" style="height:240px"></canvas></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3">
+                        <i class="mdi mdi-calendar-check me-2"></i><?= $isAr ? 'الفعاليات حسب الحالة' : 'Événements par statut' ?>
+                    </h6>
+                    <div class="wh-chart"><canvas id="chartStatuts" style="height:240px"></canvas></div>
                 </div>
             </div>
         </div>
@@ -91,25 +114,15 @@ $demandeLabels = ['pending' => 'En attente', 'approved' => 'Approuvée', 'reject
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
                     <h6 class="fw-bold mb-3">
-                        <i class="mdi mdi-home-city-outline me-2"></i><?= $isAr ? 'توزيع حسب البلدية' : 'Répartition par commune' ?>
-                    </h6>
-                    <div class="wh-chart"><canvas id="chartCommunes" style="height:240px"></canvas></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-4">
-        <div class="col-lg-6">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <h6 class="fw-bold mb-3">
                         <i class="mdi mdi-trophy-outline me-2"></i><?= $isAr ? 'أكثر الجمعيات نشاطًا' : 'Top associations' ?>
                     </h6>
                     <div class="wh-chart"><canvas id="chartAssociations" style="height:240px"></canvas></div>
                 </div>
             </div>
         </div>
+    </div>
+
+    <div class="row g-4">
         <div class="col-lg-6">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
@@ -245,6 +258,27 @@ $demandeLabels = ['pending' => 'En attente', 'approved' => 'Approuvée', 'reject
                 datasets: [{
                     data: <?= json_encode(array_map('intval', array_column($stats['repartitionCommunes'], 'nb'))) ?>,
                     backgroundColor: ['#0B5ED7', '#198754', '#F59E0B', '#8B5CF6', '#22d3ee', '#dc3545', '#64748b', '#FBBF24'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '62%',
+                plugins: { legend: { position: 'right', labels: legend.labels }, tooltip: tooltip }
+            }
+        });
+    }
+
+    var cano = document.getElementById('chartAnomalies');
+    if (cano && typeof Chart !== 'undefined') {
+        new Chart(cano, {
+            type: 'doughnut',
+            data: {
+                labels: <?= json_encode(array_column($stats['repartitionAnomalies'], 'nom'), JSON_UNESCAPED_UNICODE) ?>,
+                datasets: [{
+                    data: <?= json_encode(array_map('intval', array_column($stats['repartitionAnomalies'], 'nb'))) ?>,
+                    backgroundColor: ['#dc3545', '#F59E0B', '#8B5CF6', '#22d3ee', '#198754', '#64748b', '#0B5ED7', '#FBBF24'],
                     borderWidth: 0
                 }]
             },

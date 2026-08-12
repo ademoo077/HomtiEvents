@@ -49,6 +49,23 @@ final class Notification
         return count($users);
     }
 
+    /**
+     * Envoie aux utilisateurs actifs d'une EPIC donnée.
+     */
+    public static function sendToEpic(int $epicId, string $titre, string $message, ?string $type = null, ?array $data = null): int
+    {
+        $users = Database::all(
+            'SELECT id FROM users WHERE epic_id = ? AND is_active = 1',
+            [$epicId]
+        );
+
+        foreach ($users as $user) {
+            self::send((int) $user['id'], $titre, $message, $type, $data);
+        }
+
+        return count($users);
+    }
+
     public static function unreadCount(int $userId): int
     {
         return (int) Database::value(
@@ -65,6 +82,22 @@ final class Notification
         );
     }
 
+    /**
+     * Notifications non lues d'un utilisateur (spec §6 : getUnread).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public static function getUnread(int $userId): array
+    {
+        return Database::all(
+            'SELECT id, titre, message_notif, type, data_json, date_creation
+             FROM notifications
+             WHERE user_id = ? AND lu = 0
+             ORDER BY date_creation DESC',
+            [$userId]
+        );
+    }
+
     public static function markRead(int $id, int $userId): void
     {
         Database::run('UPDATE notifications SET lu = 1 WHERE id = ? AND user_id = ?', [$id, $userId]);
@@ -73,6 +106,18 @@ final class Notification
     public static function markAllRead(int $userId): void
     {
         Database::run('UPDATE notifications SET lu = 1 WHERE user_id = ?', [$userId]);
+    }
+
+    /**
+     * Liste paginée de toutes les notifications d'un utilisateur.
+     *
+     * @return array{items: array<int, array<string, mixed>>, total: int, page: int, last_page: int}
+     */
+    public static function all(int $userId, int $perPage = 20, int $page = 1): array
+    {
+        $sql = 'SELECT * FROM notifications WHERE user_id = ? ORDER BY date_creation DESC';
+
+        return Database::paginate($sql, [$userId], $perPage, $page);
     }
 
     /**

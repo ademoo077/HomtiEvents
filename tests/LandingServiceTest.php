@@ -97,4 +97,50 @@ final class LandingServiceTest extends DatabaseTestCase
             'Les photos doivent être ordonnées par sort_order croissant.'
         );
     }
+
+    public function testReorderItemsRegleLOrdreDesFaq(): void
+    {
+        Database::run('UPDATE landing_faq SET actif = 1');
+        Database::run('DELETE FROM landing_faq');
+        $ids = [];
+        foreach (['A', 'B', 'C'] as $q) {
+            $ids[] = (int) Database::insert('landing_faq', [
+                'question_fr' => $q,
+                'reponse_fr'  => 'R',
+                'ordre'       => 9,
+                'actif'       => 1,
+            ]);
+        }
+
+        // Simule LandingAdminController::reorderItems() : nouvel ordre souhaité
+        $newOrder = array_reverse($ids);
+        foreach ($newOrder as $i => $id) {
+            Database::run('UPDATE landing_faq SET ordre = ? WHERE id = ?', [$i + 1, $id]);
+        }
+
+        $faq = Database::all('SELECT id, ordre FROM landing_faq ORDER BY ordre ASC');
+        $this->assertSame($newOrder, array_column($faq, 'id'), 'Le réordonnancement FAQ doit être persévéré.');
+    }
+
+    public function testReorderItemsRegleLOrdreDesPartenaires(): void
+    {
+        Database::run('DELETE FROM landing_partners');
+        $ids = [];
+        foreach (['A', 'B', 'C'] as $nom) {
+            $ids[] = (int) Database::insert('landing_partners', [
+                'nom'   => $nom,
+                'url'   => null,
+                'ordre' => 9,
+                'actif' => 1,
+            ]);
+        }
+
+        $newOrder = [$ids[2], $ids[0], $ids[1]];
+        foreach ($newOrder as $i => $id) {
+            Database::run('UPDATE landing_partners SET ordre = ? WHERE id = ?', [$i + 1, $id]);
+        }
+
+        $partners = Database::all('SELECT id, ordre FROM landing_partners ORDER BY ordre ASC');
+        $this->assertSame($newOrder, array_column($partners, 'id'));
+    }
 }

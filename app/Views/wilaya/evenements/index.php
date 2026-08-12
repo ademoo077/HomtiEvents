@@ -135,7 +135,15 @@ $keep = static function (string $key, mixed $value = ''): string {
                             <?php endif; ?>
                         </td>
                         <td class="text-muted"><?= e($e['commune_nom'] ?? '-') ?></td>
-                        <td class="text-muted"><?= e($e['association_nom'] ?? '-') ?></td>
+                        <td class="text-muted" title="<?= e(($e['association_email'] ?? '') . ' | ' . ($e['association_telephone'] ?? '')) ?>">
+                        <?php if (!empty($e['association_id'])): ?>
+                            <a href="<?= url('association/' . (int) $e['association_id']) ?>" class="text-decoration-none">
+                                <?= e($e['association_nom'] ?? '-') ?>
+                            </a>
+                        <?php else: ?>
+                            <?= e($e['association_nom'] ?? '-') ?>
+                        <?php endif; ?>
+                    </td>
                         <td><span class="wh-badge <?= $badgeColor($e['statut']) ?>"><?= e(statut_label($e['statut'])) ?></span></td>
                         <td class="text-muted"><?= $e['date_evenement'] ? e(date('d/m/Y', strtotime((string) $e['date_evenement']))) : '—' ?></td>
                         <td>

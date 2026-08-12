@@ -35,13 +35,13 @@ final class CitoyenController extends Controller
         $albums = Database::all(
             'SELECT a.id, a.titre, a.recit, a.date_creation, a.statut,
                      e.adresse, e.date_evenement, e.association_id,
-                     (SELECT p.image FROM photos p WHERE p.album_id = a.id ORDER BY p.uploaded_at DESC LIMIT 1) AS couverture,
-                     (SELECT COUNT(*) FROM photos p WHERE p.album_id = a.id) AS nb_photos
+                     (SELECT p.image FROM photos p WHERE p.album_id = a.id AND p.status = ? ORDER BY p.uploaded_at DESC LIMIT 1) AS couverture,
+                     (SELECT COUNT(*) FROM photos p WHERE p.album_id = a.id AND p.status = ?) AS nb_photos
               FROM albums a
               JOIN evenements e ON e.id = a.evenement_id
               WHERE a.statut = ?
               ORDER BY a.date_creation DESC LIMIT 12',
-            ['publie']
+            ['publie', 'active', 'active']
         );
 
         $stats = [
@@ -92,8 +92,8 @@ final class CitoyenController extends Controller
         }
 
         $photos = Database::all(
-            'SELECT * FROM photos WHERE album_id = ? ORDER BY sort_order ASC, uploaded_at DESC',
-            [(int) $id]
+            'SELECT * FROM photos WHERE album_id = ? AND status = ? ORDER BY sort_order ASC, uploaded_at DESC',
+            [(int) $id, 'active']
         );
 
         $association = null;

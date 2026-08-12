@@ -8,6 +8,7 @@ use App\Helpers\AuditLog;
 use App\Helpers\Database;
 use App\Helpers\Gamification;
 use App\Helpers\QrCodeGenerator;
+use App\Helpers\Session;
 
 /**
  * API de check-in par scan QR Code.
@@ -42,12 +43,16 @@ final class CheckinController
         ]);
     }
 
+    /**
+     * Enregistre la participation au check-in.
+     *
+     * Sécurité : l'utilisateur est identifié par sa SESSION, jamais par un
+     * `user_id` envoyé dans le corps de la requête (usurpation impossible).
+     */
     public function register(string $token): never
     {
-        $body = json_decode((string) file_get_contents('php://input'), true) ?? $_POST;
-
-        $userId = (int) ($body['user_id'] ?? 0);
-        if ($userId === 0) {
+        $userId = Session::userId();
+        if ($userId === null) {
             json_response(['success' => false, 'message' => 'Authentification requise.'], 401);
         }
 

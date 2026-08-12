@@ -76,6 +76,40 @@ foreach (\App\Helpers\EvenementService::STATUTS as $s) {
         </div>
     </div>
 
+    <!-- Idées & conseils : actions recommandées selon le contexte -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-light d-flex align-items-center gap-2">
+            <i class="mdi mdi-lightbulb-on-outline text-warning"></i>
+            <h3 class="h6 mb-0"><?= $isAr ? 'أفكار وتوصيات' : 'Idées & conseils' ?></h3>
+            <?php if ($unreadNotifs > 0): ?>
+                <a class="ms-auto btn btn-sm btn-outline-primary" href="<?= url('wilaya/notifications') ?>">
+                    <i class="mdi mdi-bell-outline me-1"></i><?= (int) $unreadNotifs ?> <?= $isAr ? 'تنبيهات جديدة' : 'notification(s) nouvelle(s)' ?>
+                </a>
+            <?php endif; ?>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <?php foreach ($suggestions ?? [] as $s): ?>
+                    <div class="col-md-6">
+                        <?php if (! empty($s['lien'])): ?>
+                            <a href="<?= e($s['lien']) ?>" class="text-decoration-none d-block">
+                        <?php endif; ?>
+                        <div class="d-flex gap-2 align-items-start p-2 rounded-3 bg-light wh-kpi-hover h-100">
+                            <i class="mdi <?= e($s['icon']) ?> text-<?= e($s['color']) ?>" style="font-size:1.35rem"></i>
+                            <div>
+                                <div class="fw-semibold small"><?= e($s['titre']) ?></div>
+                                <span class="small text-muted"><?= e($s['texte']) ?></span>
+                            </div>
+                        </div>
+                        <?php if (! empty($s['lien'])): ?>
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
+
     <!-- KPI Row 1: Événements -->
     <div class="row g-3 mb-4">
         <div class="col-md-3 col-6">
@@ -251,6 +285,59 @@ foreach (\App\Helpers\EvenementService::STATUTS as $s) {
                             </li>
                         <?php endif; ?>
                     </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Répartition des événements par organisation -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header">
+                    <span><i class="mdi mdi-folder-account-outline me-2"></i>
+                        <?= $isAr ? 'الأحداث حسب المؤسسة' : 'Répartition des événements par organisation' ?>
+                    </span>
+                </div>
+                <div class="card-body">
+                    <?php if (($repartitionOrg ?? []) === []): ?>
+                        <div class="wh-empty text-center py-4 text-muted">
+                            <i class="mdi mdi-folder-account-outline mdi-32px"></i>
+                            <p class="mb-0 small"><?= $isAr ? 'لا توجد أحداث.' : 'Aucun événement pour le moment.' ?></p>
+                        </div>
+                    <?php else: ?>
+                        <div class="wh-chart"><canvas id="chartRepartitionOrg" style="height:260px"></canvas></div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header">
+                    <span><i class="mdi mdi-information-skeleton-text-outline me-2"></i>
+                        <?= $isAr ? 'التنبيهات غير المعالجة' : 'Alertes de routage non traitées' ?>
+                    </span>
+                </div>
+                <div class="card-body">
+                    <?php $alertes = $routing_alertes_non_traitees ?? []; ?>
+                    <?php if (empty($alertes)): ?>
+                        <div class="wh-empty text-center py-4 text-muted">
+                            <i class="mdi mdi-check-circle-outline mdi-32px text-success"></i>
+                            <p class="mb-0 small"><?= $isAr ? 'لا توجد تنبيهات.' : 'Aucune alerte.' ?></p>
+                        </div>
+                    <?php else: ?>
+                        <ul class="list-group list-group-flush">
+                            <?php foreach ($alertes as $a): ?>
+                                <li class="list-group-item d-flex justify-content-between align-items-start">
+                                    <div class="min-w-0">
+                                        <div class="fw-semibold text-truncate"><?= e(mb_strimwidth((string) ($a['adresse'] ?? ''), 0, 60, '…')) ?></div>
+                                        <div class="small text-muted"><?= e(mb_strimwidth((string) ($a['motif'] ?? ''), 0, 70, '…')) ?></div>
+                                    </div>
+                                    <span class="wh-badge badge-red"><?= e($a['commune_nom'] ?? '-') ?></span>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -584,6 +671,42 @@ foreach (\App\Helpers\EvenementService::STATUTS as $s) {
                     beginAtZero: true,
                     grid: { color: grid },
                     ticks: { color: ticks, precision: 0 }
+                }
+            }
+        }
+    });
+})();
+
+(function () {
+    var canvas = document.getElementById('chartRepartitionOrg');
+    if (!canvas || typeof Chart === 'undefined') return;
+    var dark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+    var ticks = dark ? '#9aa3c2' : '#697586';
+    var data = <?= json_encode($repartitionOrg ?? [], JSON_UNESCAPED_UNICODE) ?>;
+    var labels = data.map(function (d) { return d.org; });
+    var nbs    = data.map(function (d) { return d.nb; });
+    new Chart(canvas, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: nbs,
+                backgroundColor: ['#0B5ED7', '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#64748b', '#8b5cf6'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '60%',
+            plugins: {
+                legend: { position: 'right', labels: { color: ticks, boxWidth: 14, padding: 12 } },
+                tooltip: {
+                    backgroundColor: dark ? '#1a2332' : '#fff',
+                    titleColor: dark ? '#e6ebf2' : '#212b36',
+                    bodyColor: dark ? '#b8c7dc' : '#697586',
+                    borderColor: dark ? '#2b3648' : '#dee2e6',
+                    borderWidth: 1, cornerRadius: 8, padding: 12
                 }
             }
         }
