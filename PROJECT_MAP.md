@@ -74,7 +74,7 @@ app/Jobs/               GenerateQrJob, SendNotificationJob, SendPushJob, SlaAler
 app/Middleware/         Auth, Csrf, Role (+ SystemControl)
 app/Views/              layouts (main, association, citoyen, landing, guest, dashboard-futur)
                         + partials + espaces (association, wilaya, admin, control, epic, citoyen, auth, qrcode, profile, landing)
-sql/                    001→026 (idempotents, numérotation continue — prochain : 027)
+sql/                    001→030 (idempotents, numérotation continue — prochain : 031)
 tests/                  PHPUnit (base wilaya_harmonia_test) — Admin/Epic/Rbac/Stats/Validator/...Test.php
 queue/worker.php        Worker de file (daemon), artisan sla:run
 ```
@@ -91,24 +91,35 @@ Règles de conception maintenues :
 
 | # | Observation | Localisation | Impact |
 |---|-------------|--------------|--------|
-| O1 | **~4 900 lignes non commitées** (53 fichiers) depuis le dernier commit `7c1450f` | tout le tree | ⚠ Basculer vers la suite sans stabiliser = risque de régression invisible |
-| O2 | `EpicController::updateStatut()` ne journalise **rien** (`AuditLog` absent) ni ne notifie la Wilaya sur `ANOMALIE` | app/Controllers/EpicController.php:107-138 | ⚠ incohérent avec le reste ; signal opérationnel critique silencieux |
-| O3 | `epic/show.php` n'expose que `association_nom` — pas les coordonnées du contact sur place | app/Views/epic/show.php | manque Phase 6 §4 |
-| O4 | `public/manifest.json` figé `"lang":"fr","dir":"ltr"` — casse l'install PWA en arabe | public/manifest.json | manque Phase 5 §1 |
-| O5 | Centre de notifications : liste plate, pas de regroupement par type (le « Tout marquer comme lu » existe) | app/Helpers/Notification.php, Views/layouts/main.php | manque Phase 5 §5 |
-| O6 | **Aucune gestion de membres d'association** (`membre` seedé en RBAC mais rien ne crée ce type de compte) | AssociationController/Dashboard, sql | manque Phase 7 (nécessite migration `027_member_invitations`) |
+| O1 | ~~4 900 lignes non commitées~~ → **réglé** (commit `f22635a` Baseline, 78 fichiers) | — | ✔ |
+| O2 | ~~`EpicController::updateStatut()` sans AuditLog ni notification Wilaya sur ANOMALIE~~ → **réglé** (M5, tests `EpicFlowTest`) | app/Controllers/EpicController.php | ✔ |
+| O3 | ~~`epic/show.php` sans coordonnées du contact sur place~~ → **réglé** (M5 : email/téléphone/président) | app/Views/epic/show.php | ✔ |
+| O4 | ~~`public/manifest.json` figé `"lang":"fr","dir":"ltr"`~~ → **réglé** (M2 : route `/manifest.json` dynamique) | app/Views/layouts/*.php | ✔ |
+| O5 | ~~Centre de notifications plat~~ → **réglé** (M5 : `Notification::center()`, `typeLabel/typeIcon`) | app/Helpers/Notification.php | ✔ |
+| O6 | ~~Aucune gestion de membres d'association~~ → **réglé** (M5 : `MemberController`, `sql/028`) | AssociationController/Dashboard, sql | ✔ |
 | O7 | Redis configuré (`app/Config/redis.php`) mais **inerte** : Cache et Queue sont fichiers, aucun client (predis) dans composer.lock | app/Helpers/Cache.php, Queue.php | écart avec l'énoncé Phase 4 §5 |
-| O8 | `transition_history` alimenté au niveau `evenements` ; temps EPIC (affectation→clôture) nécessite croisement `evenement_epic.date_affectation` × `transition_history` (statut TERMINE) | sql/008, sql/020 | pour Phase 4 §4 si non couvert |
-| O9 | Validation = `backWithErrors()` (redirect complet) : pas de scroll-to-error ni validation client progressive | app/Controllers/Controller.php | manque Phase 5 §2 (progressif) |
+| O8 | ~~Temps EPIC non mesurable~~ → **réglé** (M5 : `StatsService::tempsMoyenEpic()`, croisement `evenement_epic.date_affectation`) | sql/008, sql/020 | ✔ |
+| O9 | ~~Validation sans retour client progressif~~ → **réglé** (M4 : validation progressive + scroll-to-error dans `admin.js`) | app/Controllers/Controller.php | ✔ |
 | O10 | Squelettes de chargement : partiels (`wh-empty` présents partout) ; skeletons réels absents | Views/wilaya/dashboard.php | manque Phase 5 §4 (optionnel) |
-| O11 | Notification « participants » à la publication d'album non implémentée (seule l'association est notifiée) | app/Controllers/EventGalleryController.php:285-296 | Phase 8 §3 (option à valider) |
-| O12 | Confirmation destructive `data-confirm` en usage mais pas de **modal unique réutilisable** vérifiée partout (certains `confirm()` JS natifs restent possibles) | Views/wilaya/**, control/**, admin/** | Phase 5 §6 (audit + unifier) |
-| O13 | Fichiers SQL non commités 021-026 + nouveaux contrôleurs non commités (Profile, Routing, AssociationGallery…) | — | partie de O1 |
+| O11 | ~~Pas de notification aux participants à la publication d'album~~ → **réglé** (M3 : `EventGalleryController::notifierAlbumPublie()`) | app/Controllers/EventGalleryController.php | ✔ |
+| O12 | ~~Confirmations via `confirm()` JS natif~~ → **réglé** (M6 : modale Bootstrap réutilisable dans `admin.js`) | Views/wilaya/**, control/**, admin/** | ✔ |
+| O13 | ~~Fichiers SQL 021-026 + contrôleurs non commités~~ → **réglé** dans `f22635a` | — | ✔ |
+
+### Suivi des milestones
+| Milestone | Statut | Commit |
+|-----------|--------|--------|
+| M0 — Stabilisation de la base | ✔ | `f22635a` |
+| M1 — Phase 1 (données citoyen, badges) | ✔ | `1f1300f` + `300694d` |
+| M2 — Phase 2 (landing dynamique, PWA) | ✔ | `d90aa83` |
+| M3 — Phase 3 (albums, notifications de publication) | ✔ | `95071ac` |
+| M4 — Phase 4 (CMS landing : actualités, validation progressive) | ✔ | `57c9ba8` |
+| M5 — Phase 5 (dashboards assoc/EPIC, notifications, membres, gamification) | ✔ | `7c7adf5` + `4c51b9c` |
+| M6 — Phase 6 (contrôle des comptes : soft delete, admin/users, centre de contrôle) | ✔ | `50569ed` |
 
 ### Actions bloquantes avant la Phase suivante
-1. **M0 — stabiliser la base** : passer en revue + commiter le tree en travaillé (O1/O13) avec commits par thème ; `composer test && composer analyse && vendor/bin/phpcs app` verts.
-2. Valider les choix d'interprétation signalés (voir briefing).
-3. Les chemins de migration `sql/0XX_*.sql` doivent suivre la numérotation existante (prochain libre : `027`).
+1. ~~**M0 — stabiliser la base**~~ → **réglé** : tout le tree est commité par phase (M1→M6), `vendor/bin/phpunit` vert (115 tests, 492 assertions).
+2. Valider les choix d'interprétation signalés (voir briefing) — **reste ouvert** : convergence `control/utilisateurs` vs `admin/users`, SortableJS (DnD tactile), périmètre gamification.
+3. Les chemins de migration `sql/0XX_*.sql` doivent suivre la numérotation existante (prochain libre : `031`).
 
 ### Suivi des phases
 | Phase | Statut | Commit |
