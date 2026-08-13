@@ -39,7 +39,7 @@ if (!function_exists('association_badge')) {
     <meta name="theme-color" content="#fcf9f2">
     <meta name="description" content="<?= e($heroSub ?: __('app.tagline')) ?>">
     
-    <link rel="preconnect" href="https://api.mapbox.com">
+    <link rel="preconnect" href="https://basemaps.cartocdn.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7/css/materialdesignicons.min.css">
@@ -507,7 +507,11 @@ if (!function_exists('association_badge')) {
         .ba-content { padding:1.2rem; }
         .ba-desc { color:var(--text-secondary); }
         .landing-map { width:100%; height:500px; border-radius:var(--radius); overflow:hidden; border:1px solid var(--glass-border); background:#fff; }
-        .landing-map .mapboxgl-ctrl { display:none; }
+        .landing-map .map-fallback { height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.5rem; padding:2rem; text-align:center; color:var(--text-secondary); background:linear-gradient(180deg,#f0f7ef,#e6f2e4); }
+        .landing-map .map-fallback i { font-size:2.6rem; color:#2a7a3e; }
+        .landing-map .map-fallback strong { color:var(--text-primary); font-size:1.1rem; }
+        .landing-map .map-tile-note { position:absolute; top:12px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:.4rem; padding:.5rem .9rem; border-radius:99px; font-size:.8rem; background:rgba(255,255,255,.92); color:#b45309; border:1px solid rgba(217,119,6,.35); box-shadow:0 8px 24px rgba(0,0,0,.12); z-index:500; max-width:90%; }
+        [dir="rtl"] .landing-map .map-tile-note { left:auto; right:50%; transform:translateX(50%); }
         .gallery-grid { column-count:3; column-gap:1rem; }
         .gallery-item {
             display:block; break-inside:avoid; margin-bottom:1rem;
@@ -1042,7 +1046,7 @@ if (!function_exists('association_badge')) {
             <?php endif; ?>
         <?php endforeach; ?>
 
-        <!-- ═══ CARTE MAPBOX ═══ -->
+        <!-- ═══ CARTE (LEAFLET / OPENSTREETMAP) ═══ -->
         <section class="section section-map" id="carte">
             <div class="container">
                 <div class="section-head" data-reveal>
@@ -1125,7 +1129,9 @@ if (!function_exists('association_badge')) {
             drawAurora();
         }
 
-        // ─── MAPBOX 3D ───
+        // ─── CARTE — Leaflet + tuiles gratuites (OpenStreetMap / CARTO), sans clé ───
+        const noMapTitle = (isAr ? 'الخريطة غير متاحة حالياً' : 'Carte indisponible pour le moment');
+
         (function initMap() {
             const mapEl = document.getElementById('landingMap');
             if (!mapEl) return;
@@ -1134,57 +1140,58 @@ if (!function_exists('association_badge')) {
                 mapEl.innerHTML = `<p class="text-muted text-center py-4">${isAr ? 'لا توجد تدخلات لعرضها.' : 'Aucune intervention à afficher.'}</p>`;
                 return;
             }
-            const script = document.createElement('script');
-            script.src = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js';
-            script.onload = () => {
-                mapboxgl.accessToken = 'VOTRE_CLE_MAPBOX';
-                const map = new mapboxgl.Map({
-                    container: 'landingMap',
-                    style: 'mapbox://styles/mapbox/outdoors-v12',
-                    center: [Number(validEvents[0].longitude), Number(validEvents[0].latitude)],
-                    zoom: 10,
-                    pitch: 45,
-                    bearing: 0,
-                    antialias: true
-                });
-                map.on('load', () => {
-                    const points = validEvents.map(e => ({
-                        type: 'Feature',
-                        properties: { value: 0.5 },
-                        geometry: { type: 'Point', coordinates: [Number(e.longitude), Number(e.latitude)] }
-                    }));
-                    map.addSource('events', {
-                        type: 'geojson',
-                        data: { type: 'FeatureCollection', features: points }
-                    });
-                    map.addLayer({
-                        id: 'events-heat',
-                        type: 'heatmap',
-                        source: 'events',
-                        paint: {
-                            'heatmap-radius': 30,
-                            'heatmap-weight': ['get', 'value'],
-                            'heatmap-color': [
-                                'interpolate', ['linear'], ['heatmap-density'],
-                                0, 'rgba(42,122,62,0)',
-                                0.4, '#2a7a3e',
-                                0.7, '#0d9488',
-                                1, '#eab308'
-                            ]
-                        }
-                    });
-                    validEvents.forEach(e => {
-                        const popup = new mapboxgl.Popup({ offset: 25 })
-                            .setHTML(`<strong>${e.adresse || ''}</strong><br><small>${e.commune_nom||''} · ${e.date_evenement||''}</small>`);
-                        new mapboxgl.Marker({ color: '#2a7a3e', scale: 0.8 })
-                            .setLngLat([Number(e.longitude), Number(e.latitude)])
-                            .setPopup(popup)
-                            .addTo(map);
-                    });
-                });
-                map.addControl(new mapboxgl.NavigationControl({ showCompass: false }));
-            };
-            document.head.appendChild(script);
+            if (typeof L === 'undefined') {
+                mapEl.innerHTML = `<div class="map-fallback" role="alert"><i class="mdi mdi-map-marker-off"></i><strong>${noMapTitle}</strong><span>${isAr ? 'تعذر تحميل مكتبة الخريطة.' : 'Impossible de charger la bibliothèque cartographique.'}</span></div>`;
+                return;
+            }
+
+            const points = validEvents
+                .map(e => [Number(e.latitude), Number(e.longitude)])
+                .filter(p => Number.isFinite(p[0]) && Number.isFinite(p[1]));
+
+            const map = L.map('landingMap', { scrollWheelZoom: false });
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+                subdomains: 'abcd',
+                maxZoom: 19
+            }).addTo(map);
+
+            if (typeof L.heatLayer === 'function' && points.length > 1) {
+                L.heatLayer(points, {
+                    radius: 34,
+                    blur: 22,
+                    maxZoom: 12,
+                    gradient: { 0.3: '#2a7a3e', 0.6: '#0d9488', 1: '#eab308' }
+                }).addTo(map);
+            }
+
+            validEvents.forEach(e => {
+                const lat = Number(e.latitude);
+                const lng = Number(e.longitude);
+                if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+                L.marker([lat, lng])
+                    .bindPopup(`<strong>${escAttr(e.adresse || '')}</strong><br><small>${escAttr(e.commune_nom || '')} · ${escAttr(e.date_evenement || '')}</small>`)
+                    .addTo(map);
+            });
+
+            if (points.length === 1) {
+                map.setView(points[0], 12);
+            } else {
+                map.fitBounds(points, { padding: [36, 36], maxZoom: 13 });
+            }
+
+            let tileFails = 0;
+            map.on('tileerror', () => {
+                tileFails += 1;
+                if (tileFails >= 4 && !mapEl.querySelector('.map-tile-note')) {
+                    const note = document.createElement('div');
+                    note.className = 'map-tile-note';
+                    note.setAttribute('role', 'alert');
+                    note.innerHTML = `<i class="mdi mdi-wifi-off"></i><span>${isAr ? 'تعذر تحميل الخريطة — تحقق من الاتصال بالإنترنت.' : 'Impossible de charger la carte — vérifiez votre connexion Internet.'}</span>`;
+                    mapEl.appendChild(note);
+                }
+            });
         })();
 
         // ─── GSAP ANIMATIONS ───
