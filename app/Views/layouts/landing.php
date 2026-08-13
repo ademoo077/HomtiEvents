@@ -16,7 +16,7 @@ $appName = e(settings('app.name') ?: __('app.name'));
     <title><?= e(__('app.name')) ?> — <?= e(__('app.tagline')) ?></title>
     <meta name="description" content="<?= e(settings('hero_sous_titre_fr', '')) ?>">
     <link rel="icon" href="<?= asset('/assets/img/icon-192.png') ?>">
-    <link rel="manifest" href="<?= asset('/manifest.json') ?>">
+    <link rel="manifest" href="<?= url('manifest.json') ?>">
     <meta name="theme-color" content="<?= e(settings('theme_primary', '#16a34a')) ?>">
     <link rel="stylesheet" href="<?= asset('/assets/css/fonts.css') ?>">
     <link rel="stylesheet" href="<?= asset('/assets/vendor/mdi/css/materialdesignicons.min.css') ?>">

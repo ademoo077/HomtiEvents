@@ -35,6 +35,16 @@ $router->get('lang/{locale}', function (string $locale) {
 // ── Page publique (Landing Page) ──────────────────────────────
 $router->get('/', 'LandingController@index')->name('landing');
 
+// ── Manifest PWA dynamique (lang/dir selon locale) ────────────
+$router->get('manifest.json', 'LandingController@manifest')->name('pwa.manifest');
+
+// ── Acceptation d'une invitation membre (Phase 7, lien public) ─
+$router->get('invitations/{token}', 'MemberController@acceptShow')->name('members.accept');
+$router->post('invitations/{token}', 'MemberController@accept');
+
+// ── Tableau de bord membre d'association ──────────────────────
+$router->middleware([AuthMiddleware::class])->get('dashboard', 'MemberController@dashboard')->name('member.dashboard');
+
 // ── API Polling Galerie ────────────────────────────────────────
 $router->get('api/gallery/updates', 'LandingController@galleryUpdates')->name('api.gallery.updates');
 
@@ -231,6 +241,20 @@ $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])-
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
     ->post('landing/before-after/{id}/delete', 'LandingAdminController@deleteBeforeAfter')->name('admin.landing.before_after.delete');
 
+// CMS — Actualités & événements à venir
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
+    ->get('landing/news', 'LandingAdminController@news')->name('admin.landing.news');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
+    ->get('landing/news/create', 'LandingAdminController@newsCreate')->name('admin.landing.news.create');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
+    ->post('landing/news', 'LandingAdminController@newsStore')->name('admin.landing.news.store');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
+    ->get('landing/news/{id}/edit', 'LandingAdminController@newsEdit')->name('admin.landing.news.edit');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
+    ->post('landing/news/{id}/update', 'LandingAdminController@newsUpdate')->name('admin.landing.news.update');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
+    ->post('landing/news/{id}/delete', 'LandingAdminController@newsDelete')->name('admin.landing.news.delete');
+
 // Référentiel (EPIC / anomalies / citoyens)
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
     ->get('epics', 'AdministrationController@epics')->name('admin.epics');
@@ -277,6 +301,26 @@ $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])-
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
     ->post('citoyens/{id}/toggle', 'AdministrationController@citoyenToggle')->name('admin.citoyens.toggle');
 
+// ── Gestion des utilisateurs (tous rôles) ────────────────────
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
+    ->get('users', 'AdministrationController@users')->name('admin.users');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
+    ->get('users/{id}', 'AdministrationController@userShow')->name('admin.users.show');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
+    ->post('users/{id}/toggle', 'AdministrationController@userToggle')->name('admin.users.toggle');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
+    ->post('users/{id}/role', 'AdministrationController@userRole')->name('admin.users.role');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
+    ->post('users/{id}/delete', 'AdministrationController@userDelete')->name('admin.users.delete');
+
+// ── Présidents d'associations ─────────────────────────────────
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
+    ->get('presidents', 'AdministrationController@presidents')->name('admin.presidents');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
+    ->get('presidents/{id}', 'AdministrationController@presidentShow')->name('admin.presidents.show');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
+    ->post('presidents/{id}/toggle', 'AdministrationController@presidentToggle')->name('admin.presidents.toggle');
+
 // ═══════════════════════════════════════════════════════════════
 //  PROFIL — wilaya / association / epic
 // ═══════════════════════════════════════════════════════════════════
@@ -322,11 +366,15 @@ $g()->post('regles/toggle', 'ControlCenterController@regleBasculer')->name('cont
 
 $g()->get('parametres', 'ControlCenterController@parametres')->name('control.parametres');
 $g()->post('parametres/enregistrer', 'ControlCenterController@parametreEnregistrer')->name('control.parametres.store');
+$g()->post('settings/save', 'ControlCenterController@parametreEnregistrer')->name('control.settings.save');
 
 $g()->get('audit', 'ControlCenterController@audit')->name('control.audit');
 $g()->get('audit/export', 'ControlCenterController@auditExport')->name('control.audit.export');
 
 $g()->get('supervision', 'ControlCenterController@supervision')->name('control.supervision');
+
+// ── Security ──────────────────────────────────────────────────
+$g()->post('security/revoke', 'ControlCenterController@securityRevoke')->name('control.security.revoke');
 
 // ── Content Validation Workflow ──────────────────────────
 $g()->get('content', 'ControlCenterController@contentList')->name('control.content');
@@ -345,6 +393,26 @@ $g()->post('users/limit-access', 'ControlCenterController@limitAccess')->name('c
 $g()->get('epic', 'ControlCenterController@epic')->name('control.epic');
 $g()->post('epic/assign', 'ControlCenterController@epicAssign')->name('control.epic.assign');
 $g()->post('epic/validate', 'ControlCenterController@epicValidate')->name('control.epic.validate');
+$g()->get('epic/create', 'ControlCenterController@epicCreate')->name('control.epic.create');
+$g()->post('epic', 'ControlCenterController@epicStore')->name('control.epic.store');
+$g()->get('epic/{id}/edit', 'ControlCenterController@epicEdit')->name('control.epic.edit');
+$g()->post('epic/{id}/update', 'ControlCenterController@epicUpdate')->name('control.epic.update');
+$g()->post('epic/{id}/delete', 'ControlCenterController@epicDelete')->name('control.epic.delete');
+
+// ── Associations CRUD ─────────────────────────────────────────
+$g()->get('associations/create', 'ControlCenterController@associationCreate')->name('control.associations.create');
+$g()->post('associations', 'ControlCenterController@associationStore')->name('control.associations.store');
+$g()->get('associations/{id}/edit', 'ControlCenterController@associationEdit')->name('control.associations.edit');
+$g()->post('associations/{id}/update', 'ControlCenterController@associationUpdate')->name('control.associations.update');
+$g()->post('associations/{id}/delete', 'ControlCenterController@associationDelete')->name('control.associations.delete');
+
+// ── Communes CRUD ─────────────────────────────────────────
+$g()->get('communes', 'ControlCenterController@communes')->name('control.communes');
+$g()->get('communes/create', 'ControlCenterController@communeCreate')->name('control.communes.create');
+$g()->post('communes', 'ControlCenterController@communeStore')->name('control.communes.store');
+$g()->get('communes/{id}/edit', 'ControlCenterController@communeEdit')->name('control.communes.edit');
+$g()->post('communes/{id}/update', 'ControlCenterController@communeUpdate')->name('control.communes.update');
+$g()->post('communes/{id}/delete', 'ControlCenterController@communeDelete')->name('control.communes.delete');
 
 // ═══════════════════════════════════════════════════════════════
 //  ASSOCIATION SPACE — Création et suivi des événements
@@ -373,6 +441,14 @@ $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':associatio
     ->post('photos/{id}/delete', 'AssociationGalleryController@deletePhoto')->name('association.gallery.delete');
 $router->middleware([AuthMiddleware::class])->prefix('association')
     ->get('create', 'AssociationController@create')->name('association.create');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':association'])->prefix('association')
+    ->get('membres', 'MemberController@index')->name('association.members');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':association'])->prefix('association')
+    ->post('membres/invite', 'MemberController@invite')->name('association.members.invite');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':association'])->prefix('association')
+    ->post('membres/invitations/{id}/revoke', 'MemberController@revoke')->name('association.members.revoke');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':association'])->prefix('association')
+    ->post('membres/{id}/remove', 'MemberController@remove')->name('association.members.remove');
 $router->middleware([AuthMiddleware::class])->prefix('association')
     ->post('', 'AssociationController@store')->name('association.store');
 $router->middleware([AuthMiddleware::class])->prefix('association')

@@ -19,6 +19,54 @@ final class LandingController extends Controller
     }
 
     /**
+     * Manifest PWA dynamique : lang/dir suivent la locale (FR/AR, RTL).
+     * Délivré via le routeur pour éviter le fichier statique figé.
+     */
+    public function manifest(): never
+    {
+        header('Content-Type: application/manifest+json; charset=utf-8');
+
+        $locale = \App\Helpers\I18n::locale();
+        $isAr   = \App\Helpers\I18n::isRtl($locale);
+
+        $manifest = [
+            'name'             => $isAr ? 'هارمونيا الولاية' : 'Wilaya Harmonia',
+            'short_name'       => $isAr ? 'هارمونيا' : 'Harmonia',
+            'description'      => $isAr
+                ? 'منصة التنسيق المواطني: الإبلاغ والمشاركة في فعاليات الولاية.'
+                : 'Plateforme de coordination citoyenne : signalement et participation aux événements de la wilaya.',
+            'start_url'        => url('/'),
+            'scope'            => url('/'),
+            'display'          => 'standalone',
+            'orientation'      => 'portrait',
+            'background_color' => '#f4f7fb',
+            'theme_color'      => '#4f46e5',
+            'lang'             => $locale,
+            'dir'              => $isAr ? 'rtl' : 'ltr',
+            'icons'            => [
+                ['src' => url('/assets/img/icon-192.png'), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
+                ['src' => url('/assets/img/icon-512.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
+                ['src' => url('/assets/img/icon-512.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
+            ],
+            'shortcuts'        => [
+                [
+                    'name'  => $isAr ? 'مسح رمز QR' : 'Scanner un QR',
+                    'url'   => url('/qrcode/scan'),
+                    'icons' => [['src' => url('/assets/img/icon-192.png'), 'sizes' => '192x192']],
+                ],
+                [
+                    'name'  => $isAr ? 'الفعاليات' : 'Événements',
+                    'url'   => url('/evenements'),
+                    'icons' => [['src' => url('/assets/img/icon-192.png'), 'sizes' => '192x192']],
+                ],
+            ],
+        ];
+
+        echo json_encode($manifest, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+        exit;
+    }
+
+    /**
      * API endpoint for polling new/updated albums.
      * Returns published albums modified after the given timestamp
      * (comparison sur `updated_at` : les modifications du titre, du récit

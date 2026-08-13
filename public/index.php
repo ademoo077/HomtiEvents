@@ -21,10 +21,11 @@ if ((bool) config('security.csp_enabled', true)) {
 }
 
 // Serveur de dev (php -S) : servir les fichiers statiques directement
+// (le manifest.json est généré dynamiquement selon la locale → routé vers PHP)
 if (PHP_SAPI === 'cli-server') {
     $staticPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
     $staticFile = __DIR__ . $staticPath;
-    if (is_file($staticFile) && $staticPath !== '/index.php') {
+    if ($staticPath !== '/manifest.json' && is_file($staticFile) && $staticPath !== '/index.php') {
         return false;
     }
 }

@@ -24,9 +24,8 @@ final class LandingService
         $upcoming = Database::all(
             'SELECT e.*, c.nom AS commune_nom FROM evenements e
               LEFT JOIN commune c ON c.id = e.commune_id
-              WHERE e.statut = ? AND e.date_evenement >= CURDATE()
-              ORDER BY e.date_evenement ASC LIMIT 3',
-            ['PROGRAMME']
+              WHERE e.statut IN (' . implode(',', array_map(fn($s) => "'$s'", EvenementService::STATUTS_A_VENIR)) . ') AND e.date_evenement >= CURDATE()
+              ORDER BY e.date_evenement ASC LIMIT 3'
         );
 
         $stats = [
@@ -109,8 +108,13 @@ final class LandingService
              ORDER BY total DESC LIMIT 6'
         );
 
-         // Horodatage courant pour le polling des albums
+        // Horodatage courant pour le polling des albums
         $currentTime = Database::value('SELECT NOW()');
+
+        // Actualités & événements à venir (depuis landing_news)
+        $news = Database::all(
+            'SELECT * FROM landing_news WHERE actif = 1 ORDER BY date_event DESC, sort_order ASC LIMIT 10'
+        );
 
         // ── Thème couleur (dynamique depuis le CMS) ──
         $theme = [
@@ -134,6 +138,7 @@ final class LandingService
 
         return [
             'upcoming'         => $upcoming,
+            'news'             => $news,
             'stats'            => $stats,
             'totalParticipants' => $totalParticipants,
             'faq'              => $faq,
