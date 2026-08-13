@@ -151,7 +151,7 @@
 /* ── Stats ── */
 .citoyen-stats-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 10px;
     margin-bottom: 8px;
 }
@@ -166,6 +166,17 @@
     font-size: 1.5rem;
     font-weight: 800;
     color: var(--cit-primary);
+}
+.citoyen-stat-rank {
+    display: inline-block;
+    font-size: .72rem;
+    font-weight: 700;
+    color: var(--cit-text-muted);
+    background: var(--cit-card-bg-alt, rgba(127, 127, 127, .12));
+    border-radius: 999px;
+    padding: 1px 7px;
+    margin-inline-start: 4px;
+    vertical-align: middle;
 }
 .citoyen-stat-label {
     font-size: .75rem;
@@ -555,7 +566,7 @@
 /* ── Responsive ── */
 @media (max-width: 480px) {
     .citoyen-stats-grid {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(2, 1fr);
         gap: 6px;
     }
     .citoyen-stat {

@@ -75,14 +75,22 @@ $badgeColor = static function (string $statut): string {
 
     <!-- KPIs : compteurs de statuts cliquables -->
     <?php $sc = $statutsCounts ?? []; ?>
-    <?php $total = array_sum($sc); ?>
     <div class="row g-3 mb-3">
         <div class="col-md-3 col-6">
             <a class="wh-kpi wh-kpi-link" href="<?= url('association') ?>">
                 <div class="wh-kpi-icon blue"><i class="mdi mdi-calendar-star"></i></div>
                 <div>
-                    <div class="wh-kpi-count"><?= $total ?></div>
-                    <div class="wh-kpi-label"><?= $isAr ? 'الإجمالي' : 'Total' ?></div>
+                    <div class="wh-kpi-count"><?= (int) ($stats['created'] ?? 0) ?></div>
+                    <div class="wh-kpi-label">
+                        <?= $isAr ? 'المنشأة' : 'Créés' ?>
+                        <?php $tc = $trends['created'] ?? null; if ($tc !== null): ?>
+                            <?php $diff = (int) ($tc['current'] ?? 0) - (int) ($tc['previous'] ?? 0); ?>
+                            <span class="trend <?= $diff > 0 ? 'trend-up' : ($diff < 0 ? 'trend-down' : 'trend-flat') ?>"
+                                  title="<?= $isAr ? 'مقارنة بالشهر الماضي' : 'vs mois précédent' ?>">
+                                <?= $diff > 0 ? '▲' : ($diff < 0 ? '▼' : '•') ?> <?= abs($diff) ?>
+                            </span>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </a>
         </div>
@@ -271,38 +279,34 @@ $badgeColor = static function (string $statut): string {
         </div>
         <div class="card-body">
             <?php if (!empty($historique)): ?>
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th><?= $isAr ? 'الحدث' : 'Événement' ?></th>
-                                <th><?= $isAr ? 'الإجراء' : 'Action' ?></th>
-                                <th><?= $isAr ? 'الحالة' : 'Statut' ?></th>
-                                <th><?= $isAr ? 'التاريخ' : 'Date' ?></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($historique as $h): ?>
-                                <tr>
-                                    <td class="text-nowrap"><?= e(mb_substr((string) ($h['adresse'] ?? '-'), 0, 40)) ?></td>
-                                    <td>
-                                        <?= e($h['action'] ?? '') ?>
-                                        <?php if (! empty($h['acteur_nom']) && ! str_contains((string) ($h['action'] ?? ''), 'Wilaya')): ?>
-                                            <small class="text-muted d-block"><?= e($h['acteur_nom']) ?></small>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <span class="badge <?= $badgeColor((string) ($h['nouveau_statut'] ?? 'EN_ATTENTE')) ?>">
-                                            <?= e(statut_label((string) ($h['nouveau_statut'] ?? 'EN_ATTENTE'))) ?>
-                                        </span>
-                                    </td>
-                                    <td class="text-nowrap">
+                <div class="wh-timeline">
+                    <?php foreach ($historique as $h): ?>
+                        <div class="wh-timeline-item">
+                            <span class="wh-timeline-marker <?= $badgeColor((string) ($h['nouveau_statut'] ?? 'EN_ATTENTE')) ?>"
+                                  title="<?= e(statut_label((string) ($h['nouveau_statut'] ?? 'EN_ATTENTE'))) ?>"></span>
+                            <div class="wh-timeline-content">
+                                <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                    <span class="badge <?= $badgeColor((string) ($h['nouveau_statut'] ?? 'EN_ATTENTE')) ?>">
+                                        <?= e(statut_label((string) ($h['nouveau_statut'] ?? 'EN_ATTENTE'))) ?>
+                                    </span>
+                                    <span class="wh-timeline-date">
+                                        <i class="mdi mdi-clock-outline"></i>
                                         <?= e(date('d/m/Y H:i', strtotime((string) ($h['created_at'] ?? 'now')))) ?>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                                    </span>
+                                </div>
+                                <div class="fw-semibold"><?= e($h['action'] ?? '') ?></div>
+                                <div class="wh-timeline-meta">
+                                    <i class="mdi mdi-map-marker"></i>
+                                    <?= e(mb_substr((string) ($h['adresse'] ?? '-'), 0, 60)) ?>
+                                    <?php if (! empty($h['acteur_nom']) && ! str_contains((string) ($h['action'] ?? ''), 'Wilaya')): ?>
+                                        <span class="wh-timeline-meta-sep">•</span>
+                                        <i class="mdi mdi-account-circle"></i>
+                                        <?= e($h['acteur_nom']) ?>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
                 </div>
             <?php else: ?>
                 <p class="text-muted"><?= $isAr ? 'لا توجد أنشطة حديثة.' : 'Aucune activité récente.' ?></p>

@@ -6,7 +6,9 @@ namespace App\Controllers;
 
 use App\Helpers\Database;
 use App\Helpers\EvenementService;
+use App\Helpers\Gamification;
 use App\Helpers\GeoHelper;
+use App\Helpers\Session;
 
 final class CitoyenController extends Controller
 {
@@ -48,6 +50,12 @@ final class CitoyenController extends Controller
         }
         $stats['participations'] = $participationsCount;
 
+        $gamification = [
+            'points' => (int) ($user['points'] ?? 0),
+            'rank'   => (int) Session::userId() > 0 ? Gamification::rank((int) Session::userId()) : 0,
+            'badges' => (int) Session::userId() > 0 ? count(Gamification::badgesOf((int) Session::userId())) : 0,
+        ];
+
         $this->view('citoyen.index', [
             'user'                 => $user,
             'role'                 => $role,
@@ -55,6 +63,7 @@ final class CitoyenController extends Controller
             'past'                 => $past,
             'albums'               => $albums,
             'stats'                => $stats,
+            'gamification'         => $gamification,
         ], 'citoyen');
     }
 

@@ -67,6 +67,16 @@ try {
             <div class="citoyen-stat-value"><?= (int) ($stats['albums'] ?? 0) ?></div>
             <div class="citoyen-stat-label"><?= e(__('citoyen.stats_albums')) ?></div>
         </div>
+        <div class="citoyen-stat">
+            <i class="mdi mdi-trophy-outline stat-icon" aria-hidden="true"></i>
+            <div class="citoyen-stat-value">
+                <?= (int) ($gamification['points'] ?? 0) ?>
+                <?php if ((int) ($gamification['rank'] ?? 0) > 0): ?>
+                    <span class="citoyen-stat-rank">#<?= (int) $gamification['rank'] ?></span>
+                <?php endif; ?>
+            </div>
+            <div class="citoyen-stat-label"><?= e(__('citoyen.stats_points')) ?></div>
+        </div>
     </div>
 </section>
 

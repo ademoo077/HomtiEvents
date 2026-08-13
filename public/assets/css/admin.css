@@ -351,6 +351,51 @@ body {
 .wh-kpi-label { font-size: .8rem; color: var(--wh-text-muted); font-weight: 500; }
 .wh-kpi-trend { font-size: .76rem; }
 
+/* ── Tendances KPI (vs mois précédent) ───────────────────────── */
+.trend { font-size: .72rem; font-weight: 700; margin-inline-start: .15rem; }
+.trend-up   { color: var(--wh-green); }
+.trend-down { color: var(--wh-red); }
+.trend-flat { color: var(--wh-text-muted); }
+
+/* ── Timeline (historique d'actions) ─────────────────────────── */
+.wh-timeline {
+    position: relative;
+    padding-inline-start: 1.25rem;
+}
+.wh-timeline::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: 5px;
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    background: var(--wh-border);
+    border-radius: 2px;
+}
+.wh-timeline-item {
+    position: relative;
+    padding-bottom: 1.1rem;
+}
+.wh-timeline-item:last-child { padding-bottom: 0; }
+.wh-timeline-marker {
+    position: absolute;
+    inset-inline-start: -1.25rem;
+    top: 4px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px var(--wh-gray-soft);
+}
+.wh-timeline-marker.badge-blue    { background: var(--wh-blue); }
+.wh-timeline-marker.badge-green   { background: var(--wh-green); }
+.wh-timeline-marker.badge-amber   { background: var(--wh-amber); }
+.wh-timeline-marker.badge-red     { background: var(--wh-red); }
+.wh-timeline-marker.badge-gray    { background: var(--wh-gray); }
+.wh-timeline-date { font-size: .76rem; color: var(--wh-text-muted); }
+.wh-timeline-meta { font-size: .82rem; color: var(--wh-text-muted); }
+.wh-timeline-meta-sep { margin-inline: .3rem; opacity: .5; }
+[data-bs-theme="dark"] .wh-timeline-marker { box-shadow: 0 0 0 3px var(--wh-gray-light); }
+
 /* ═══════════ TABLEAUX ═══════════ */
 .table { --bs-table-bg: transparent; margin-bottom: 0; }
 .table > :not(caption) > * > * {
