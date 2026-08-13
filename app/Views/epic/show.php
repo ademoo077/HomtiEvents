@@ -65,9 +65,72 @@ $checkinUrl = url('checkin/' . $intervention['token_qr']);
                     </div>
                 </div>
             <?php endif; ?>
+
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header">
+                    <span><i class="mdi mdi-progress-wrench"></i> <?= e(__('epic.intervention_statut')) ?></span>
+                </div>
+                <div class="card-body">
+                    <span class="badge <?= match (strtolower((string) ($intervention['intervention_statut'] ?? 'AFFECTE'))) {
+                        'affecte' => 'bg-secondary',
+                        'en_cours' => 'bg-warning',
+                        'termine' => 'bg-success',
+                        'anomalie' => 'bg-danger',
+                        default => 'bg-secondary',
+                    } ?> mb-3">
+                        <?= e(__('epic.statut_' . strtolower((string) ($intervention['intervention_statut'] ?? 'AFFECTE')))) ?>
+                    </span>
+                    <form action="<?= url('epic/' . (int) ($intervention['intervention_id'] ?? 0) . '/statut') ?>" method="post"
+                          data-confirm="<?= $isAr ? 'تأكيد تحديث حالة التدخل؟' : 'Confirmer la mise à jour du statut ?' ?>"
+                          class="row g-2">
+                        <?= csrf_field() ?>
+                        <div class="col-8">
+                            <select name="statut" class="form-select" required>
+                                <option value="AFFECTE" <?= (($intervention['intervention_statut'] ?? '') === 'AFFECTE') ? 'selected' : '' ?>><?= e(__('epic.statut_affecte')) ?></option>
+                                <option value="EN_COURS" <?= (($intervention['intervention_statut'] ?? '') === 'EN_COURS') ? 'selected' : '' ?>><?= e(__('epic.statut_en_cours')) ?></option>
+                                <option value="TERMINE" <?= (($intervention['intervention_statut'] ?? '') === 'TERMINE') ? 'selected' : '' ?>><?= e(__('epic.statut_termine')) ?></option>
+                                <option value="ANOMALIE" <?= (($intervention['intervention_statut'] ?? '') === 'ANOMALIE') ? 'selected' : '' ?>><?= e(__('epic.statut_anomalie')) ?></option>
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <button type="submit" class="btn btn-primary w-100"><?= $isAr ? 'حفظ' : 'Enregistrer' ?></button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
 
         <div class="col-lg-4">
+            <?php if (! empty($intervention['association_nom'])): ?>
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-header">
+                        <span><i class="mdi mdi-account-tie-outline"></i> <?= e(__('epic.association_contact')) ?></span>
+                    </div>
+                    <div class="card-body">
+                        <div class="fw-semibold mb-1"><?= e($intervention['association_nom']) ?></div>
+                        <?php if (! empty($intervention['association_president'])): ?>
+                            <div class="small text-muted mb-1">
+                                <i class="mdi mdi-account-outline me-1"></i><?= e($intervention['association_president']) ?>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (! empty($intervention['association_telephone'])): ?>
+                            <div class="small mb-1">
+                                <i class="mdi mdi-phone-outline me-1"></i>
+                                <a href="tel:<?= e(preg_replace('/\s+/', '', (string) $intervention['association_telephone'])) ?>">
+                                    <?= e($intervention['association_telephone']) ?>
+                                </a>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (! empty($intervention['association_email'])): ?>
+                            <div class="small">
+                                <i class="mdi mdi-email-outline me-1"></i>
+                                <a href="mailto:<?= e($intervention['association_email']) ?>"><?= e($intervention['association_email']) ?></a>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <div class="card border-0 shadow-sm">
                 <div class="card-header">
                     <span><i class="mdi mdi-account-group"></i> <?= e(__('common.participants')) ?></span>

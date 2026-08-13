@@ -228,7 +228,7 @@ final class AdminEvenementController extends Controller
 
         $currentUserId = Session::userId();
         $page   = (int) input('page', 1);
-        $result = Notification::all((int) $currentUserId, 20, $page);
+        $result = Notification::center((int) $currentUserId, 20, $page);
 
         $this->view('wilaya/notifications', [
             'notifications' => $result['items'],

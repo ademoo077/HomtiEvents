@@ -39,24 +39,41 @@ final class AssociationDashboardController extends Controller
         $association = Database::one('SELECT * FROM associations WHERE id = ?', [$associationId]);
 
         // Statistiques propres à l'association
+        $validatedSql = 'SELECT COUNT(*) FROM evenements WHERE association_id = ? AND statut IN (' . implode(',', array_map(fn($s) => "'$s'", EvenementService::STATUTS_VALIDES)) . ')';
+        $pendingSql = 'SELECT COUNT(*) FROM evenements WHERE association_id = ? AND statut IN (' . implode(',', array_map(fn($s) => "'$s'", EvenementService::STATUTS_EN_ATTENTE)) . ')';
         $stats = [
             'created'    => (int) Database::value(
                 'SELECT COUNT(*) FROM evenements WHERE association_id = ?',
                 [$associationId]
             ),
-            'validated'  => (int) Database::value(
-                "SELECT COUNT(*) FROM evenements WHERE association_id = ? AND statut IN ('VALIDÉ', 'PROGRAMME', 'EN_COURS', 'TERMINE')",
-                [$associationId]
-            ),
-            'pending'    => (int) Database::value(
-                "SELECT COUNT(*) FROM evenements WHERE association_id = ? AND statut IN ('EN_ATTENTE', 'MODIFICATION_DEMANDEE', 'REFUSE')",
-                [$associationId]
-            ),
+            'validated'  => (int) Database::value($validatedSql, [$associationId]),
+            'pending'    => (int) Database::value($pendingSql, [$associationId]),
             'participants' => (int) Database::value(
                 'SELECT COUNT(*) FROM evenement_participant ep WHERE ep.evenement_id IN (SELECT id FROM evenements WHERE association_id = ?)',
                 [$associationId]
             ),
         ];
+
+        // Tendance mensuelle (mois en cours vs mois précédent) pour les KPIs principaux
+        $firstOfMonth = date('Y-m-01');
+        $firstOfLastMonth = date('Y-m-01', strtotime('-1 month'));
+        $trends = [
+            'created'      => [
+                'current' => (int) Database::value('SELECT COUNT(*) FROM evenements WHERE association_id = ? AND created_at >= ?', [$associationId, $firstOfMonth]),
+                'previous' => (int) Database::value('SELECT COUNT(*) FROM evenements WHERE association_id = ? AND created_at >= ? AND created_at < ?', [$associationId, $firstOfLastMonth, $firstOfMonth]),
+            ],
+            'participants' => [
+                'current' => (int) Database::value('SELECT COUNT(*) FROM evenement_participant ep JOIN evenements e ON e.id = ep.evenement_id WHERE e.association_id = ? AND ep.heure_scan >= ?', [$associationId, $firstOfMonth]),
+                'previous' => (int) Database::value('SELECT COUNT(*) FROM evenement_participant ep JOIN evenements e ON e.id = ep.evenement_id WHERE e.association_id = ? AND ep.heure_scan >= ? AND ep.heure_scan < ?', [$associationId, $firstOfLastMonth, $firstOfMonth]),
+            ],
+        ];
+
+        // Note moyenne des auto-évaluations reçues par l'association
+        $avgNote = Database::value(
+            'SELECT AVG(note) FROM evaluation WHERE association_id = ?',
+            [$associationId]
+        );
+        $stats['avg_note'] = $avgNote === null ? 0.0 : (float) round($avgNote, 1);
 
         // Compteurs par statut (KPI cliquables) et événements exigeant une action
         $statutsCounts = EvenementService::statutsCounts($associationId);
@@ -133,6 +150,7 @@ final class AssociationDashboardController extends Controller
         $this->view('association/dashboard', [
             'association'   => $association,
             'stats'         => $stats,
+            'trends'        => $trends,
             'statutsCounts' => $statutsCounts,
             'attention'     => $attention,
             'envoyes'       => $envoyes,
@@ -226,7 +244,7 @@ final class AssociationDashboardController extends Controller
         }
 
         $page   = (int) input('page', 1);
-        $result = Notification::all((int) $user['id'], 20, $page);
+        $result = Notification::center((int) $user['id'], 20, $page);
 
         $this->view('association/notifications', [
             'notifications' => $result['items'],

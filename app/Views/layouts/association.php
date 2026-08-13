@@ -75,6 +75,7 @@ $navItems = [
     ['label' => __('common.dashboard'),       'icon' => 'mdi-view-dashboard',  'href' => 'association',              'prefix' => 'association'],
     ['label' => __('common.evenements'),       'icon' => 'mdi-calendar-star',   'href' => 'association/events',       'prefix' => 'association/events'],
     ['label' => __('common.gallery'),          'icon' => 'mdi-image-multiple',  'href' => 'association/gallery',      'prefix' => 'association/gallery'],
+    ['label' => __('members.title'),           'icon' => 'mdi-account-group',   'href' => 'association/membres',      'prefix' => 'association/membres'],
     ['label' => __('evenements.create'),       'icon' => 'mdi-plus-circle',     'href' => 'association/create',       'prefix' => 'association/create'],
     ['label' => __('common.notifications'),    'icon' => 'mdi-bell-ring',       'href' => 'association/notifications','prefix' => 'association/notifications'],
 ];
@@ -87,7 +88,7 @@ $navItems = [
     <meta name="robots" content="noindex, nofollow">
     <title><?= e($title ?? $appName) ?> — <?= e(__('app.name')) ?></title>
     <link rel="icon" href="<?= asset('/assets/img/icon-192.png') ?>">
-    <link rel="manifest" href="<?= asset('/manifest.json') ?>">
+    <link rel="manifest" href="<?= url('manifest.json') ?>">
     <link rel="stylesheet" href="<?= asset($bootstrapCss) ?>">
     <link rel="stylesheet" href="<?= asset('/assets/css/fonts.css') ?>">
     <link rel="stylesheet" href="<?= asset('/assets/vendor/mdi/css/materialdesignicons.min.css') ?>">

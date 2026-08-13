@@ -70,8 +70,41 @@ final class StatsService
                 'anomalies'         => (int) Database::value('SELECT COUNT(*) FROM anomalies'),
                 'communes'          => (int) Database::value('SELECT COUNT(*) FROM commune WHERE is_active = 1'),
                 'note_moyenne'      => Database::value('SELECT ROUND(AVG(note), 2) FROM evaluation') ?? null,
+                'temps_moyen_epic'  => self::tempsMoyenEpic(),
             ];
         });
+    }
+
+    /**
+     * Temps moyen entre l'affectation EPIC et la clôture d'un événement (en jours).
+     * Aucun cache : calcul à chaque appel sur les données actuelles.
+     */
+    public static function tempsMoyenEpic(): ?float
+    {
+        $rows = Database::all(
+            "SELECT ee.date_affectation, e.updated_at
+             FROM evenement_epic ee
+             JOIN evenements e ON e.id = ee.evenement_id
+             WHERE e.statut = 'TERMINE' AND ee.date_affectation IS NOT NULL AND e.updated_at IS NOT NULL"
+        );
+
+        if ($rows === []) {
+            return null;
+        }
+
+        $totalDays = 0;
+        $count = 0;
+        foreach ($rows as $row) {
+            $affectation = strtotime($row['date_affectation']);
+            $updated = strtotime($row['updated_at']);
+            if ($affectation && $updated) {
+                $diff = floor(($updated - $affectation) / 86400); // secondes en jour
+                $totalDays += $diff;
+                $count++;
+            }
+        }
+
+        return $count > 0 ? round($totalDays / $count, 1) : null;
     }
 
     /**

@@ -43,7 +43,7 @@ $badgeColor = static function (string $statut): string {
                 <div>
                     <div class="wh-kpi-value">
                         <?php
-                        echo count(array_filter($interventions, fn($v) => strtolower((string) ($v['statut'] ?? '')) === 'en_cours'));
+                        echo count(array_filter($interventions, fn($v) => strtolower((string) ($v['intervention_statut'] ?? '')) === 'en_cours'));
                         ?>
                     </div>
                     <div class="wh-kpi-label"><?= $isAr ? 'قيد التنفيذ' : 'En cours' ?></div>
@@ -56,7 +56,7 @@ $badgeColor = static function (string $statut): string {
                 <div>
                     <div class="wh-kpi-value">
                         <?php
-                        echo count(array_filter($interventions, fn($v) => strtolower((string) ($v['statut'] ?? '')) === 'termine'));
+                        echo count(array_filter($interventions, fn($v) => strtolower((string) ($v['intervention_statut'] ?? '')) === 'termine'));
                         ?>
                     </div>
                     <div class="wh-kpi-label"><?= $isAr ? 'منتهي' : 'Terminées' ?></div>
@@ -69,11 +69,24 @@ $badgeColor = static function (string $statut): string {
                 <div>
                     <div class="wh-kpi-value">
                         <?php
-                        echo count(array_filter($interventions, fn($v) => strtolower((string) ($v['statut'] ?? '')) === 'anomalie'));
+                        echo count(array_filter($interventions, fn($v) => strtolower((string) ($v['intervention_statut'] ?? '')) === 'anomalie'));
                         ?>
                     </div>
                     <div class="wh-kpi-label"><?= $isAr ? 'بحالت طارئة' : 'Anomalies' ?></div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Temps moyen EPIC -->
+    <div class="col-md-3 col-6">
+        <div class="wh-kpi">
+            <div class="wh-kpi-icon info"><i class="mdi mdi-clock-outline"></i></div>
+            <div>
+                <div class="wh-kpi-value">
+                    <?= $kpis['temps_moyen_epic'] !== null ? $kpis['temps_moyen_epic'] . ' jour(s)' : 'Non calculé' ?>
+                </div>
+                <div class="wh-kpi-label">Temps affectation → clôture</div>
             </div>
         </div>
     </div>
@@ -118,7 +131,7 @@ $badgeColor = static function (string $statut): string {
                         <tr>
                             <td>
                                 <?php
-                                echo (int) ($iv['id'] ?? 0);
+                                echo (int) ($iv['intervention_id'] ?? 0);
                                 ?>
                             </td>
                             <td>

@@ -47,8 +47,29 @@ $notifUrl = static function (array $n): ?string {
                     <p class="mb-0 mt-2 text-muted"><?= $isAr ? 'لا توجد إشعارات بعد' : 'Aucune notification pour le moment.' ?></p>
                 </div>
             <?php else: ?>
+                <?php $currentType = null; ?>
                 <ul class="list-group list-group-flush">
-                    <?php foreach ($notifications as $n): $nUrl = $notifUrl($n); $nRead = (int) ($n['lu'] ?? 0) === 1; ?>
+                    <?php foreach ($notifications as $n): ?>
+                        <?php
+                            $nType = (string) ($n['type'] ?? '');
+                            $nUrl  = $notifUrl($n);
+                            $nRead = (int) ($n['lu'] ?? 0) === 1;
+
+                            if ($nType !== $currentType):
+                                $currentType = $nType;
+                                $groupUnread = count(array_filter(
+                                    $notifications,
+                                    static fn (array $x): bool => (string) ($x['type'] ?? '') === $nType && (int) ($x['lu'] ?? 0) === 0
+                                ));
+                        ?>
+                        <li class="list-group-item wh-notif-group-header">
+                            <i class="mdi <?= e(\App\Helpers\Notification::typeIcon($nType)) ?> me-2"></i>
+                            <span class="fw-semibold"><?= e(\App\Helpers\Notification::typeLabel($nType)) ?></span>
+                            <?php if ($groupUnread > 0): ?>
+                                <span class="wh-notif-group-count"><?= $groupUnread ?></span>
+                            <?php endif; ?>
+                        </li>
+                        <?php endif; ?>
                         <li class="list-group-item <?= $nRead ? 'wh-notif-read' : '' ?>">
                             <div class="d-flex gap-3 align-items-start">
                                 <i class="mdi <?= $nRead ? 'mdi-bell-outline text-muted' : 'mdi-bell-ring text-primary' ?> mt-1" style="font-size:1.3rem"></i>
@@ -98,4 +119,22 @@ $notifUrl = static function (array $n): ?string {
 <style>
 .wh-notif-read { background: #fff; }
 [dir="rtl"] .wh-notif-read { background: #fff; }
+.wh-notif-group-header {
+    background: #f1f5f9;
+    font-size: .85rem;
+    padding-top: .45rem;
+    padding-bottom: .45rem;
+}
+[dir="rtl"] .wh-notif-group-header { background: #f1f5f9; }
+.wh-notif-group-count {
+    display: inline-block;
+    min-width: 1.25rem;
+    padding: 0 .4rem;
+    border-radius: 10px;
+    background: var(--wh-primary, #4f46e5);
+    color: #fff;
+    font-size: .72rem;
+    text-align: center;
+    margin-inline-start: .4rem;
+}
 </style>

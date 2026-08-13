@@ -49,6 +49,8 @@ $adminNav = [
     ['label' => __('common.epic'),         'icon' => 'mdi-satellite-variant',  'href' => 'admin/epics',        'prefix' => 'admin/epics'],
     ['label' => __('common.anomalies'),    'icon' => 'mdi-alert-octagon',      'href' => 'admin/anomalies',    'prefix' => 'admin/anomalies'],
     ['label' => __('common.citoyens'),     'icon' => 'mdi-account-group',      'href' => 'admin/citoyens',     'prefix' => 'admin/citoyens'],
+    ['label' => $isAr ? 'المستخدمون' : 'Utilisateurs', 'icon' => 'mdi-account-multiple', 'href' => 'admin/users', 'prefix' => 'admin/users'],
+    ['label' => $isAr ? 'الرئيسون' : 'Présidents', 'icon' => 'mdi-account-tie', 'href' => 'admin/presidents', 'prefix' => 'admin/presidents'],
     ['label' => 'Demandes inscription',    'icon' => 'mdi-account-plus',        'href' => 'admin/association-requests', 'prefix' => 'admin/association-requests'],
     ['label' => __('common.statistiques'), 'icon' => 'mdi-chart-box',           'href' => 'admin/stats',         'prefix' => 'admin/stats'],
     ['label' => __('landing.actualites'),  'icon' => 'mdi-web',                'href' => 'admin/landing',      'prefix' => 'admin/landing'],
@@ -88,7 +90,7 @@ if ($userRole === 'epic') {
     <meta name="robots" content="noindex, nofollow">
     <title><?= e($title ?? $appName) ?> — <?= e(__('app.name')) ?></title>
     <link rel="icon" href="<?= asset('/assets/img/icon-192.png') ?>">
-    <link rel="manifest" href="<?= asset('/manifest.json') ?>">
+    <link rel="manifest" href="<?= url('manifest.json') ?>">
     <link rel="stylesheet" href="<?= asset($bootstrapCss) ?>">
     <link rel="stylesheet" href="<?= asset('/assets/css/fonts.css') ?>">
     <link rel="stylesheet" href="<?= asset('/assets/vendor/mdi/css/materialdesignicons.min.css') ?>">
@@ -194,7 +196,7 @@ if ($userRole === 'epic') {
                                         $nType = (string) ($n['type'] ?? '');
                                         if ($nType === 'association_request' && ! empty($nData['request_id']) && $userRole === 'wilaya') {
                                             $nUrl = url('admin/association-requests/' . (int) $nData['request_id']);
-                                        } elseif (in_array($nType, ['evenement_create', 'evenement_annule', 'evenement_resoumis', 'routing_alerte', 'sla_retard'], true) && ! empty($nData['evenement_id'])) {
+                                        } elseif (in_array($nType, ['evenement_create', 'evenement_annule', 'evenement_resoumis', 'routing_alerte', 'sla_retard', 'epic_anomalie'], true) && ! empty($nData['evenement_id'])) {
                                             $nUrl = url('wilaya/evenements/' . (int) $nData['evenement_id']);
                                         } elseif (isset($nData['link'])) {
                                             $nUrl = url((string) $nData['link']);

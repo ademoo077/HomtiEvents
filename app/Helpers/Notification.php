@@ -121,6 +121,58 @@ final class Notification
     }
 
     /**
+     * Liste paginée du centre de notifications, ordonnée par type puis date
+     * (permet un regroupement visuel par type dans la vue).
+     *
+     * @return array{items: array<int, array<string, mixed>>, total: int, page: int, last_page: int}
+     */
+    public static function center(int $userId, int $perPage = 20, int $page = 1): array
+    {
+        $sql = 'SELECT * FROM notifications WHERE user_id = ? ORDER BY type ASC, date_creation DESC';
+
+        return Database::paginate($sql, [$userId], $perPage, $page);
+    }
+
+    /**
+     * Libellé lisible d'un type de notification (retombe sur le type brut).
+     */
+    public static function typeLabel(?string $type): string
+    {
+        if ($type === null || $type === '') {
+            return __('notifications.type_general');
+        }
+
+        return __('notifications.type_' . $type);
+    }
+
+    /**
+     * Icône MDI par type de notification.
+     */
+    public static function typeIcon(?string $type): string
+    {
+        return match ($type) {
+            'evenement_valide'       => 'mdi-check-decagram',
+            'evenement_refuse'       => 'mdi-close-octagon',
+            'modification_demandee'  => 'mdi-pencil-outline',
+            'qr_genere'              => 'mdi-qrcode',
+            'evenement_create'       => 'mdi-calendar-plus',
+            'evenement_annule'       => 'mdi-calendar-remove',
+            'evenement_resoumis'     => 'mdi-sync',
+            'routing_alerte'         => 'mdi-sitemap',
+            'sla_retard'             => 'mdi-timer-alert',
+            'album_publie'           => 'mdi-image-multiple',
+            'epic_anomalie'          => 'mdi-alert-octagon',
+            'association_request'    => 'mdi-account-clock',
+            'membre_invite'          => 'mdi-account-plus',
+            'membre_accepte'         => 'mdi-account-check',
+            'membre_retire'          => 'mdi-account-minus',
+            'membre_deja_inscrit'    => 'mdi-account-alert',
+            'rappel'                 => 'mdi-bell-ring',
+            default                  => 'mdi-bell-outline',
+        };
+    }
+
+    /**
      * Push web (VAPID). Retourne le nombre de notifications envoyées.
      */
     public static function push(int $userId, string $titre, string $message, ?string $url = null): int

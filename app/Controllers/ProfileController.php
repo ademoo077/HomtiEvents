@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Helpers\AuditLog;
 use App\Helpers\Database;
+use App\Helpers\EvenementService;
 use App\Helpers\QrCodeGenerator;
 use App\Helpers\Rbac;
 use App\Helpers\Session;
@@ -303,15 +304,23 @@ final class ProfileController extends Controller
 
         return match ($role) {
             'wilaya' => [
-                ['label' => 'Événements validés', 'icon' => 'mdi-check-decagram', 'value' => (int) Database::value("SELECT COUNT(*) FROM evenements WHERE statut = 'VALIDE'")],
+                ['label' => 'Événements validés', 'icon' => 'mdi-check-decagram', 'value' => (int) Database::value(
+                    'SELECT COUNT(*) FROM evenements WHERE statut IN (' . implode(',', array_map(fn($s) => "'$s'", EvenementService::STATUTS_VALIDES)) . ')'
+                )],
                 ['label' => 'Événements programmés', 'icon' => 'mdi-calendar-check', 'value' => (int) Database::value("SELECT COUNT(*) FROM evenements WHERE statut = 'PROGRAMME'")],
                 ['label' => 'Associations', 'icon' => 'mdi-handshake', 'value' => (int) Database::value('SELECT COUNT(*) FROM associations')],
                 ['label' => 'EPICs', 'icon' => 'mdi-satellite-variant', 'value' => (int) Database::value('SELECT COUNT(*) FROM epic')],
             ],
             'association' => [
                 ['label' => 'Mes événements', 'icon' => 'mdi-calendar-star', 'value' => (int) Database::value('SELECT COUNT(*) FROM evenements WHERE association_id = ?', [(int) ($user['association_id'] ?? 0)])],
-                ['label' => 'En attente', 'icon' => 'mdi-clock-outline', 'value' => (int) Database::value("SELECT COUNT(*) FROM evenements WHERE association_id = ? AND statut = 'EN_ATTENTE'", [(int) ($user['association_id'] ?? 0)])],
-                ['label' => 'Validés', 'icon' => 'mdi-check-decagram', 'value' => (int) Database::value("SELECT COUNT(*) FROM evenements WHERE association_id = ? AND statut = 'VALIDE'", [(int) ($user['association_id'] ?? 0)])],
+                ['label' => 'En attente', 'icon' => 'mdi-clock-outline', 'value' => (int) Database::value(
+                    'SELECT COUNT(*) FROM evenements WHERE association_id = ? AND statut IN (' . implode(',', array_map(fn($s) => "'$s'", EvenementService::STATUTS_EN_ATTENTE)) . ')',
+                    [(int) ($user['association_id'] ?? 0)]
+                )],
+                ['label' => 'Validés', 'icon' => 'mdi-check-decagram', 'value' => (int) Database::value(
+                    'SELECT COUNT(*) FROM evenements WHERE association_id = ? AND statut IN (' . implode(',', array_map(fn($s) => "'$s'", EvenementService::STATUTS_VALIDES)) . ')',
+                    [(int) ($user['association_id'] ?? 0)]
+                )],
                 ['label' => 'Participants', 'icon' => 'mdi-account-group', 'value' => (int) Database::value('SELECT COUNT(*) FROM evenement_participant ep JOIN evenements e ON e.id = ep.evenement_id WHERE e.association_id = ?', [(int) ($user['association_id'] ?? 0)])],
             ],
             'epic' => [

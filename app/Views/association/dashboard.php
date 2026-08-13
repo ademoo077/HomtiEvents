@@ -31,6 +31,17 @@ $badgeColor = static function (string $statut): string {
                     <?= e(($association['nom'] ?? 'Association')) ?> — <?= $isAr ? 'مراقبة نشاطات الجمعية' : 'Suivi de l\'activité de votre association' ?>
                 </p>
                 <div class="mt-1"><?= association_badge($association) ?></div>
+                <?php if (($stats['avg_note'] ?? 0) > 0): ?>
+                    <div class="mt-2 d-flex align-items-center gap-2">
+                        <span class="badge bg-warning text-dark fs-6">
+                            <?= str_repeat('★', (int) round((float) $stats['avg_note'])) ?><?= str_repeat('☆', 5 - (int) round((float) $stats['avg_note'])) ?>
+                        </span>
+                        <span class="wh-text-muted small">
+                            <strong><?= e(number_format((float) $stats['avg_note'], 1)) ?></strong> / 5
+                            — <?= $isAr ? 'متوسط التقييم' : 'note moyenne' ?>
+                        </span>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
         <a class="btn btn-primary" href="<?= url('association/create') ?>">
@@ -136,7 +147,16 @@ $badgeColor = static function (string $statut): string {
                 <div class="wh-kpi-icon purple"><i class="mdi mdi-account-group-outline"></i></div>
                 <div>
                     <div class="wh-kpi-count"><?= (int) ($stats['participants'] ?? 0) ?></div>
-                    <div class="wh-kpi-label"><?= $isAr ? 'المشاركون' : 'Participants' ?></div>
+                    <div class="wh-kpi-label">
+                        <?= $isAr ? 'المشاركون' : 'Participants' ?>
+                        <?php $tp = $trends['participants'] ?? null; if ($tp !== null): ?>
+                            <?php $diff = (int) ($tp['current'] ?? 0) - (int) ($tp['previous'] ?? 0); ?>
+                            <span class="trend <?= $diff > 0 ? 'trend-up' : ($diff < 0 ? 'trend-down' : 'trend-flat') ?>"
+                                  title="<?= $isAr ? 'مقارنة بالشهر الماضي' : 'vs mois précédent' ?>">
+                                <?= $diff > 0 ? '▲' : ($diff < 0 ? '▼' : '•') ?> <?= abs($diff) ?>
+                            </span>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>

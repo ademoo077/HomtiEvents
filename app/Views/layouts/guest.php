@@ -23,7 +23,7 @@ $bootstrapCss = $isAr
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($title ?? __('app.name')) ?> — <?= e(__('app.tagline')) ?></title>
     <link rel="icon" href="<?= asset('/assets/img/icon-192.png') ?>">
-    <link rel="manifest" href="<?= asset('/manifest.json') ?>">
+    <link rel="manifest" href="<?= url('manifest.json') ?>">
     <meta name="theme-color" content="#0B5ED7">
     <link rel="stylesheet" href="<?= asset($bootstrapCss) ?>">
     <link rel="stylesheet" href="<?= asset('/assets/css/fonts.css') ?>">
