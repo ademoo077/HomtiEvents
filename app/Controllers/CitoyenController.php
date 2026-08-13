@@ -92,10 +92,19 @@ final class CitoyenController extends Controller
             );
         }
 
+        $participantsCount = 0;
+        if (! empty($album['evenement_id'])) {
+            $participantsCount = (int) Database::value(
+                'SELECT COUNT(*) FROM evenement_participant WHERE evenement_id = ?',
+                [(int) $album['evenement_id']]
+            );
+        }
+
         $this->view('citoyen.album', [
-            'album'        => $album,
-            'photos'       => $photos,
-            'association'  => $association,
+            'album'             => $album,
+            'photos'            => $photos,
+            'association'       => $association,
+            'participantsCount' => $participantsCount,
         ], 'citoyen');
     }
 }

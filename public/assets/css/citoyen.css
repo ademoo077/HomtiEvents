@@ -3089,6 +3089,39 @@ html[lang="ar"] .citoyen-section-title {
     border-color: transparent;
 }
 [dir="rtl"] .citoyen-album-hero .citoyen-back-link { left: auto; right: 12px; }
+.citoyen-album-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+}
+.citoyen-album-actions .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: .75rem;
+}
+.badge-info {
+    background: rgba(255, 255, 255, .18);
+    color: #fff;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+.citoyen-album-actions .btn-outline {
+    background: rgba(255, 255, 255, .14);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, .45);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    transition: background .2s ease, color .2s ease;
+}
+.citoyen-album-actions .btn-outline:hover {
+    background: rgba(255, 255, 255, .28);
+    color: #fff;
+}
 .album-photo-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);

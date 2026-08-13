@@ -1,5 +1,5 @@
 <?php
-/** @var array $album @var array $photos @var array|null $association */
+/** @var array $album @var array $photos @var array|null $association @var int $participantsCount */
 use App\Helpers\I18n;
 
 $dir   = I18n::direction();
@@ -12,6 +12,7 @@ $coverUrl = ($cover !== '' && is_file(public_path($cover))) ? asset($cover) : nu
 $backUrl = ! empty($album['evenement_id']) ? 'citoyen/evenement/' . (int) $album['evenement_id'] : 'citoyen';
 $dateLabel = ! empty($album['date_evenement']) ? date('d/m/Y', strtotime((string) $album['date_evenement'])) : '';
 $adresse = (string) ($album['adresse'] ?? '');
+$shareUrl = url('citoyen/albums/' . (int) $album['id']);
 ?>
 
 <section class="citoyen-section">
@@ -36,6 +37,18 @@ $adresse = (string) ($album['adresse'] ?? '');
             <?php if ($association !== null): ?>
                 <div><?= association_badge($association) ?></div>
             <?php endif; ?>
+
+            <div class="citoyen-album-actions">
+                <?php if ($participantsCount > 0): ?>
+                    <span class="badge badge-info">
+                        <i class="mdi mdi-account-group"></i>
+                        <?= $isAr ? $participantsCount . ' مشارك' : $participantsCount . ' participant' . ($participantsCount > 1 ? 's' : '') ?>
+                    </span>
+                <?php endif; ?>
+                <button type="button" class="btn btn-sm btn-outline" id="shareAlbumBtn">
+                    <i class="mdi mdi-share-variant"></i> <?= $isAr ? 'مشاركة' : 'Partager' ?>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -75,6 +88,30 @@ $adresse = (string) ($album['adresse'] ?? '');
                 captionsData: 'title',
                 captionDelay: 250,
                 closeText: isAr ? 'إغلاق' : 'Fermer'
+            });
+        }
+
+        var shareBtn = document.getElementById('shareAlbumBtn');
+        if (shareBtn) {
+            var shareUrl = <?= json_encode($shareUrl, JSON_UNESCAPED_SLASHES) ?>;
+            shareBtn.addEventListener('click', function () {
+                var done = function () {
+                    shareBtn.innerHTML = '<i class="mdi mdi-check"></i> ' + (isAr ? 'تم النسخ' : 'Lien copié');
+                    setTimeout(function () {
+                        shareBtn.innerHTML = '<i class="mdi mdi-share-variant"></i> ' + (isAr ? 'مشاركة' : 'Partager');
+                    }, 2000);
+                };
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(shareUrl).then(done);
+                } else {
+                    var tmp = document.createElement('input');
+                    tmp.value = shareUrl;
+                    document.body.appendChild(tmp);
+                    tmp.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(tmp);
+                    done();
+                }
             });
         }
     });

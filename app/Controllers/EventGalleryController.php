@@ -8,6 +8,7 @@ use App\Helpers\AuditLog;
 use App\Helpers\Database;
 use App\Helpers\Notification;
 use App\Helpers\UploadHelper;
+use App\Helpers\Validator;
 
 /**
  * Gestion de la galerie photos des événements.
@@ -262,7 +263,8 @@ final class EventGalleryController extends Controller
     }
 
     /**
-     * Notifie l'association porteuse (sinon la Wilaya) de la publication de l'album.
+     * Notifie l'association porteuse (sinon la Wilaya) + les participants
+     * à l'événement de la publication de l'album (Phase 8 §3).
      */
     private function notifierAlbumPublie(int $albumId): void
     {
@@ -279,27 +281,52 @@ final class EventGalleryController extends Controller
 
         $titreEvenement = (string) ($album['description'] ?? $album['adresse'] ?? 'Événement n°' . (int) $album['evenement_id']);
         $albumTitre     = (string) ($album['titre'] ?? 'album');
-        $message        = "L'album '{$albumTitre}' de votre événement '{$titreEvenement}' a été publié.";
 
         if ((int) ($album['association_id'] ?? 0) > 0) {
             Notification::sendToAssociation(
                 (int) $album['association_id'],
-                'Album publié',
-                $message,
+                __('gallery.album_published_title'),
+                __('gallery.album_published_message', [
+                    'titre_album'   => $albumTitre,
+                    'evenement'     => $titreEvenement,
+                ]),
                 'album_publie',
-                ['album_id' => $albumId]
+                ['album_id' => $albumId, 'evenement_id' => (int) $album['evenement_id']]
             );
-
-            return;
+        } else {
+            Notification::sendToRole(
+                'wilaya',
+                __('gallery.album_published_title'),
+                __('gallery.album_published_message', [
+                    'titre_album'   => $albumTitre,
+                    'evenement'     => $titreEvenement,
+                ]),
+                'album_publie',
+                ['album_id' => $albumId, 'evenement_id' => (int) $album['evenement_id']]
+            );
         }
 
-        Notification::sendToRole(
-            'wilaya',
-            'Album publié',
-            $message,
-            'album_publie',
-            ['album_id' => $albumId]
+        // Option « participants » : notifier les citoyens ayant participé.
+        $participants = Database::all(
+            'SELECT DISTINCT user_id FROM evenement_participant
+             WHERE evenement_id = ? AND user_id IS NOT NULL',
+            [(int) $album['evenement_id']]
         );
+
+        $msgParticipant = __('gallery.album_participants_message', [
+            'titre_album' => $albumTitre,
+            'evenement'   => $titreEvenement,
+        ]);
+
+        foreach ($participants as $p) {
+            Notification::send(
+                (int) $p['user_id'],
+                __('gallery.album_published_title'),
+                $msgParticipant,
+                'album_publie',
+                ['album_id' => $albumId, 'evenement_id' => (int) $album['evenement_id']]
+            );
+        }
     }
 
     /**
@@ -500,6 +527,9 @@ final class EventGalleryController extends Controller
 
     /**
      * Trouve un événement ou abort 404.
+     */
+    /**
+     * @return array<string, mixed>
      */
     private function findEvent(string $id): array
     {
