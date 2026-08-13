@@ -21,6 +21,7 @@ use App\Controllers\ParticipationController;
 use App\Controllers\EventGalleryController;
 use App\Controllers\ProfileController;
 use App\Controllers\QrCodeController;
+use App\Controllers\ActualiteController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\RoleMiddleware;
 
@@ -34,6 +35,9 @@ $router->get('lang/{locale}', function (string $locale) {
 
 // ── Page publique (Landing Page) ──────────────────────────────
 $router->get('/', 'LandingController@index')->name('landing');
+
+// ── Page publique « Actualités & événements à venir » ──────────
+$router->get('actualites', 'ActualiteController@index')->name('actualites.index');
 
 // ── Manifest PWA dynamique (lang/dir selon locale) ────────────
 $router->get('manifest.json', 'LandingController@manifest')->name('pwa.manifest');

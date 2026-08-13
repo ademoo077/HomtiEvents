@@ -1,5 +1,5 @@
 <?php
-/** @var array|null $item @var array $errors */
+/** @var array|null $item @var array $errors @var array $evenements */
 $editing = $item !== null && !empty($item['id']);
 $title = $editing ? 'Modifier l\'élément' : 'Nouvel élément';
 $page  = 'admin.landing.news_form';
@@ -9,6 +9,9 @@ $action = $editing
     ? url('admin/landing/news/' . (int) $item['id'] . '/update')
     : url('admin/landing/news');
 $val = static fn(string $key, mixed $default = '') => (string) ($item[$key] ?? $default);
+$type = $val('type', 'actualite');
+$statut = $val('statut', 'publie');
+$evenementId = (int) $val('evenement_id', '0');
 ?>
 <div class="wh-page">
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
@@ -104,11 +107,27 @@ $val = static fn(string $key, mixed $default = '') => (string) ($item[$key] ?? $
                         <label class="form-label" for="sort_order"><?= $isAr ? 'الترتيب' : 'Ordre' ?></label>
                         <input type="number" class="form-control" id="sort_order" name="sort_order" value="<?= e($val('sort_order', '0')) ?>" min="0">
                     </div>
-                    <div class="col-md-4 d-flex align-items-end">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="actif" id="actif" <?= (int) $val('actif', '1') === 1 ? 'checked' : '' ?>>
-                            <label class="form-check-label" for="actif"><?= $isAr ? 'نشط' : 'Actif' ?></label>
-                        </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="statut"><?= $isAr ? 'الحالة' : 'Statut' ?></label>
+                        <select class="form-select" id="statut" name="statut" required>
+                            <option value="brouillon" <?= $statut === 'brouillon' ? 'selected' : '' ?>><?= $isAr ? 'مسودة (غير منشور)' : 'Brouillon (non publié)' ?></option>
+                            <option value="publie" <?= $statut === 'publie' ? 'selected' : '' ?>><?= $isAr ? 'منشور (ظاهر على الموقع)' : 'Publié (visible sur le site)' ?></option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-8" id="evenementLinkRow" style="<?= $type === 'evenement' ? '' : 'display:none' ?>">
+                        <label class="form-label" for="evenement_id"><?= $isAr ? 'ربط بحدث موجود (اختياري)' : 'Lier à un événement existant (facultatif)' ?></label>
+                        <select class="form-select" id="evenement_id" name="evenement_id">
+                            <option value=""><?= $isAr ? '— كتابة حرة (بدون ربط) —' : '— Saisie libre (aucun lien) —' ?></option>
+                            <?php foreach ($evenements as $ev): ?>
+                                <option value="<?= (int) $ev['id'] ?>" <?= $evenementId === (int) $ev['id'] ? 'selected' : '' ?>>
+                                    <?= e(date('d/m/Y', strtotime((string) $ev['date_evenement']))) ?> — <?= e($ev['adresse']) ?> (<?= e($ev['commune_nom'] ?? '') ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <small class="text-muted"><?= $isAr ? 'عند الربط، يُعرض المحتوى التحريري (العنوان/الصورة/الوصف) بدلاً من الحدث المزدوج.' : 'Si lié, votre contenu éditorial (titre/image/description) remplace l\'événement dupliqué dans la grille.' ?></small>
                     </div>
                 </div>
 
@@ -122,3 +141,19 @@ $val = static fn(string $key, mixed $default = '') => (string) ($item[$key] ?? $
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    var typeSel = document.getElementById('type');
+    var linkRow = document.getElementById('evenementLinkRow');
+    function toggleLink() {
+        if (linkRow) {
+            linkRow.style.display = typeSel && typeSel.value === 'evenement' ? '' : 'none';
+        }
+    }
+    if (typeSel) {
+        typeSel.addEventListener('change', toggleLink);
+    }
+    toggleLink();
+})();
+</script>

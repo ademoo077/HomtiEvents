@@ -113,28 +113,11 @@ final class LandingService
 
         // Actualités & événements à venir (depuis landing_news)
         $news = Database::all(
-            'SELECT * FROM landing_news WHERE actif = 1 ORDER BY date_event DESC, sort_order ASC LIMIT 10'
+            'SELECT * FROM landing_news WHERE actif = 1 AND deleted_at IS NULL ORDER BY date_event DESC, sort_order ASC LIMIT 10'
         );
 
         // ── Thème couleur (dynamique depuis le CMS) ──
-        $theme = [
-            'name'              => settings('theme_name', 'vert'),
-            'primary'           => settings('theme_primary', '#16a34a'),
-            'primary_hover'     => settings('theme_primary_hover', '#15803d'),
-            'secondary'         => settings('theme_secondary', '#22c55e'),
-            'tertiary'          => settings('theme_tertiary', '#0ea5e9'),
-            'accent_glow'       => settings('theme_accent_glow', '#22c55e'),
-            'hero_gradient_1'   => settings('theme_hero_gradient_1', 'rgba(22,163,74,0.16)'),
-            'hero_gradient_2'   => settings('theme_hero_gradient_2', 'rgba(34,197,94,0.08)'),
-            'hero_gradient_3'   => settings('theme_hero_gradient_3', 'rgba(16,185,129,0.10)'),
-            'navbar_bg'         => settings('theme_navbar_bg', 'rgba(255,255,255,0.65)'),
-            'navbar_bg_scrolled' => settings('theme_navbar_bg_scrolled', 'rgba(255,255,255,0.85)'),
-            'footer_bg'         => settings('theme_footer_bg', '#ffffff'),
-            'footer_text'       => settings('theme_footer_text', '#475569'),
-            'border_radius'     => settings('theme_border_radius', '18px'),
-            'font_sans'         => settings('theme_font_sans', 'Inter, system-ui, -apple-system, sans-serif'),
-            'font_heading'      => settings('theme_font_heading', 'Inter, system-ui, -apple-system, sans-serif'),
-        ];
+        $theme = self::theme();
 
         return [
             'upcoming'         => $upcoming,
@@ -152,6 +135,33 @@ final class LandingService
             'lang'             => null,
             'lastUpdate'       => $currentTime,
             'theme'            => $theme,
+        ];
+    }
+
+    /**
+     * Thème couleur du CMS (réutilisé par les pages publiques sur le layout landing).
+     *
+     * @return array<string, string>
+     */
+    public static function theme(): array
+    {
+        return [
+            'name'              => settings('theme_name', 'vert'),
+            'primary'           => settings('theme_primary', '#16a34a'),
+            'primary_hover'     => settings('theme_primary_hover', '#15803d'),
+            'secondary'         => settings('theme_secondary', '#22c55e'),
+            'tertiary'          => settings('theme_tertiary', '#0ea5e9'),
+            'accent_glow'       => settings('theme_accent_glow', '#22c55e'),
+            'hero_gradient_1'   => settings('theme_hero_gradient_1', 'rgba(22,163,74,0.16)'),
+            'hero_gradient_2'   => settings('theme_hero_gradient_2', 'rgba(34,197,94,0.08)'),
+            'hero_gradient_3'   => settings('theme_hero_gradient_3', 'rgba(16,185,129,0.10)'),
+            'navbar_bg'         => settings('theme_navbar_bg', 'rgba(255,255,255,0.65)'),
+            'navbar_bg_scrolled' => settings('theme_navbar_bg_scrolled', 'rgba(255,255,255,0.85)'),
+            'footer_bg'         => settings('theme_footer_bg', '#ffffff'),
+            'footer_text'       => settings('theme_footer_text', '#475569'),
+            'border_radius'     => settings('theme_border_radius', '18px'),
+            'font_sans'         => settings('theme_font_sans', 'Inter, system-ui, -apple-system, sans-serif'),
+            'font_heading'      => settings('theme_font_heading', 'Inter, system-ui, -apple-system, sans-serif'),
         ];
     }
 }

@@ -5,15 +5,20 @@ $page  = 'admin.landing.news';
 use App\Helpers\I18n;
 $isAr = I18n::direction() === 'rtl';
 ?>
-<div class="wh-page">
+    <div class="wh-page">
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
         <div>
             <h1 class="wh-page-title"><?= $isAr ? 'الأخبار والأحداث القادمة' : 'Actualités & événements à venir' ?></h1>
             <p class="wh-page-sub"><?= count($items) ?> <?= $isAr ? 'عنصر' : 'éléments' ?></p>
         </div>
-        <a class="btn btn-primary" href="<?= url('admin/landing/news/create') ?>">
-            <i class="mdi mdi-plus me-1"></i><?= e(__('common.create')) ?>
-        </a>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-primary" href="<?= url('actualites') ?>" target="_blank">
+                <i class="mdi mdi-eye me-1"></i><?= $isAr ? 'رؤية على الموقع' : 'Voir sur le site' ?>
+            </a>
+            <a class="btn btn-primary" href="<?= url('admin/landing/news/create') ?>">
+                <i class="mdi mdi-plus me-1"></i><?= e(__('common.create')) ?>
+            </a>
+        </div>
     </div>
 
     <div class="card border-0 shadow-sm">
@@ -43,20 +48,26 @@ $isAr = I18n::direction() === 'rtl';
                             <?php if ($item['titre_ar']): ?>
                                 <small class="wh-text-muted"><?= e($item['titre_ar']) ?></small>
                             <?php endif; ?>
+                            <?php if ($item['evenement_id']): ?>
+                                <div><span class="wh-badge badge-blue"><i class="mdi mdi-link-variant me-1"></i><?= $isAr ? 'مرتبط بحدث #' . (int) $item['evenement_id'] : 'Événement lié #' . (int) $item['evenement_id'] ?></span></div>
+                            <?php endif; ?>
                         </td>
                         <td class="wh-text-muted">
                             <?= $item['date_event'] ? e(date('d/m/Y', strtotime((string) $item['date_event']))) : '-' ?>
                         </td>
                         <td class="wh-text-muted"><?= e($item['lieu'] ?? '-') ?></td>
                         <td>
-                            <?php if ((int) $item['actif'] === 1): ?>
-                                <span class="wh-badge badge-green"><?= $isAr ? 'نشط' : 'Actif' ?></span>
+                            <?php if ($item['statut'] === 'publie'): ?>
+                                <span class="wh-badge badge-green"><i class="mdi mdi-check-circle me-1"></i><?= $isAr ? 'منشور' : 'Publié' ?></span>
                             <?php else: ?>
-                                <span class="wh-badge badge-gray"><?= $isAr ? 'غير نشط' : 'Inactif' ?></span>
+                                <span class="wh-badge badge-amber"><i class="mdi mdi-pencil-outline me-1"></i><?= $isAr ? 'مسودة' : 'Brouillon' ?></span>
                             <?php endif; ?>
                         </td>
                         <td>
                             <div class="d-flex gap-1">
+                                <a class="btn btn-sm btn-outline-secondary" href="<?= url('actualites') ?>" target="_blank" title="<?= $isAr ? 'رؤية على الموقع' : 'Voir sur le site' ?>">
+                                    <i class="mdi mdi-eye"></i>
+                                </a>
                                 <a class="btn btn-sm btn-outline-primary" href="<?= url('admin/landing/news/' . $item['id'] . '/edit') ?>" title="<?= e(__('common.edit')) ?>">
                                     <i class="mdi mdi-pencil"></i>
                                 </a>

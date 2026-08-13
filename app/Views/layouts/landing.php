@@ -85,6 +85,7 @@ $appName = e(settings('app.name') ?: __('app.name'));
                         <i class="mdi mdi-chevron-down dropdown-arrow"></i>
                     </button>
                     <ul class="dropdown-menu" role="menu">
+                        <li role="none"><a class="dropdown-item" href="<?= url('actualites') ?>" role="menuitem"><?= e(__('landing.nav_actualites')) ?></a></li>
                         <li role="none"><a class="dropdown-item" href="#albums" role="menuitem"><?= e(__('landing.nav_albums')) ?></a></li>
                         <li role="none"><a class="dropdown-item" href="#galerie" role="menuitem"><?= e(__('landing.galerie')) ?></a></li>
                         <li role="none"><a class="dropdown-item" href="#before-after" role="menuitem"><?= e(__('landing.before_after')) ?></a></li>
@@ -177,7 +178,7 @@ $appName = e(settings('app.name') ?: __('app.name'));
                 <li><a href="#partenaires"><?= e(__('landing.nav_partenaires')) ?></a></li>
                 <li><a href="#carte"><?= e(__('landing.interventions')) ?></a></li>
                 <li><a href="#faq"><?= e(__('landing.nav_faq')) ?></a></li>
-                <li><a href="<?= url('evenements') ?>"><?= e(__('landing.actualites')) ?></a></li>
+                <li><a href="<?= url('actualites') ?>"><?= e(__('landing.actualites')) ?></a></li>
                 <li><a href="<?= url('classement') ?>"><?= e(__('common.leaderboard')) ?></a></li>
             </ul>
         </div>

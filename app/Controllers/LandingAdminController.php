@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Helpers\AuditLog;
 use App\Helpers\Database;
 use App\Helpers\I18n;
 use App\Helpers\LandingService;
@@ -613,7 +614,9 @@ final class LandingAdminController extends Controller
     {
         $this->requirePermission('landing.manage');
 
-        $items = Database::all('SELECT * FROM landing_news ORDER BY date_event DESC, sort_order ASC');
+        $items = Database::all(
+            'SELECT * FROM landing_news WHERE deleted_at IS NULL ORDER BY date_event DESC, sort_order ASC'
+        );
 
         $this->view('admin.landing.news', [
             'items'  => $items,
@@ -626,8 +629,9 @@ final class LandingAdminController extends Controller
         $this->requirePermission('landing.manage');
 
         $this->view('admin.landing.news_form', [
-            'item'   => null,
-            'errors' => $this->errors(),
+            'item'       => null,
+            'errors'     => $this->errors(),
+            'evenements' => $this->evenementsSelect(),
         ]);
     }
 
@@ -642,6 +646,7 @@ final class LandingAdminController extends Controller
             'titre_fr'   => 'required|string|max:255',
             'titre_ar'   => 'nullable|string|max:255',
             'type'       => 'required|in:actualite,evenement',
+            'statut'     => 'required|in:brouillon,publie',
             'date_event' => 'nullable|date',
             'lieu'       => 'nullable|string|max:255',
             'lieu_ar'    => 'nullable|string|max:255',
@@ -654,6 +659,8 @@ final class LandingAdminController extends Controller
             $this->backWithErrors($validator->errors(), $data);
         }
 
+        $evenementId = $this->validerEvenementLiaison($data);
+
         $image = trim((string) ($data['image'] ?? ''));
         if ($hasFile) {
             $uploadDir = config('paths.uploads.landing', public_path('uploads/landing'));
@@ -664,20 +671,12 @@ final class LandingAdminController extends Controller
             $image = $result['path'];
         }
 
-        Database::insert('landing_news', [
-            'titre_fr'       => trim((string) $data['titre_fr']),
-            'titre_ar'       => trim((string) ($data['titre_ar'] ?? '')) ?: null,
-            'description_fr' => trim((string) ($data['description_fr'] ?? '')) ?: null,
-            'description_ar' => trim((string) ($data['description_ar'] ?? '')) ?: null,
-            'image'          => $image ?: null,
-            'date_event'     => !empty($data['date_event']) ? $data['date_event'] : null,
-            'lieu'           => trim((string) ($data['lieu'] ?? '')) ?: null,
-            'lieu_ar'        => trim((string) ($data['lieu_ar'] ?? '')) ?: null,
-            'type'           => (string) $data['type'],
-            'url_externe'    => trim((string) ($data['url_externe'] ?? '')) ?: null,
-            'actif'          => isset($data['actif']) ? 1 : 0,
-            'sort_order'     => (int) ($data['sort_order'] ?? 0),
-        ]);
+        $statut = (string) $data['statut'] === 'publie' ? 'publie' : 'brouillon';
+        $nouvelles = $this->newsValeurs($data, $image, $statut, $evenementId);
+
+        $id = Database::insert('landing_news', $nouvelles);
+
+        AuditLog::log('actualite_created', 'landing_news', $id, null, $nouvelles);
 
         flash('success', 'Élément ajouté avec succès.');
         redirect('admin/landing/news');
@@ -693,8 +692,9 @@ final class LandingAdminController extends Controller
         }
 
         $this->view('admin.landing.news_form', [
-            'item'   => $item,
-            'errors' => $this->errors(),
+            'item'       => $item,
+            'errors'     => $this->errors(),
+            'evenements' => $this->evenementsSelect(),
         ]);
     }
 
@@ -714,6 +714,7 @@ final class LandingAdminController extends Controller
             'titre_fr'   => 'required|string|max:255',
             'titre_ar'   => 'nullable|string|max:255',
             'type'       => 'required|in:actualite,evenement',
+            'statut'     => 'required|in:brouillon,publie',
             'date_event' => 'nullable|date',
             'lieu'       => 'nullable|string|max:255',
             'lieu_ar'    => 'nullable|string|max:255',
@@ -725,6 +726,8 @@ final class LandingAdminController extends Controller
         if ($validator->fails()) {
             $this->backWithErrors($validator->errors(), $data);
         }
+
+        $evenementId = $this->validerEvenementLiaison($data, (int) $id);
 
         $image = trim((string) ($data['image'] ?? $item['image'] ?? ''));
         if ($hasFile) {
@@ -740,20 +743,13 @@ final class LandingAdminController extends Controller
             }
         }
 
-        Database::update('landing_news', [
-            'titre_fr'       => trim((string) $data['titre_fr']),
-            'titre_ar'       => trim((string) ($data['titre_ar'] ?? '')) ?: null,
-            'description_fr' => trim((string) ($data['description_fr'] ?? '')) ?: null,
-            'description_ar' => trim((string) ($data['description_ar'] ?? '')) ?: null,
-            'image'          => $image ?: null,
-            'date_event'     => !empty($data['date_event']) ? $data['date_event'] : null,
-            'lieu'           => trim((string) ($data['lieu'] ?? '')) ?: null,
-            'lieu_ar'        => trim((string) ($data['lieu_ar'] ?? '')) ?: null,
-            'type'           => (string) $data['type'],
-            'url_externe'    => trim((string) ($data['url_externe'] ?? '')) ?: null,
-            'actif'          => isset($data['actif']) ? 1 : 0,
-            'sort_order'     => (int) ($data['sort_order'] ?? 0),
-        ], 'id = ?', [(int) $id]);
+        $statut = (string) $data['statut'] === 'publie' ? 'publie' : 'brouillon';
+        $nouvelles = $this->newsValeurs($data, $image, $statut, $evenementId);
+        $anciennes = $this->newsValeurs($item, (string) ($item['image'] ?? ''), (string) ($item['statut'] ?? 'publie'), $item['evenement_id'] !== null ? (int) $item['evenement_id'] : null);
+
+        Database::update('landing_news', $nouvelles, 'id = ?', [(int) $id]);
+
+        AuditLog::log('actualite_updated', 'landing_news', (int) $id, $anciennes, $nouvelles);
 
         flash('success', 'Élément mis à jour.');
         redirect('admin/landing/news');
@@ -764,12 +760,93 @@ final class LandingAdminController extends Controller
         $this->requirePermission('landing.manage');
 
         $item = Database::one('SELECT * FROM landing_news WHERE id = ?', [(int) $id]);
-        if ($item !== null && !empty($item['image']) && str_starts_with((string) $item['image'], '/uploads/')) {
-            UploadHelper::delete((string) $item['image']);
+        if ($item !== null) {
+            $anciennes = $this->newsValeurs($item, (string) ($item['image'] ?? ''), (string) ($item['statut'] ?? 'publie'), $item['evenement_id'] !== null ? (int) $item['evenement_id'] : null);
+
+            // Suppression douce : l'élément disparaît du site public sans être détruit.
+            Database::update('landing_news', [
+                'deleted_at' => date('Y-m-d H:i:s'),
+                'actif'      => 0,
+                'statut'     => 'brouillon',
+            ], 'id = ?', [(int) $id]);
+
+            AuditLog::log('actualite_deleted', 'landing_news', (int) $id, $anciennes, null);
         }
 
-        Database::run('DELETE FROM landing_news WHERE id = ?', [(int) $id]);
         flash('success', 'Élément supprimé.');
         redirect('admin/landing/news');
+    }
+
+    /**
+     * Options du sélecteur « lier un événement structuré ».
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function evenementsSelect(): array
+    {
+        return Database::all(
+            "SELECT e.id, e.adresse, e.date_evenement, e.heure, c.nom AS commune_nom
+             FROM evenements e
+             LEFT JOIN commune c ON c.id = e.commune_id
+             WHERE e.statut IN ('PROGRAMME', 'QR_GENERE') AND e.deleted_at IS NULL AND e.date_evenement >= CURDATE()
+             ORDER BY e.date_evenement ASC, e.heure ASC
+             LIMIT 100"
+        );
+    }
+
+    /**
+     * Valide le champ evenement_id (facultatif, doit exister, type événement,
+     * et ne pas déjà être lié à un autre élément — contrainte UNIQUE).
+     */
+    private function validerEvenementLiaison(array $data, ?int $excludeId = null): ?int
+    {
+        if ((string) $data['type'] !== 'evenement') {
+            return null;
+        }
+
+        $evenementId = (int) ($data['evenement_id'] ?? 0);
+        if ($evenementId <= 0) {
+            return null;
+        }
+
+        $exists = Database::value('SELECT COUNT(*) FROM evenements WHERE id = ?', [$evenementId]);
+        if ((int) $exists !== 1) {
+            $this->backWithErrors(['evenement_id' => "L'événement lié est introuvable."], $data);
+        }
+
+        $dejaLie = Database::value(
+            'SELECT COUNT(*) FROM landing_news WHERE evenement_id = ? AND id <> ?',
+            [$evenementId, (int) $excludeId]
+        );
+        if ((int) $dejaLie > 0) {
+            $this->backWithErrors(['evenement_id' => 'Cet événement est déjà lié à un autre élément.'], $data);
+        }
+
+        return $evenementId;
+    }
+
+    /**
+     * Normalise une ligne landing_news en valeurs persistées.
+     *
+     * @return array<string, mixed>
+     */
+    private function newsValeurs(array $data, string $image, string $statut, ?int $evenementId): array
+    {
+        return [
+            'titre_fr'       => trim((string) $data['titre_fr']),
+            'titre_ar'       => trim((string) ($data['titre_ar'] ?? '')) ?: null,
+            'description_fr' => trim((string) ($data['description_fr'] ?? '')) ?: null,
+            'description_ar' => trim((string) ($data['description_ar'] ?? '')) ?: null,
+            'image'          => $image ?: null,
+            'date_event'     => !empty($data['date_event']) ? $data['date_event'] : null,
+            'lieu'           => trim((string) ($data['lieu'] ?? '')) ?: null,
+            'lieu_ar'        => trim((string) ($data['lieu_ar'] ?? '')) ?: null,
+            'type'           => (string) $data['type'],
+            'evenement_id'   => $evenementId,
+            'url_externe'    => trim((string) ($data['url_externe'] ?? '')) ?: null,
+            'actif'          => $statut === 'publie' ? 1 : 0,
+            'statut'         => $statut,
+            'sort_order'     => (int) ($data['sort_order'] ?? 0),
+        ];
     }
 }
