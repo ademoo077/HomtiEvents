@@ -41,6 +41,20 @@ final class ControlCenterController extends Controller
                 'evenements'       => (int) Database::value('SELECT COUNT(*) FROM evenements'),
                 'audit'            => AuditLog::count(),
             ],
+            'users'          => $this->allUsers(),
+            'roles'          => Database::all('SELECT * FROM roles ORDER BY niveau'),
+            'associationsList' => ControlCenter::allAssociations(),
+            'epics'          => ControlCenter::allEpics(),
+            'communes'       => ControlCenter::allCommunes(),
+            'settings'       => $this->settingsMap(),
+            'auditLogs'      => AuditLog::all('', 100),
+            'pendingContent' => Database::all(
+                "SELECT c.*, u.nom AS auteur_nom, u.prenom AS auteur_prenom
+                 FROM content c
+                 LEFT JOIN users u ON u.id = c.user_id
+                 WHERE c.statut = 'brouillon'
+                 ORDER BY c.created_at DESC LIMIT 50"
+            ),
         ], 'dashboard-futur');
     }
 
@@ -118,6 +132,122 @@ final class ControlCenterController extends Controller
         }
 
         json_response(['success' => true]);
+    }
+
+    public function associationCreate(): never
+    {
+        $this->requirePermission('control.associations');
+
+        $this->view('control.association-form', [
+            'mode'       => 'create',
+            'association' => null,
+            'errors'     => $this->errors(),
+        ], 'dashboard-futur');
+    }
+
+    public function associationStore(): never
+    {
+        $this->requirePermission('control.associations');
+
+        $data = input()->all();
+
+        $validator = Validator::make($data, [
+            'nom'       => 'required|string|max:100',
+            'email'     => 'required|email|unique:associations,email',
+            'telephone' => 'nullable|phone',
+            'wilaya'    => 'nullable|string|max:50',
+            'adresse'   => 'nullable|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            $this->backWithErrors($validator->errors(), $data);
+        }
+
+        Database::insert('associations', [
+            'nom'       => trim((string) ($data['nom'] ?? '')),
+            'email'     => mb_strtolower(trim((string) ($data['email'] ?? ''))),
+            'telephone' => trim((string) ($data['telephone'] ?? '')),
+            'wilaya'    => trim((string) ($data['wilaya'] ?? '')),
+            'adresse'   => trim((string) ($data['adresse'] ?? '')),
+            'valide'    => 0,
+        ]);
+
+        flash('success', 'Association créée avec succès.');
+        redirect('control?tab=associations');
+    }
+
+    public function associationEdit(string $id): never
+    {
+        $this->requirePermission('control.associations');
+
+        $association = Database::one('SELECT * FROM associations WHERE id = ?', [(int) $id]);
+        if ($association === null) {
+            abort(404, 'Association introuvable.');
+        }
+
+        $this->view('control.association-form', [
+            'mode'        => 'edit',
+            'association' => $association,
+            'errors'      => $this->errors(),
+        ], 'dashboard-futur');
+    }
+
+    public function associationUpdate(string $id): never
+    {
+        $this->requirePermission('control.associations');
+
+        $associationId = (int) $id;
+        $association   = Database::one('SELECT * FROM associations WHERE id = ?', [$associationId]);
+        if ($association === null) {
+            abort(404, 'Association introuvable.');
+        }
+
+        $data = input()->all();
+
+        $validator = Validator::make($data, [
+            'nom'       => 'required|string|max:100',
+            'email'     => 'required|email|unique:associations,email,' . $associationId,
+            'telephone' => 'nullable|phone',
+            'wilaya'    => 'nullable|string|max:50',
+            'adresse'   => 'nullable|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            $this->backWithErrors($validator->errors(), $data);
+        }
+
+        Database::run(
+            'UPDATE associations SET nom = ?, email = ?, telephone = ?, wilaya = ?, adresse = ? WHERE id = ?',
+            [
+                trim((string) ($data['nom'] ?? '')),
+                mb_strtolower(trim((string) ($data['email'] ?? ''))),
+                trim((string) ($data['telephone'] ?? '')),
+                trim((string) ($data['wilaya'] ?? '')),
+                trim((string) ($data['adresse'] ?? '')),
+                $associationId,
+            ]
+        );
+
+        flash('success', 'Association mise à jour.');
+        redirect('control?tab=associations');
+    }
+
+    public function associationDelete(string $id): never
+    {
+        $this->requirePermission('control.associations');
+
+        $associationId = (int) $id;
+        $association   = Database::one('SELECT * FROM associations WHERE id = ?', [$associationId]);
+        if ($association === null) {
+            abort(404, 'Association introuvable.');
+        }
+
+        Database::run('DELETE FROM associations WHERE id = ?', [$associationId]);
+
+        AuditLog::log('association.delete', 'association', $associationId, ['nom' => $association['nom'] ?? '']);
+
+        flash('success', 'Association supprimée.');
+        redirect('control?tab=associations');
     }
 
     // ── Moteur de règles métier ──────────────────────────────────────
@@ -325,6 +455,21 @@ public function contentPublish(): never
     ControlAction::validateContent($item['modele'], (int) $item['modele_id'], 'PUBLIE');
 
     json_response(['success' => true, 'message' => 'Contenu publié.']);
+}
+
+// ── Security ────────────────────────────────────────────────
+public function securityRevoke(): never
+{
+    $this->requirePermission('control.security');
+
+    $sessionId = (int) input('session_id');
+
+    Database::run('DELETE FROM sessions WHERE id = ?', [$sessionId]);
+
+    AuditLog::log('security.revoke', 'session', $sessionId);
+
+    flash('success', 'Session révoquée.');
+    redirect('control?tab=security');
 }
 
 // ── User Control ──────────────────────────────────────
@@ -597,7 +742,117 @@ public function epicValidate(): never
     json_response(['success' => true]);
 }
 
-// ── Helpers privés ───────────────────────────────────────────────
+public function epicCreate(): never
+{
+    $this->requirePermission('control.epic');
+
+    $this->view('control.epic-form', [
+        'mode' => 'create',
+        'epic' => null,
+        'errors' => $this->errors(),
+    ], 'dashboard-futur');
+}
+
+public function epicStore(): never
+{
+    $this->requirePermission('control.epic');
+
+    $data = input()->all();
+
+    $validator = Validator::make($data, [
+        'nom'        => 'required|string|max:100',
+        'wilaya'     => 'nullable|string|max:50',
+        'daira'      => 'nullable|string|max:50',
+        'description' => 'nullable|string|max:500',
+    ]);
+
+    if ($validator->fails()) {
+        $this->backWithErrors($validator->errors(), $data);
+    }
+
+    Database::insert('epic', [
+        'nom'        => trim((string) ($data['nom'] ?? '')),
+        'wilaya'     => trim((string) ($data['wilaya'] ?? '')),
+        'daira'      => trim((string) ($data['daira'] ?? '')),
+        'description' => trim((string) ($data['description'] ?? '')),
+        'actif'      => 1,
+    ]);
+
+    flash('success', 'EPIC créée avec succès.');
+    redirect('control?tab=epics');
+}
+
+public function epicEdit(string $id): never
+{
+    $this->requirePermission('control.epic');
+
+    $epic = Database::one('SELECT * FROM epic WHERE id = ?', [(int) $id]);
+    if ($epic === null) {
+        abort(404, 'EPIC introuvable.');
+    }
+
+    $this->view('control.epic-form', [
+        'mode'   => 'edit',
+        'epic'   => $epic,
+        'errors' => $this->errors(),
+    ], 'dashboard-futur');
+}
+
+public function epicUpdate(string $id): never
+{
+    $this->requirePermission('control.epic');
+
+    $epicId = (int) $id;
+    $epic   = Database::one('SELECT * FROM epic WHERE id = ?', [$epicId]);
+    if ($epic === null) {
+        abort(404, 'EPIC introuvable.');
+    }
+
+    $data = input()->all();
+
+    $validator = Validator::make($data, [
+        'nom'        => 'required|string|max:100',
+        'wilaya'     => 'nullable|string|max:50',
+        'daira'      => 'nullable|string|max:50',
+        'description' => 'nullable|string|max:500',
+    ]);
+
+    if ($validator->fails()) {
+        $this->backWithErrors($validator->errors(), $data);
+    }
+
+    Database::run(
+        'UPDATE epic SET nom = ?, wilaya = ?, daira = ?, description = ? WHERE id = ?',
+        [
+            trim((string) ($data['nom'] ?? '')),
+            trim((string) ($data['wilaya'] ?? '')),
+            trim((string) ($data['daira'] ?? '')),
+            trim((string) ($data['description'] ?? '')),
+            $epicId,
+        ]
+    );
+
+    flash('success', 'EPIC mise à jour.');
+    redirect('control?tab=epics');
+}
+
+public function epicDelete(string $id): never
+{
+    $this->requirePermission('control.epic');
+
+    $epicId = (int) $id;
+    $epic   = Database::one('SELECT * FROM epic WHERE id = ?', [$epicId]);
+    if ($epic === null) {
+        abort(404, 'EPIC introuvable.');
+    }
+
+    Database::run('DELETE FROM epic WHERE id = ?', [$epicId]);
+
+    AuditLog::log('epic.delete', 'epic', $epicId, ['nom' => $epic['nom'] ?? '']);
+
+    flash('success', 'EPIC supprimée.');
+    redirect('control?tab=epics');
+}
 
     /**
      * @return array<int,array<string,mixed>>
@@ -650,6 +905,177 @@ public function epicValidate(): never
     private function settingsGroupes(): array
     {
         return Database::all('SELECT DISTINCT groupe FROM system_settings ORDER BY groupe');
+    }
+
+    /**
+     * Retourne les paramètres en tant que tableau clé => valeur.
+     */
+    private function settingsMap(): array
+    {
+        $rows = Database::all('SELECT cle, valeur FROM system_settings');
+        $map  = [];
+        foreach ($rows as $r) {
+            $map[$r['cle']] = $r['valeur'];
+        }
+
+        return $map;
+    }
+
+    // ── Communes CRUD ─────────────────────────────────────────────────
+    public function communes(): never
+    {
+        $this->requirePermission('control.communes');
+
+        $q = trim((string) input('q', ''));
+        $where = '1=1';
+        $params = [];
+        if ($q !== '') {
+            $where .= ' AND (nom LIKE ? OR code_postal LIKE ? OR code_insee LIKE ?)';
+            $like = "%{$q}%";
+            $params = [$like, $like, $like];
+        }
+
+        $page = (int) input('page', 1);
+        $result = Database::paginate(
+            "SELECT * FROM commune WHERE {$where} ORDER BY nom",
+            $params,
+            25,
+            $page
+        );
+
+        $this->view('control.communes', [
+            'communes' => $result['items'],
+            'page'     => $result['page'],
+            'lastPage' => $result['last_page'],
+            'total'    => $result['total'],
+            'filters'  => ['q' => $q],
+        ], 'dashboard-futur');
+    }
+
+    public function communeCreate(): never
+    {
+        $this->requirePermission('control.communes');
+
+        $this->view('control.commune_form', [
+            'mode'  => 'create',
+            'commune' => null,
+            'errors' => $this->errors(),
+            'old' => $_SESSION['_old'] ?? [],
+        ], 'dashboard-futur');
+    }
+
+    public function communeStore(): never
+    {
+        $this->requirePermission('control.communes');
+
+        $data = all_input();
+        $validator = Validator::make($data, [
+            'nom'          => 'required|string|max:100',
+            'code_postal'  => 'required|string|max:10',
+            'code_insee'   => 'required|string|max:10|unique:commune,code_insee',
+            'latitude'     => 'nullable|numeric|between:-90,90',
+            'longitude'    => 'nullable|numeric|between:-180,180',
+        ], [
+            'nom.required'         => 'Le nom est obligatoire.',
+            'code_postal.required' => 'Le code postal est obligatoire.',
+            'code_insee.required'  => 'Le code INSEE est obligatoire.',
+            'code_insee.unique'    => 'Ce code INSEE existe déjà.',
+        ]);
+
+        if ($validator->fails()) {
+            $this->backWithErrors($validator->errors(), $data);
+        }
+
+        Database::insert('commune', [
+            'nom'          => trim($data['nom']),
+            'code_postal'  => trim($data['code_postal']),
+            'code_insee'   => trim($data['code_insee']),
+            'latitude'     => $data['latitude'] !== '' ? (float) $data['latitude'] : null,
+            'longitude'    => $data['longitude'] !== '' ? (float) $data['longitude'] : null,
+        ]);
+
+        AuditLog::log($this->user()['id'], 'commune_created', 'commune', (int) Database::lastInsertId(), ['nom' => $data['nom']]);
+        flash('success', 'Commune créée.');
+        redirect('control/communes');
+    }
+
+    public function communeEdit(string $id): never
+    {
+        $this->requirePermission('control.communes');
+
+        $commune = Database::one('SELECT * FROM commune WHERE id = ?', [(int) $id]);
+        if ($commune === null) {
+            abort(404, 'Commune introuvable.');
+        }
+
+        $this->view('control.commune_form', [
+            'mode'    => 'edit',
+            'commune' => $commune,
+            'errors'  => $this->errors(),
+            'old'     => $_SESSION['_old'] ?? [],
+        ], 'dashboard-futur');
+    }
+
+    public function communeUpdate(string $id): never
+    {
+        $this->requirePermission('control.communes');
+
+        $commune = Database::one('SELECT * FROM commune WHERE id = ?', [(int) $id]);
+        if ($commune === null) {
+            abort(404, 'Commune introuvable.');
+        }
+
+        $data = all_input();
+        $validator = Validator::make($data, [
+            'nom'          => 'required|string|max:100',
+            'code_postal'  => 'required|string|max:10',
+            'code_insee'   => 'required|string|max:10|unique:commune,code_insee,' . $id,
+            'latitude'     => 'nullable|numeric|between:-90,90',
+            'longitude'    => 'nullable|numeric|between:-180,180',
+        ], [
+            'nom.required'         => 'Le nom est obligatoire.',
+            'code_postal.required' => 'Le code postal est obligatoire.',
+            'code_insee.required'  => 'Le code INSEE est obligatoire.',
+            'code_insee.unique'    => 'Ce code INSEE existe déjà.',
+        ]);
+
+        if ($validator->fails()) {
+            $this->backWithErrors($validator->errors(), $data);
+        }
+
+        Database::update('commune', [
+            'nom'          => trim($data['nom']),
+            'code_postal'  => trim($data['code_postal']),
+            'code_insee'   => trim($data['code_insee']),
+            'latitude'     => $data['latitude'] !== '' ? (float) $data['latitude'] : null,
+            'longitude'    => $data['longitude'] !== '' ? (float) $data['longitude'] : null,
+        ], 'id = ?', [(int) $id]);
+
+        AuditLog::log($this->user()['id'], 'commune_updated', 'commune', (int) $id);
+        flash('success', 'Commune mise à jour.');
+        redirect('control/communes');
+    }
+
+    public function communeDelete(string $id): never
+    {
+        $this->requirePermission('control.communes');
+
+        $commune = Database::one('SELECT * FROM commune WHERE id = ?', [(int) $id]);
+        if ($commune === null) {
+            abort(404, 'Commune introuvable.');
+        }
+
+        // Vérifier s'il y a des événements liés
+        $hasEvents = Database::value('SELECT 1 FROM evenements WHERE commune_id = ?', [(int) $id]);
+        if ($hasEvents) {
+            flash('error', 'Impossible de supprimer : des événements sont liés à cette commune.');
+            redirect('control/communes');
+        }
+
+        Database::run('DELETE FROM commune WHERE id = ?', [(int) $id]);
+        AuditLog::log($this->user()['id'], 'commune_deleted', 'commune', (int) $id, ['nom' => $commune['nom']]);
+        flash('success', 'Commune supprimée.');
+        redirect('control/communes');
     }
 
     private function resetMotDePasse(int $userId): void

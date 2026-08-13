@@ -76,21 +76,66 @@
         if (noResult) noResult.style.display = visible === 0 ? '' : 'none';
     });
 
-    /* ── Confirmations de suppression / actions ────────────────── */
+    /* ── Confirmations de suppression / actions (modale) ───────── */
+    function confirmModal(message, onConfirm) {
+        var wrap = document.querySelector('.wh-confirm-modal');
+        if (!wrap) {
+            wrap = document.createElement('div');
+            wrap.className = 'modal fade wh-confirm-modal';
+            wrap.tabIndex = -1;
+            wrap.setAttribute('aria-hidden', 'true');
+            wrap.innerHTML =
+                '<div class="modal-dialog modal-dialog-centered">'
+                + '<div class="modal-content">'
+                + '<div class="modal-header">'
+                + '<h6 class="modal-title"><i class="mdi mdi-alert-outline me-1 text-danger"></i>'
+                + t('common.confirm_title', 'Confirmation') + '</h6>'
+                + '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + t('common.close', 'Fermer') + '"></button>'
+                + '</div>'
+                + '<div class="modal-body"></div>'
+                + '<div class="modal-footer">'
+                + '<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">' + t('common.cancel', 'Annuler') + '</button>'
+                + '<button type="button" class="btn btn-danger wh-confirm-ok"><i class="mdi mdi-check me-1"></i>'
+                + t('common.confirm', 'Confirmer') + '</button>'
+                + '</div>'
+                + '</div>'
+                + '</div>';
+            document.body.appendChild(wrap);
+        }
+        wrap.querySelector('.modal-body').textContent = message;
+        var ok = wrap.querySelector('.wh-confirm-ok');
+        var instance = bootstrap.Modal.getOrCreateInstance(wrap);
+        ok.onclick = function () {
+            instance.hide();
+            onConfirm();
+        };
+        instance.show();
+    }
+
     document.addEventListener('submit', function (e) {
         var form = e.target;
         if (!form.matches('[data-confirm]')) return;
+        e.preventDefault();
         var message = form.getAttribute('data-confirm')
             || t('common.confirm_delete', 'Confirmer cette action ?');
-        if (!window.confirm(message)) e.preventDefault();
+        confirmModal(message, function () { form.submit(); });
     });
 
     document.addEventListener('click', function (e) {
         var btn = e.target.closest('[data-confirm-click]');
         if (!btn) return;
+        e.preventDefault();
         var message = btn.getAttribute('data-confirm-click')
             || t('common.confirm_action', 'Confirmer cette action ?');
-        if (!window.confirm(message)) e.preventDefault();
+        confirmModal(message, function () {
+            if (btn.tagName === 'FORM') { btn.submit(); return; }
+            var form = btn.form;
+            if (form) {
+                var index = Array.prototype.indexOf.call(form.elements, btn);
+                form.submit();
+                if (index >= 0 && form.elements[index] === btn) btn.disabled = true;
+            }
+        });
     });
 
     /* ── Toast d'événements ────────────────────────────────────── */

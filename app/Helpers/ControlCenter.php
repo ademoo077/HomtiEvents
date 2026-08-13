@@ -290,6 +290,30 @@ final class ControlCenter
         }
     }
 
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    public static function allAssociations(): array
+    {
+        return Database::all('SELECT * FROM associations ORDER BY nom');
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    public static function allEpics(): array
+    {
+        return Database::all('SELECT * FROM epic ORDER BY nom');
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    public static function allCommunes(): array
+    {
+        return Database::all('SELECT * FROM communes ORDER BY wilaya, daira, nom');
+    }
+
     private static function warm(): void
     {
         if (self::$cache !== null) {

@@ -66,7 +66,7 @@ final class AuthController extends Controller
         $user = Database::one(
             'SELECT u.*, a.valide AS association_valide FROM users u
              LEFT JOIN associations a ON a.id = u.association_id
-             WHERE u.email = ? AND u.is_active = 1',
+             WHERE u.email = ? AND u.is_active = 1 AND u.deleted_at IS NULL',
             [mb_strtolower(trim((string) $data['email']))]
         );
 

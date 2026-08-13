@@ -361,4 +361,211 @@ final class AdministrationController extends Controller
         flash('success', 'Statut du compte mis à jour.');
         redirect('admin/citoyens/' . $id);
     }
+
+    // ──────────────────────── USERS (TOUS RÔLES) ─────────────────
+
+    public function users(): never
+    {
+        $q = trim((string) input('q', ''));
+        $role = (string) input('role', '');
+
+        $sql = 'SELECT u.id, u.nom, u.prenom, u.email, u.telephone, u.role_user, u.is_active, u.created_at,
+                       a.nom AS association_nom, e.nom AS epic_nom
+                FROM users u
+                LEFT JOIN associations a ON a.id = u.association_id
+                LEFT JOIN epic e ON e.id = u.epic_id
+                WHERE u.deleted_at IS NULL';
+        $params = [];
+
+        if ($q !== '') {
+            $sql .= ' AND (u.nom LIKE ? OR u.prenom LIKE ? OR u.email LIKE ?)';
+            $params[] = '%' . $q . '%';
+            $params[] = '%' . $q . '%';
+            $params[] = '%' . $q . '%';
+        }
+
+        if ($role !== '') {
+            $sql .= ' AND u.role_user = ?';
+            $params[] = $role;
+        }
+
+        $sql .= ' ORDER BY u.created_at DESC';
+
+        $result = Database::paginate($sql, $params, 15, (int) input('page', 1));
+
+        $this->view('admin.users.index', [
+            'users'    => $result['items'],
+            'q'        => $q,
+            'role'     => $role,
+            'page'     => $result['page'],
+            'lastPage' => $result['last_page'],
+            'total'    => $result['total'],
+            'errors'   => $this->errors(),
+        ]);
+    }
+
+    public function userShow(string $id): never
+    {
+        $user = Database::one(
+            'SELECT u.*, a.nom AS association_nom, e.nom AS epic_nom
+             FROM users u
+             LEFT JOIN associations a ON a.id = u.association_id
+             LEFT JOIN epic e ON e.id = u.epic_id
+             WHERE u.id = ?',
+            [(int) $id]
+        );
+        if ($user === null) {
+            abort(404, 'Utilisateur introuvable');
+        }
+
+        $participations = Database::all(
+            'SELECT e.id, e.adresse, e.date_evenement, e.statut, c.nom AS commune_nom, ep.heure_scan
+             FROM evenement_participant ep
+             JOIN evenements e ON e.id = ep.evenement_id
+             LEFT JOIN commune c ON c.id = e.commune_id
+             WHERE ep.user_id = ?
+             ORDER BY ep.heure_scan DESC LIMIT 20',
+            [(int) $id]
+        );
+
+        $this->view('admin.users.show', [
+            'user'           => $user,
+            'participations' => $participations,
+            'errors'         => $this->errors(),
+        ]);
+    }
+
+    public function userToggle(string $id): never
+    {
+        $user = Database::one('SELECT id, is_active, deleted_at FROM users WHERE id = ?', [(int) $id]);
+        if ($user === null) {
+            abort(404, 'Utilisateur introuvable');
+        }
+        if ($user['deleted_at'] !== null) {
+            flash('error', 'Ce compte est archivé : restaurez-le avant de modifier son statut.');
+            redirect('admin/users/' . $id);
+        }
+
+        $newStatus = (int) $user['is_active'] === 1 ? 0 : 1;
+        Database::update('users', ['is_active' => $newStatus], 'id = ?', [(int) $id]);
+
+        AuditLog::log('user_toggle', 'user', (int) $id, ['is_active' => (int) $user['is_active']], ['is_active' => $newStatus]);
+        flash('success', 'Statut du compte mis à jour.');
+        redirect('admin/users/' . $id);
+    }
+
+    public function userRole(string $id): never
+    {
+        $user = Database::one('SELECT id, role_user FROM users WHERE id = ?', [(int) $id]);
+        if ($user === null) {
+            abort(404, 'Utilisateur introuvable');
+        }
+
+        $newRole = (string) input('role');
+        $validRoles = ['citoyen', 'association', 'epic', 'wilaya'];
+        if (!in_array($newRole, $validRoles, true)) {
+            flash('error', 'Rôle invalide.');
+            redirect('admin/users/' . $id);
+        }
+
+        Database::update('users', ['role_user' => $newRole], 'id = ?', [(int) $id]);
+
+        AuditLog::log('user_role_change', 'user', (int) $id, ['role_user' => $user['role_user']], ['role_user' => $newRole]);
+        flash('success', 'Rôle mis à jour.');
+        redirect('admin/users/' . $id);
+    }
+
+    public function userDelete(string $id): never
+    {
+        $user = Database::one('SELECT id, nom, prenom, role_user, deleted_at FROM users WHERE id = ?', [(int) $id]);
+        if ($user === null) {
+            abort(404, 'Utilisateur introuvable');
+        }
+        if ($user['deleted_at'] !== null) {
+            flash('error', 'Ce compte est déjà archivé.');
+            redirect('admin/users/' . $id);
+        }
+
+        // Suppression logique : on archive le compte (l'historique —
+        // participations, évaluations, notifications — reste intègre).
+        Database::update('users', [
+            'deleted_at' => date('Y-m-d H:i:s'),
+            'is_active'  => 0,
+        ], 'id = ?', [(int) $id]);
+        Database::run('DELETE FROM sessions WHERE user_id = ?', [(int) $id]);
+
+        AuditLog::log('user_deleted', 'user', (int) $id, ['nom' => $user['nom'], 'prenom' => $user['prenom'], 'role_user' => $user['role_user'], 'soft' => true], null);
+        flash('success', 'Compte archivé (suppression logique).');
+        redirect('admin/users');
+    }
+
+    // ──────────────────────── PRÉSIDENTS ────────────────────────
+
+    public function presidents(): never
+    {
+        $q = trim((string) input('q', ''));
+
+        $sql = 'SELECT u.id, u.nom, u.prenom, u.email, u.telephone, u.is_active, u.created_at,
+                       a.id AS association_id, a.nom AS association_nom, a.valide AS association_valide
+                FROM users u
+                JOIN associations a ON a.id = u.association_id
+                WHERE u.role_user = ?';
+        $params = ['association'];
+
+        if ($q !== '') {
+            $sql .= ' AND (u.nom LIKE ? OR u.prenom LIKE ? OR u.email LIKE ? OR a.nom LIKE ?)';
+            $params[] = '%' . $q . '%';
+            $params[] = '%' . $q . '%';
+            $params[] = '%' . $q . '%';
+            $params[] = '%' . $q . '%';
+        }
+
+        $sql .= ' ORDER BY u.created_at DESC';
+
+        $result = Database::paginate($sql, $params, 15, (int) input('page', 1));
+
+        $this->view('admin.presidents.index', [
+            'presidents' => $result['items'],
+            'q'          => $q,
+            'page'       => $result['page'],
+            'lastPage'   => $result['last_page'],
+            'total'      => $result['total'],
+            'errors'     => $this->errors(),
+        ]);
+    }
+
+    public function presidentShow(string $id): never
+    {
+        $president = Database::one(
+            'SELECT u.*, a.nom AS association_nom, a.valide AS association_valide, a.email AS association_email
+             FROM users u
+             JOIN associations a ON a.id = u.association_id
+             WHERE u.id = ? AND u.role_user = ?',
+            [(int) $id, 'association']
+        );
+        if ($president === null) {
+            abort(404, 'Président introuvable');
+        }
+
+        $this->view('admin.users.show', [
+            'user'           => $president,
+            'participations' => [],
+            'errors'         => $this->errors(),
+        ]);
+    }
+
+    public function presidentToggle(string $id): never
+    {
+        $president = Database::one('SELECT id, is_active FROM users WHERE id = ? AND role_user = ?', [(int) $id, 'association']);
+        if ($president === null) {
+            abort(404, 'Président introuvable');
+        }
+
+        $newStatus = (int) $president['is_active'] === 1 ? 0 : 1;
+        Database::update('users', ['is_active' => $newStatus], 'id = ?', [(int) $id]);
+
+        AuditLog::log('president_toggle', 'user', (int) $id, ['is_active' => (int) $president['is_active']], ['is_active' => $newStatus]);
+        flash('success', 'Statut du président mis à jour.');
+        redirect('admin/presidents/' . $id);
+    }
 }
