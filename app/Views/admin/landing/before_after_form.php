@@ -37,10 +37,20 @@ $val = static function (string $k) use ($item): string {
                     <div class="col-md-6">
                         <label class="form-label" for="image_before">Image « avant » *</label>
                         <input type="text" class="form-control" id="image_before" name="image_before" value="<?= e($val('image_before')) ?>" required maxlength="255" placeholder="/assets/img/avant.jpg">
+                        <div class="mt-2 ba-thumb" id="thumb_before">
+                            <?php if ($val('image_before') !== ''): ?>
+                                <img src="<?= e(asset($val('image_before'))) ?>" alt="Avant" loading="lazy">
+                            <?php endif; ?>
+                        </div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="image_after">Image « après » *</label>
                         <input type="text" class="form-control" id="image_after" name="image_after" value="<?= e($val('image_after')) ?>" required maxlength="255" placeholder="/assets/img/apres.jpg">
+                        <div class="mt-2 ba-thumb" id="thumb_after">
+                            <?php if ($val('image_after') !== ''): ?>
+                                <img src="<?= e(asset($val('image_after'))) ?>" alt="Après" loading="lazy">
+                            <?php endif; ?>
+                        </div>
                     </div>
                     <div class="col-12">
                         <label class="form-label" for="description_fr">Description (FR)</label>
@@ -78,3 +88,47 @@ $val = static function (string $k) use ($item): string {
         </div>
     </form>
 </div>
+
+<style>
+.ba-thumb {
+    width: 100%;
+    height: 120px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8fafc;
+}
+.ba-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.ba-thumb:empty {
+    display: none;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    function bindThumb(inputId, thumbId) {
+        var input = document.getElementById(inputId);
+        var thumb = document.getElementById(thumbId);
+        if (!input || !thumb) return;
+        var render = function () {
+            var v = input.value.trim();
+            if (v === '') {
+                thumb.innerHTML = '';
+                return;
+            }
+            var abs = (v.charAt(0) === '/' || /^(https?:)?\/\//.test(v)) ? v : '/' + v;
+            thumb.innerHTML = '<img src="' + abs.replace(/"/g, '&quot;') + '" alt="" loading="lazy" onerror="this.parentElement.innerHTML=\'\'">';
+        };
+        input.addEventListener('input', render);
+    }
+    bindThumb('image_before', 'thumb_before');
+    bindThumb('image_after', 'thumb_after');
+});
+</script>

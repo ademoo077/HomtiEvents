@@ -251,5 +251,71 @@
 
     document.addEventListener('DOMContentLoaded', initAnomaliesCounters);
 
+    /* ── Validation progressive & scroll-to-error (Phase 5 §2) ─── */
+    function scrollToFirstInvalid(form) {
+        var invalid = form ? form.querySelector('.is-invalid, .form-error, .invalid-feedback, [aria-invalid="true"]') : null;
+        if (!invalid) return;
+        var field = invalid.closest('input, select, textarea') || invalid;
+        if (field && typeof field.focus === 'function') {
+            try { field.focus({ preventScroll: true }); } catch (e) { field.focus(); }
+        }
+        if (invalid.scrollIntoView) invalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Après une redirection avec erreurs serveur : scroll + focus sur le premier champ invalide.
+        document.querySelectorAll('form').forEach(function (form) {
+            if (form.querySelector('.is-invalid')) scrollToFirstInvalid(form);
+        });
+    });
+
+    document.addEventListener('submit', function (e) {
+        var form = e.target;
+        if (!form || form.tagName !== 'FORM' || form.noValidate) return;
+
+        var firstInvalid = form.querySelector(':invalid');
+        if (firstInvalid) {
+            e.preventDefault();
+            var control = firstInvalid.closest('.form-control, .form-select, input, select, textarea') || firstInvalid;
+            control.classList.add('is-invalid');
+            scrollToFirstInvalid(form);
+            return;
+        }
+
+        // Nettoyage des états d'erreur à la soumission valide.
+        form.querySelectorAll('.is-invalid').forEach(function (el) { el.classList.remove('is-invalid'); });
+    });
+
+    document.addEventListener('input', function (e) {
+        var field = e.target.closest('input, select, textarea');
+        if (!field) return;
+        field.classList.toggle('is-invalid', !field.checkValidity() && field.value !== '');
+    });
+
+    document.addEventListener('blur', function (e) {
+        var field = e.target.closest('input, select, textarea');
+        if (!field) return;
+        if (!field.checkValidity()) {
+            field.classList.add('is-invalid');
+            scrollToFirstInvalid(field.form);
+        } else {
+            field.classList.remove('is-invalid');
+        }
+    }, true);
+
+    /* ── Copie d'un champ (lien d'invitation, etc.) ───────────── */
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-copy]');
+        if (!btn) return;
+        var targetId = btn.getAttribute('data-copy-target');
+        var source = targetId ? document.getElementById(targetId) : btn.previousElementSibling;
+        if (!source) return;
+        try {
+            source.select();
+            document.execCommand('copy');
+            whToast(t('common.copied', 'Copié !'), 'success');
+        } catch (err) { /* silencieux */ }
+    });
+
     initTheme();
 })();

@@ -606,4 +606,170 @@ final class LandingAdminController extends Controller
         flash('success', 'Thème personnalisé enregistré.');
         redirect('admin/landing');
     }
+
+    // ── Actualités & événements à venir ──────────────────────────
+
+    public function news(): never
+    {
+        $this->requirePermission('landing.manage');
+
+        $items = Database::all('SELECT * FROM landing_news ORDER BY date_event DESC, sort_order ASC');
+
+        $this->view('admin.landing.news', [
+            'items'  => $items,
+            'errors' => $this->errors(),
+        ]);
+    }
+
+    public function newsCreate(): never
+    {
+        $this->requirePermission('landing.manage');
+
+        $this->view('admin.landing.news_form', [
+            'item'   => null,
+            'errors' => $this->errors(),
+        ]);
+    }
+
+    public function newsStore(): never
+    {
+        $this->requirePermission('landing.manage');
+
+        $data = all_input();
+        $hasFile = !empty($_FILES['image_file']['name']) && $_FILES['image_file']['error'] !== UPLOAD_ERR_NO_FILE;
+
+        $validator = Validator::make($data, [
+            'titre_fr'   => 'required|string|max:255',
+            'titre_ar'   => 'nullable|string|max:255',
+            'type'       => 'required|in:actualite,evenement',
+            'date_event' => 'nullable|date',
+            'lieu'       => 'nullable|string|max:255',
+            'lieu_ar'    => 'nullable|string|max:255',
+            'description_fr' => 'nullable|string',
+            'description_ar' => 'nullable|string',
+            'url_externe'    => 'nullable|url|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            $this->backWithErrors($validator->errors(), $data);
+        }
+
+        $image = trim((string) ($data['image'] ?? ''));
+        if ($hasFile) {
+            $uploadDir = config('paths.uploads.landing', public_path('uploads/landing'));
+            $result = UploadHelper::uploadImage($_FILES['image_file'], $uploadDir, (int) config('security.upload_max', 5242880));
+            if (!$result['success']) {
+                $this->backWithErrors(['image_file' => $result['error']], $data);
+            }
+            $image = $result['path'];
+        }
+
+        Database::insert('landing_news', [
+            'titre_fr'       => trim((string) $data['titre_fr']),
+            'titre_ar'       => trim((string) ($data['titre_ar'] ?? '')) ?: null,
+            'description_fr' => trim((string) ($data['description_fr'] ?? '')) ?: null,
+            'description_ar' => trim((string) ($data['description_ar'] ?? '')) ?: null,
+            'image'          => $image ?: null,
+            'date_event'     => !empty($data['date_event']) ? $data['date_event'] : null,
+            'lieu'           => trim((string) ($data['lieu'] ?? '')) ?: null,
+            'lieu_ar'        => trim((string) ($data['lieu_ar'] ?? '')) ?: null,
+            'type'           => (string) $data['type'],
+            'url_externe'    => trim((string) ($data['url_externe'] ?? '')) ?: null,
+            'actif'          => isset($data['actif']) ? 1 : 0,
+            'sort_order'     => (int) ($data['sort_order'] ?? 0),
+        ]);
+
+        flash('success', 'Élément ajouté avec succès.');
+        redirect('admin/landing/news');
+    }
+
+    public function newsEdit(string $id): never
+    {
+        $this->requirePermission('landing.manage');
+
+        $item = Database::one('SELECT * FROM landing_news WHERE id = ?', [(int) $id]);
+        if ($item === null) {
+            abort(404, 'Élément introuvable');
+        }
+
+        $this->view('admin.landing.news_form', [
+            'item'   => $item,
+            'errors' => $this->errors(),
+        ]);
+    }
+
+    public function newsUpdate(string $id): never
+    {
+        $this->requirePermission('landing.manage');
+
+        $item = Database::one('SELECT * FROM landing_news WHERE id = ?', [(int) $id]);
+        if ($item === null) {
+            abort(404, 'Élément introuvable');
+        }
+
+        $data = all_input();
+        $hasFile = !empty($_FILES['image_file']['name']) && $_FILES['image_file']['error'] !== UPLOAD_ERR_NO_FILE;
+
+        $validator = Validator::make($data, [
+            'titre_fr'   => 'required|string|max:255',
+            'titre_ar'   => 'nullable|string|max:255',
+            'type'       => 'required|in:actualite,evenement',
+            'date_event' => 'nullable|date',
+            'lieu'       => 'nullable|string|max:255',
+            'lieu_ar'    => 'nullable|string|max:255',
+            'description_fr' => 'nullable|string',
+            'description_ar' => 'nullable|string',
+            'url_externe'    => 'nullable|url|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            $this->backWithErrors($validator->errors(), $data);
+        }
+
+        $image = trim((string) ($data['image'] ?? $item['image'] ?? ''));
+        if ($hasFile) {
+            $uploadDir = config('paths.uploads.landing', public_path('uploads/landing'));
+            $result = UploadHelper::uploadImage($_FILES['image_file'], $uploadDir, (int) config('security.upload_max', 5242880));
+            if (!$result['success']) {
+                $this->backWithErrors(['image_file' => $result['error']], $data);
+            }
+            $image = $result['path'];
+            // Supprime l'ancien fichier
+            if (!empty($item['image']) && str_starts_with((string) $item['image'], '/uploads/')) {
+                UploadHelper::delete((string) $item['image']);
+            }
+        }
+
+        Database::update('landing_news', [
+            'titre_fr'       => trim((string) $data['titre_fr']),
+            'titre_ar'       => trim((string) ($data['titre_ar'] ?? '')) ?: null,
+            'description_fr' => trim((string) ($data['description_fr'] ?? '')) ?: null,
+            'description_ar' => trim((string) ($data['description_ar'] ?? '')) ?: null,
+            'image'          => $image ?: null,
+            'date_event'     => !empty($data['date_event']) ? $data['date_event'] : null,
+            'lieu'           => trim((string) ($data['lieu'] ?? '')) ?: null,
+            'lieu_ar'        => trim((string) ($data['lieu_ar'] ?? '')) ?: null,
+            'type'           => (string) $data['type'],
+            'url_externe'    => trim((string) ($data['url_externe'] ?? '')) ?: null,
+            'actif'          => isset($data['actif']) ? 1 : 0,
+            'sort_order'     => (int) ($data['sort_order'] ?? 0),
+        ], 'id = ?', [(int) $id]);
+
+        flash('success', 'Élément mis à jour.');
+        redirect('admin/landing/news');
+    }
+
+    public function newsDelete(string $id): never
+    {
+        $this->requirePermission('landing.manage');
+
+        $item = Database::one('SELECT * FROM landing_news WHERE id = ?', [(int) $id]);
+        if ($item !== null && !empty($item['image']) && str_starts_with((string) $item['image'], '/uploads/')) {
+            UploadHelper::delete((string) $item['image']);
+        }
+
+        Database::run('DELETE FROM landing_news WHERE id = ?', [(int) $id]);
+        flash('success', 'Élément supprimé.');
+        redirect('admin/landing/news');
+    }
 }

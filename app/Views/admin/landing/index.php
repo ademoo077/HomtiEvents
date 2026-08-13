@@ -108,6 +108,7 @@ if (! is_array($sectionsOrder)) {
             <li class="nav-item"><button type="button" class="nav-link" data-tab="partenaires"><i class="mdi mdi-handshake me-1"></i><?= e(__('landing.admin.partners')) ?></button></li>
             <li class="nav-item"><a class="nav-link" href="<?= url('admin/landing/gallery') ?>"><i class="mdi mdi-image-multiple me-1"></i><?= e(__('landing.admin.gallery')) ?></a></li>
             <li class="nav-item"><a class="nav-link" href="<?= url('admin/landing/before-after') ?>"><i class="mdi mdi-compare-horizontal me-1"></i><?= e(__('landing.admin.before_after')) ?></a></li>
+            <li class="nav-item"><a class="nav-link" href="<?= url('admin/landing/news') ?>"><i class="mdi mdi-newspaper me-1"></i><?= $isAr ? 'الأخبار والأحداث' : 'Actualités & événements' ?></a></li>
         </ul>
         <button type="button" class="btn btn-outline-primary btn-sm ms-auto" data-bs-toggle="modal" data-bs-target="#livePreviewModal">
             <i class="mdi mdi-eye-outline me-1"></i><?= e(__('landing.admin.preview_live')) ?>
