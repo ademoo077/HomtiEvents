@@ -15,7 +15,7 @@ $heroSub   = $pick((string) settings('hero_sous_titre_fr', ''), (string) setting
 $timelineEvents = settings('timeline_events', []);
 if (!is_array($timelineEvents)) $timelineEvents = [];
 
-// Fonction de sÃ©curitÃ© pour le badge association (si elle n'existe pas dÃ©jÃ )
+// Fonction de sécurité pour le badge association (si elle n'existe pas déjà)
 if (!function_exists('association_badge')) {
     function association_badge($assoc) {
         if (empty($assoc) || !is_array($assoc)) return '';
@@ -45,7 +45,7 @@ if (!function_exists('association_badge')) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7/css/materialdesignicons.min.css">
 
     <style>
-        /* â•â•â• THÃˆME CLAIR NATURE â•â•â• */
+        /* ═══ THÈME CLAIR NATURE ═══ */
         :root {
             --bg-primary: #fcf9f2;
             --bg-secondary: #f0f7f0;
@@ -116,7 +116,7 @@ if (!function_exists('association_badge')) {
         }
         .section-lead { font-size: 1.1rem; color: var(--text-secondary); }
 
-        /* â•â•â• HERO AVEC VIDÃ‰O â•â•â• */
+        /* ═══ HERO AVEC VIDÉO ═══ */
         .hero {
             position: relative; min-height: 100vh;
             display: flex; align-items: center; overflow: hidden;
@@ -314,7 +314,7 @@ if (!function_exists('association_badge')) {
         .service-ico { font-size:2.5rem; display:block; margin-bottom:0.5rem; color:var(--accent); }
         .chip-count { font-size:0.7rem; background:var(--accent-light); padding:0.2rem 0.8rem; border-radius:999px; color:var(--accent); }
 
-        /* â•â•â• ALBUMS AMÃ‰LIORÃ‰S â•â•â• */
+        /* ═══ ALBUMS AMÉLIORÉS ═══ */
         .album-filters-row {
             display:flex; flex-wrap:wrap; gap:0.5rem;
             margin-bottom:2rem; justify-content:center;
@@ -439,7 +439,7 @@ if (!function_exists('association_badge')) {
             color:var(--text-primary);
         }
 
-        /* Autres sections (inchangÃ©es) */
+        /* Autres sections (inchangées) */
         .testimonial .stars { color:#eab308; font-size:1.2rem; letter-spacing:2px; margin-bottom:0.5rem; }
         .testimonial-author { margin-top:0.5rem; font-size:0.9rem; color:var(--text-secondary); }
         .partners { display:flex; flex-wrap:wrap; gap:1.5rem; justify-content:center; }
@@ -457,7 +457,7 @@ if (!function_exists('association_badge')) {
         }
         .faq-item summary { font-weight:700; padding:0.75rem 0; cursor:pointer; list-style:none; display:flex; justify-content:space-between; }
         .faq-item summary::after { content:'+'; font-size:1.5rem; color:var(--accent); }
-        .faq-item[open] summary::after { content:'âˆ’'; }
+        .faq-item[open] summary::after { content:'−'; }
         .faq-item p { padding-bottom:1.2rem; color:var(--text-secondary); }
         .timeline {
             display:flex; flex-direction:column; gap:0;
@@ -601,13 +601,13 @@ if (!function_exists('association_badge')) {
 <body>
     <div class="landing" id="top">
 
-        <!-- â•â•â• HERO AVEC VIDÃ‰O DE NATURE â•â•â• -->
+        <!-- ═══ HERO AVEC VIDÉO DE NATURE ═══ -->
         <section class="hero" id="hero" aria-label="<?= e(__('landing.hero_badge')) ?>">
-            <!-- VidÃ©o de nature -->
+            <!-- Vidéo de nature -->
             <video class="hero-video" autoplay muted loop playsinline aria-hidden="true" preload="auto">
                 <source src="<?= e((string) settings('hero_video_url', asset('/assets/video/hero.mp4'))) ?>" type="video/mp4">
             </video>
-            <!-- DÃ©gradÃ© de secours -->
+            <!-- Dégradé de secours -->
             <div class="hero-video-fallback" aria-hidden="true"></div>
 
             <canvas id="aurora-canvas" class="hero-aurora" aria-hidden="true"></canvas>
@@ -618,11 +618,11 @@ if (!function_exists('association_badge')) {
             <div class="container hero-inner">
                 <div class="hero-content" data-reveal>
                     <span class="hero-badge">
-                        <i class="mdi mdi-leaf"></i> <?= $isAr ? 'Ù…Ù†ØµØ© Ø®Ø¶Ø±Ø§Ø¡' : 'Plateforme verte' ?>
+                        <i class="mdi mdi-leaf"></i> <?= $isAr ? 'منصة خضراء' : 'Plateforme verte' ?>
                     </span>
                     <h1 class="hero-title">
                         <?= e($heroTitre ?: __('app.name')) ?>
-                        <span class="hero-title-accent"><?= $isAr ? 'Ù…Ø¹Ø§Ù‹ Ù„Ø¨ÙŠØ¦Ø© Ø£ÙØ¶Ù„' : 'Ensemble pour une meilleure nature' ?></span>
+                        <span class="hero-title-accent"><?= $isAr ? 'معاً لبيئة أفضل' : 'Ensemble pour une meilleure nature' ?></span>
                     </h1>
                     <p class="hero-sub"><?= e($heroSub ?: __('app.tagline')) ?></p>
                     <div class="hero-actions">
@@ -631,8 +631,8 @@ if (!function_exists('association_badge')) {
                         <a class="btn btn-outline btn-lg" href="<?= url('auth/register-association') ?>"><i class="mdi mdi-domain"></i><?= e(__('associations.inscription')) ?></a>
                     </div>
                     <div class="hero-trust">
-                        <div class="trust-avatars"><span class="t-avatar">ðŸŒ±</span><span class="t-avatar">ðŸŒ¿</span><span class="t-avatar">ðŸŒ³</span><span class="t-avatar">+</span></div>
-                        <span><strong>+<?= (int) $totalParticipants ?></strong> <?= $isAr ? 'Ù…Ø´Ø§Ø±ÙƒØ© Ù…ÙˆØ§Ø·Ù†Ø©' : __('landing.citoyen_participations') ?></span>
+                        <div class="trust-avatars"><span class="t-avatar">🌱</span><span class="t-avatar">🌿</span><span class="t-avatar">🌳</span><span class="t-avatar">+</span></div>
+                        <span><strong>+<?= (int) $totalParticipants ?></strong> <?= $isAr ? 'مشاركة مواطنة' : __('landing.citoyen_participations') ?></span>
                     </div>
                 </div>
                 <div class="hero-visual" aria-hidden="true">
@@ -644,11 +644,11 @@ if (!function_exists('association_badge')) {
                                 <i class="mdi mdi-tree"></i>
                             </div>
                             <div class="illustration-particles">
-                                <span class="particle p1">ðŸŒ¿</span>
-                                <span class="particle p2">ðŸƒ</span>
-                                <span class="particle p3">ðŸŒ±</span>
-                                <span class="particle p4">ðŸ’š</span>
-                                <span class="particle p5">ðŸŒ³</span>
+                                <span class="particle p1">🌿</span>
+                                <span class="particle p2">🍃</span>
+                                <span class="particle p3">🌱</span>
+                                <span class="particle p4">💚</span>
+                                <span class="particle p5">🌳</span>
                             </div>
                         </div>
                     </div>
@@ -668,7 +668,7 @@ if (!function_exists('association_badge')) {
             </div>
         </section>
 
-        <!-- â•â•â• SECTIONS DYNAMIQUES â•â•â• -->
+        <!-- ═══ SECTIONS DYNAMIQUES ═══ -->
         <?php $idx = 0; ?>
         <?php foreach ($ordre as $section): ?>
             <?php if (! $visible((string) $section)) continue; ?>
@@ -678,25 +678,25 @@ if (!function_exists('association_badge')) {
                 <section class="section section-news<?= $alt ? ' bg-muted' : '' ?>" id="actualites">
                     <div class="container">
                         <div class="section-head" data-reveal>
-                            <span class="eyebrow"><i class="mdi mdi-newspaper-variant-outline"></i><?= $isAr ? 'Ø¢Ø®Ø± Ø§Ù„Ø£Ø®Ø¨Ø§Ø±' : 'ActualitÃ©s & Ã‰vÃ©nements' ?></span>
-                            <h2 class="section-title"><?= $isAr ? 'Ø§Ù„Ø£Ø®Ø¨Ø§Ø± ÙˆØ§Ù„Ø£Ø­Ø¯Ø§Ø« Ø§Ù„Ù‚Ø§Ø¯Ù…Ø©' : 'ActualitÃ©s & Ã©vÃ©nements Ã  venir' ?></h2>
-                            <p class="section-lead"><?= $isAr ? 'ØªØ§Ø¨Ø¹ Ø¢Ø®Ø± Ø§Ù„Ø£Ø®Ø¨Ø§Ø± ÙˆØ§Ù„ÙØ¹Ø§Ù„ÙŠØ§Øª Ø§Ù„Ù…Ø¨Ø±Ù…Ø¬Ø© Ø¹Ø¨Ø± Ø§Ù„ÙˆÙ„Ø§ÙŠØ©.' : 'Restez informÃ© des derniÃ¨res nouvelles et des prochaines activitÃ©s.' ?></p>
+                            <span class="eyebrow"><i class="mdi mdi-newspaper-variant-outline"></i><?= $isAr ? 'آخر الأخبار' : 'Actualités & Événements' ?></span>
+                            <h2 class="section-title"><?= $isAr ? 'الأخبار والأحداث القادمة' : 'Actualités & événements à venir' ?></h2>
+                            <p class="section-lead"><?= $isAr ? 'تابع آخر الأخبار والفعاليات المبرمجة عبر الولاية.' : 'Restez informé des dernières nouvelles et des prochaines activités.' ?></p>
                         </div>
 
                         <!-- Filtres -->
                         <div class="news-filters" data-reveal>
                             <button class="news-filter-btn active" data-filter="all">
-                                <i class="mdi mdi-apps"></i> <?= $isAr ? 'Ø§Ù„ÙƒÙ„' : 'Tout' ?>
+                                <i class="mdi mdi-apps"></i> <?= $isAr ? 'الكل' : 'Tout' ?>
                             </button>
                             <button class="news-filter-btn" data-filter="actualite">
-                                <i class="mdi mdi-newspaper"></i> <?= $isAr ? 'Ø£Ø®Ø¨Ø§Ø±' : 'ActualitÃ©s' ?>
+                                <i class="mdi mdi-newspaper"></i> <?= $isAr ? 'أخبار' : 'Actualités' ?>
                             </button>
                             <button class="news-filter-btn" data-filter="evenement">
-                                <i class="mdi mdi-calendar-star"></i> <?= $isAr ? 'Ø£Ø­Ø¯Ø§Ø«' : 'Ã‰vÃ©nements' ?>
+                                <i class="mdi mdi-calendar-star"></i> <?= $isAr ? 'أحداث' : 'Événements' ?>
                             </button>
                         </div>
 
-                        <!-- Grille actualitÃ©s/Ã©vÃ©nements -->
+                        <!-- Grille actualités/événements -->
                         <div class="news-grid" id="newsGrid">
                             <?php foreach ($news as $item): ?>
                                 <div class="news-card" data-type="<?= e($item['type']) ?>" data-reveal>
@@ -705,7 +705,7 @@ if (!function_exists('association_badge')) {
                                             <img src="<?= e(asset($item['image'])) ?>" alt="<?= e($item['titre_fr']) ?>" loading="lazy">
                                             <span class="news-type-badge <?= $item['type'] === 'evenement' ? 'type-event' : 'type-news' ?>">
                                                 <i class="mdi mdi-<?= $item['type'] === 'evenement' ? 'calendar-star' : 'newspaper' ?>"></i>
-                                                <?= $item['type'] === 'evenement' ? ($isAr ? 'Ø­Ø¯Ø«' : 'Ã‰vÃ©nement') : ($isAr ? 'Ø®Ø¨Ø±' : 'ActualitÃ©') ?>
+                                                <?= $item['type'] === 'evenement' ? ($isAr ? 'حدث' : 'Événement') : ($isAr ? 'خبر' : 'Actualité') ?>
                                             </span>
                                         </div>
                                     <?php else: ?>
@@ -713,7 +713,7 @@ if (!function_exists('association_badge')) {
                                             <i class="mdi mdi-<?= $item['type'] === 'evenement' ? 'calendar-star' : 'newspaper' ?>"></i>
                                             <span class="news-type-badge <?= $item['type'] === 'evenement' ? 'type-event' : 'type-news' ?>">
                                                 <i class="mdi mdi-<?= $item['type'] === 'evenement' ? 'calendar-star' : 'newspaper' ?>"></i>
-                                                <?= $item['type'] === 'evenement' ? ($isAr ? 'Ø­Ø¯Ø«' : 'Ã‰vÃ©nement') : ($isAr ? 'Ø®Ø¨Ø±' : 'ActualitÃ©') ?>
+                                                <?= $item['type'] === 'evenement' ? ($isAr ? 'حدث' : 'Événement') : ($isAr ? 'خبر' : 'Actualité') ?>
                                             </span>
                                         </div>
                                     <?php endif; ?>
@@ -740,13 +740,13 @@ if (!function_exists('association_badge')) {
 
                                         <?php if ($item['description_fr']): ?>
                                             <p class="news-card-desc">
-                                                <?= e(mb_strimwidth((string) ($isAr ? ($item['description_ar'] ?: $item['description_fr']) : $item['description_fr']), 0, 120, 'â€¦')) ?>
+                                                <?= e(mb_strimwidth((string) ($isAr ? ($item['description_ar'] ?: $item['description_fr']) : $item['description_fr']), 0, 120, '…')) ?>
                                             </p>
                                         <?php endif; ?>
 
                                         <?php if ($item['url_externe']): ?>
                                             <a href="<?= e($item['url_externe']) ?>" target="_blank" rel="noopener" class="news-card-link">
-                                                <?= $isAr ? 'Ø§Ù„Ù…Ø²ÙŠØ¯' : 'En savoir plus' ?>
+                                                <?= $isAr ? 'المزيد' : 'En savoir plus' ?>
                                                 <i class="mdi mdi-arrow-right"></i>
                                             </a>
                                         <?php endif; ?>
@@ -757,17 +757,17 @@ if (!function_exists('association_badge')) {
                             <?php if (empty($news)): ?>
                                 <div class="news-empty">
                                     <i class="mdi mdi-newspaper-variant-outline"></i>
-                                    <p><?= $isAr ? 'Ù„Ø§ Ø£Ø®Ø¨Ø§Ø± Ø­Ø§Ù„ÙŠØ§Ù‹.' : 'Aucune actualitÃ© pour le moment.' ?></p>
+                                    <p><?= $isAr ? 'لا أخبار حالياً.' : 'Aucune actualité pour le moment.' ?></p>
                                 </div>
                             <?php endif; ?>
                         </div>
 
-                        <!-- Ã‰vÃ©nements Ã  venir (depuis la table evenements) -->
+                        <!-- Événements à venir (depuis la table evenements) -->
                         <?php if (!empty($upcoming)): ?>
                         <div class="upcoming-section" data-reveal>
                             <h3 class="upcoming-title">
                                 <i class="mdi mdi-calendar-clock"></i>
-                                <?= $isAr ? 'ÙØ¹Ø§Ù„ÙŠØ§Øª Ù‚Ø§Ø¯Ù…Ø©' : 'Prochains Ã©vÃ©nements' ?>
+                                <?= $isAr ? 'فعاليات قادمة' : 'Prochains événements' ?>
                             </h3>
                             <div class="upcoming-grid">
                                 <?php foreach ($upcoming as $ev): ?>
@@ -799,13 +799,13 @@ if (!function_exists('association_badge')) {
                             <div style="width:200px;height:200px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#0d9488);display:grid;place-items:center;font-size:5rem;color:#fff"><i class="mdi mdi-tree"></i></div>
                         </div>
                         <div class="about-text" data-reveal data-reveal-delay="120">
-                            <span class="eyebrow"><i class="mdi mdi-information-outline"></i><?= $isAr ? 'Ù…Ù† Ù†Ø­Ù†' : 'Qui sommes-nous' ?></span>
+                            <span class="eyebrow"><i class="mdi mdi-information-outline"></i><?= $isAr ? 'من نحن' : 'Qui sommes-nous' ?></span>
                             <h2 class="section-title left" style="text-align:left"><?= e($pick(settings('titre_apropos_fr',''), settings('titre_apropos_ar',''))) ?></h2>
                             <p class="apropos-text"><?= e($pick(settings('texte_apropos_fr',''), settings('texte_apropos_ar',''))) ?></p>
                             <ul class="about-points" style="list-style:none;margin-top:1rem">
-                                <li><i class="mdi mdi-check-circle-outline" style="color:var(--accent)"></i> <?= $isAr ? 'Ø´Ø±Ø§ÙƒØ© Ù…ÙˆØ§Ø·Ù†Ø© Ø­Ù‚ÙŠÙ‚ÙŠØ©' : 'Partenariat citoyen authentique' ?></li>
-                                <li><i class="mdi mdi-check-circle-outline" style="color:var(--accent)"></i> <?= $isAr ? 'Ø´ÙØ§ÙÙŠØ© ÙÙŠ ÙƒÙ„ Ù…Ø±Ø­Ù„Ø©' : 'Transparence Ã  chaque Ã©tape' ?></li>
-                                <li><i class="mdi mdi-check-circle-outline" style="color:var(--accent)"></i> <?= $isAr ? 'Ø®Ø¯Ù…Ø© Ø¹Ù…ÙˆÙ…ÙŠØ© Ù…ØªØ¬Ø¯Ø¯Ø©' : 'Un service public qui se modernise' ?></li>
+                                <li><i class="mdi mdi-check-circle-outline" style="color:var(--accent)"></i> <?= $isAr ? 'شراكة مواطنة حقيقية' : 'Partenariat citoyen authentique' ?></li>
+                                <li><i class="mdi mdi-check-circle-outline" style="color:var(--accent)"></i> <?= $isAr ? 'شفافية في كل مرحلة' : 'Transparence à chaque étape' ?></li>
+                                <li><i class="mdi mdi-check-circle-outline" style="color:var(--accent)"></i> <?= $isAr ? 'خدمة عمومية متجددة' : 'Un service public qui se modernise' ?></li>
                             </ul>
                         </div>
                     </div>
@@ -816,9 +816,9 @@ if (!function_exists('association_badge')) {
                 <section class="section section-how<?= $alt ? ' bg-muted' : '' ?>" id="fonctionnement">
                     <div class="container">
                         <div class="section-head" data-reveal>
-                            <span class="eyebrow"><i class="mdi mdi-cog-outline"></i><?= $isAr ? 'Ø·Ø±ÙŠÙ‚Ø© Ø§Ù„Ø¹Ù…Ù„' : 'Le processus' ?></span>
+                            <span class="eyebrow"><i class="mdi mdi-cog-outline"></i><?= $isAr ? 'طريقة العمل' : 'Le processus' ?></span>
                             <h2 class="section-title"><?= e($pick(settings('titre_fonctionnement_fr',''), settings('titre_fonctionnement_ar',''))) ?></h2>
-                            <p class="section-lead"><?= $isAr ? 'Ù…Ù† Ø§Ù„Ø¥Ø¨Ù„Ø§Øº Ø¥Ù„Ù‰ Ø§Ù„Ø¥Ù†Ø¬Ø§Ø²ØŒ Ù…Ø³Ø§Ø± ÙˆØ§Ø¶Ø­ ÙˆÙ…Ø¨Ø³Ø·.' : 'Du signalement Ã  la rÃ©alisation, un parcours clair et simplifiÃ©.' ?></p>
+                            <p class="section-lead"><?= $isAr ? 'من الإبلاغ إلى الإنجاز، مسار واضح ومبسط.' : 'Du signalement à la réalisation, un parcours clair et simplifié.' ?></p>
                         </div>
                         <div class="steps" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:2rem">
                             <?php foreach($etapes as $i=>$etape): ?>
@@ -838,7 +838,7 @@ if (!function_exists('association_badge')) {
                 <section class="section section-services<?= $alt ? ' bg-muted' : '' ?>" id="anomalies">
                     <div class="container">
                         <div class="section-head" data-reveal>
-                            <span class="eyebrow"><i class="mdi mdi-tools"></i><?= $isAr ? 'Ø®Ø¯Ù…Ø§Øª Ø§Ù„ÙˆÙ„Ø§ÙŠØ©' : 'Nos services' ?></span>
+                            <span class="eyebrow"><i class="mdi mdi-tools"></i><?= $isAr ? 'خدمات الولاية' : 'Nos services' ?></span>
                             <h2 class="section-title"><?= e(__('landing.anomalies')) ?></h2>
                             <p class="section-lead"><?= e(__('landing.anomalies_sub')) ?></p>
                         </div>
@@ -859,12 +859,12 @@ if (!function_exists('association_badge')) {
                 <section class="section section-albums<?= $alt ? ' bg-muted' : '' ?>" id="albums">
                     <div class="container">
                         <div class="section-head" data-reveal>
-                            <span class="eyebrow"><i class="mdi mdi-camera-iris"></i><?= $isAr ? 'Ø°Ø§ÙƒØ±Ø© Ø§Ù„Ø£Ø­Ø¯Ø§Ø«' : 'La mÃ©moire des Ã©vÃ©nements' ?></span>
+                            <span class="eyebrow"><i class="mdi mdi-camera-iris"></i><?= $isAr ? 'ذاكرة الأحداث' : 'La mémoire des événements' ?></span>
                             <h2 class="section-title"><?= e(__('landing.albums')) ?></h2>
                             <p class="section-lead"><?= e(__('landing.albums_sub')) ?></p>
                         </div>
                         <div class="album-filters-row" data-reveal data-reveal-delay="100">
-                            <button type="button" class="filter-btn active" data-filter="all"><?= $isAr ? 'Ø§Ù„ÙƒÙ„' : 'Tous' ?></button>
+                            <button type="button" class="filter-btn active" data-filter="all"><?= $isAr ? 'الكل' : 'Tous' ?></button>
                             <?php foreach($anomalies as $an): ?>
                                 <button type="button" class="filter-btn" data-filter="anomaly-<?= (int)$an['id'] ?>"><?= e($an['icone']) ? e($an['icone']).' ' : '' ?><?= e($an['nom']) ?></button>
                             <?php endforeach; ?>
@@ -901,14 +901,14 @@ if (!function_exists('association_badge')) {
                                                 <span class="album-date"><?= isset($al['date_evenement']) ? e(date('d/m/Y', strtotime((string)$al['date_evenement']))) : '' ?></span>
                                             </p>
                                             <?php if(!empty($al['recit'])): ?>
-                                                <blockquote class="album-recit">"<?= e(mb_substr((string)$al['recit'],0,120)) ?>â€¦"</blockquote>
+                                                <blockquote class="album-recit">"<?= e(mb_substr((string)$al['recit'],0,120)) ?>…"</blockquote>
                                             <?php endif; ?>
                                             <span class="album-voir"><?= e(__('landing.albums_voir')) ?> <i class="mdi mdi-arrow-right"></i></span>
                                         </div>
                                     </article>
                                 <?php endforeach; ?>
                             <?php else: ?>
-                                <div class="albums-placeholder"><i class="mdi mdi-camera mdi-48px"></i><p><?= $isAr ? 'Ù„Ø§ ØªÙˆØ¬Ø¯ Ø£Ù„Ø¨ÙˆÙ…Ø§Øª Ø­Ø§Ù„ÙŠØ§Ù‹.' : 'Aucun album disponible.' ?></p></div>
+                                <div class="albums-placeholder"><i class="mdi mdi-camera mdi-48px"></i><p><?= $isAr ? 'لا توجد ألبومات حالياً.' : 'Aucun album disponible.' ?></p></div>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -918,16 +918,16 @@ if (!function_exists('association_badge')) {
                 <div class="wh-lightbox" id="albumLightbox" role="dialog" aria-modal="true" aria-hidden="true">
                     <div class="wh-lightbox-backdrop" data-lb-close></div>
                     <div class="wh-lightbox-panel">
-                        <button class="wh-lightbox-close" type="button" data-lb-close aria-label="<?= $isAr ? 'Ø¥ØºÙ„Ø§Ù‚' : 'Fermer' ?>"><i class="mdi mdi-close"></i></button>
+                        <button class="wh-lightbox-close" type="button" data-lb-close aria-label="<?= $isAr ? 'إغلاق' : 'Fermer' ?>"><i class="mdi mdi-close"></i></button>
                         <div class="wh-lightbox-stage">
-                            <button class="wh-lightbox-nav prev" type="button" data-lb-prev aria-label="PrÃ©cÃ©dent"><i class="mdi mdi-chevron-left"></i></button>
+                            <button class="wh-lightbox-nav prev" type="button" data-lb-prev aria-label="Précédent"><i class="mdi mdi-chevron-left"></i></button>
                             <img class="wh-lightbox-img" id="lightboxImg" src="" alt="" draggable="false">
                             <button class="wh-lightbox-nav next" type="button" data-lb-next aria-label="Suivant"><i class="mdi mdi-chevron-right"></i></button>
                             <span class="wh-lightbox-counter" id="lightboxCounter"></span>
                             <p class="wh-lightbox-caption" id="lightboxCaption"></p>
                         </div>
                         <div class="wh-lightbox-narrative">
-                            <h4><i class="mdi mdi-format-quote-open"></i><?= $isAr ? 'Ø§Ù„Ù‚ØµØ© Ø§Ù„Ø±Ø³Ù…ÙŠØ©' : 'RÃ©cit officiel' ?></h4>
+                            <h4><i class="mdi mdi-format-quote-open"></i><?= $isAr ? 'القصة الرسمية' : 'Récit officiel' ?></h4>
                             <p id="lightboxNarrativeText"></p>
                         </div>
                     </div>
@@ -937,18 +937,18 @@ if (!function_exists('association_badge')) {
                 <section class="section section-testimonials<?= $alt ? ' bg-muted' : '' ?>" id="temoignages">
                     <div class="container">
                         <div class="section-head" data-reveal>
-                            <span class="eyebrow"><i class="mdi mdi-comment-quote-outline"></i><?= $isAr ? 'Ø¢Ø±Ø§Ø¡ Ø§Ù„Ù…ÙˆØ§Ø·Ù†ÙŠÙ†' : 'La voix citoyenne' ?></span>
+                            <span class="eyebrow"><i class="mdi mdi-comment-quote-outline"></i><?= $isAr ? 'آراء المواطنين' : 'La voix citoyenne' ?></span>
                             <h2 class="section-title"><?= e(__('landing.temoignages')) ?></h2>
                         </div>
                         <div class="cards-grid">
                             <?php foreach($testimonials as $t): ?>
                                 <div class="card testimonial" data-reveal>
-                                    <div class="stars"><?= str_repeat('â˜…', (int)$t['note']) ?><?= str_repeat('â˜†', 5-(int)$t['note']) ?></div>
+                                    <div class="stars"><?= str_repeat('★', (int)$t['note']) ?><?= str_repeat('☆', 5-(int)$t['note']) ?></div>
                                     <p><?= nl2br(e($pick($t['texte_fr']??'', $t['texte_ar']??''))) ?></p>
-                                    <div class="testimonial-author">â€” <?= e($t['auteur']) ?><?= !empty($t['role']) ? ' Â· '.e($t['role']) : '' ?></div>
+                                    <div class="testimonial-author">— <?= e($t['auteur']) ?><?= !empty($t['role']) ? ' · '.e($t['role']) : '' ?></div>
                                 </div>
                             <?php endforeach; ?>
-                            <?php if(empty($testimonials)): ?><div class="card empty"><?= $isAr ? 'Ù„Ø§ ØªÙˆØ¬Ø¯ Ø´Ù‡Ø§Ø¯Ø§Øª Ø­Ø§Ù„ÙŠØ§Ù‹.' : 'Aucun tÃ©moignage pour le moment.' ?></div><?php endif; ?>
+                            <?php if(empty($testimonials)): ?><div class="card empty"><?= $isAr ? 'لا توجد شهادات حالياً.' : 'Aucun témoignage pour le moment.' ?></div><?php endif; ?>
                         </div>
                     </div>
                 </section>
@@ -957,14 +957,14 @@ if (!function_exists('association_badge')) {
                 <section class="section section-partners<?= $alt ? ' bg-muted' : '' ?>" id="partenaires">
                     <div class="container">
                         <div class="section-head" data-reveal>
-                            <span class="eyebrow"><i class="mdi mdi-handshake-outline"></i><?= $isAr ? 'Ù…Ø¹Ù‹Ø§ Ù†Ù†Ø¬Ø²' : 'Ensemble, on agit' ?></span>
+                            <span class="eyebrow"><i class="mdi mdi-handshake-outline"></i><?= $isAr ? 'معًا ننجز' : 'Ensemble, on agit' ?></span>
                             <h2 class="section-title"><?= e(__('landing.partenaires')) ?></h2>
                         </div>
                         <div class="partners">
                             <?php foreach($partners as $p): ?>
                                 <a class="partner-card" href="<?= e($p['url']??'#') ?>" target="_blank" rel="noopener" data-reveal><i class="mdi mdi-domain"></i><span><?= e($p['nom']) ?></span></a>
                             <?php endforeach; ?>
-                            <?php if(empty($partners)): ?><div class="card empty"><?= $isAr ? 'Ù„Ø§ ÙŠÙˆØ¬Ø¯ Ø´Ø±ÙƒØ§Ø¡ Ø­Ø§Ù„ÙŠØ§Ù‹.' : 'Aucun partenaire pour le moment.' ?></div><?php endif; ?>
+                            <?php if(empty($partners)): ?><div class="card empty"><?= $isAr ? 'لا يوجد شركاء حالياً.' : 'Aucun partenaire pour le moment.' ?></div><?php endif; ?>
                         </div>
                     </div>
                 </section>
@@ -973,7 +973,7 @@ if (!function_exists('association_badge')) {
                 <section class="section section-faq<?= $alt ? ' bg-muted' : '' ?>" id="faq">
                     <div class="container">
                         <div class="section-head" data-reveal>
-                            <span class="eyebrow"><i class="mdi mdi-help-circle-outline"></i><?= $isAr ? 'Ø§Ø³ØªÙØ³Ø§Ø±Ø§ØªÙƒÙ…' : 'Vos questions' ?></span>
+                            <span class="eyebrow"><i class="mdi mdi-help-circle-outline"></i><?= $isAr ? 'استفساراتكم' : 'Vos questions' ?></span>
                             <h2 class="section-title"><?= e(__('landing.faq')) ?></h2>
                         </div>
                         <div class="faq">
@@ -983,7 +983,7 @@ if (!function_exists('association_badge')) {
                                     <p><?= nl2br(e($pick($f['reponse_fr']??'', $f['reponse_ar']??''))) ?></p>
                                 </details>
                             <?php endforeach; ?>
-                            <?php if(empty($faq)): ?><p class="text-muted text-center"><?= $isAr ? 'Ù„Ø§ ØªÙˆØ¬Ø¯ Ø£Ø³Ø¦Ù„Ø© Ø´Ø§Ø¦Ø¹Ø© Ø­Ø§Ù„ÙŠØ§Ù‹.' : 'Aucune question frÃ©quente pour le moment.' ?></p><?php endif; ?>
+                            <?php if(empty($faq)): ?><p class="text-muted text-center"><?= $isAr ? 'لا توجد أسئلة شائعة حالياً.' : 'Aucune question fréquente pour le moment.' ?></p><?php endif; ?>
                         </div>
                     </div>
                 </section>
@@ -993,9 +993,9 @@ if (!function_exists('association_badge')) {
                 <section class="section section-timeline<?= $alt ? ' bg-muted' : '' ?>" id="timeline">
                     <div class="container">
                         <div class="section-head" data-reveal>
-                            <span class="eyebrow"><i class="mdi mdi-timeline-outline"></i><?= $isAr ? 'Ù…Ø³ÙŠØ±ØªÙ†Ø§' : 'Notre parcours' ?></span>
-                            <h2 class="section-title"><?= $isAr ? 'Ù…Ø­Ø·Ø§Øª Ø¨Ø§Ø±Ø²Ø©' : 'Ã‰tapes marquantes' ?></h2>
-                            <p class="section-lead"><?= $isAr ? 'Ø£Ø¨Ø±Ø² Ø§Ù„Ù…Ø­Ø·Ø§Øª ÙÙŠ Ù…Ø³ÙŠØ±Ø© Ø§Ù„ÙˆÙ„Ø§ÙŠØ©.' : 'Les moments clÃ©s de la wilaya.' ?></p>
+                            <span class="eyebrow"><i class="mdi mdi-timeline-outline"></i><?= $isAr ? 'مسيرتنا' : 'Notre parcours' ?></span>
+                            <h2 class="section-title"><?= $isAr ? 'محطات بارزة' : 'Étapes marquantes' ?></h2>
+                            <p class="section-lead"><?= $isAr ? 'أبرز المحطات في مسيرة الولاية.' : 'Les moments clés de la wilaya.' ?></p>
                         </div>
                         <div class="timeline">
                             <?php foreach($timelineEvents as $ev): ?>
@@ -1015,19 +1015,19 @@ if (!function_exists('association_badge')) {
                 <section class="section section-ba<?= $alt ? ' bg-muted' : '' ?>" id="before-after">
                     <div class="container">
                         <div class="section-head" data-reveal>
-                            <span class="eyebrow"><i class="mdi mdi-compare-horizontal"></i><?= $isAr ? 'Ø§Ù„Ù†ØªØ§Ø¦Ø¬ Ø¹Ù„Ù‰ Ø£Ø±Ø¶ Ø§Ù„ÙˆØ§Ù‚Ø¹' : 'Les rÃ©sultats concrets' ?></span>
+                            <span class="eyebrow"><i class="mdi mdi-compare-horizontal"></i><?= $isAr ? 'النتائج على أرض الواقع' : 'Les résultats concrets' ?></span>
                             <h2 class="section-title"><?= e(__('landing.before_after')) ?></h2>
                         </div>
                         <div class="before-after-grid">
                             <?php foreach($beforeAfter as $ba): ?>
                                 <div class="ba-card" data-reveal>
                                     <div class="ba-slider" style="position:relative;aspect-ratio:16/9;overflow:hidden">
-                                        <img src="<?= e($ba['image_before']) ?>" alt="<?= $isAr ? 'Ù‚Ø¨Ù„' : 'Avant' ?>" loading="lazy" class="ba-before-img" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
-                                        <img src="<?= e($ba['image_after']) ?>" alt="<?= $isAr ? 'Ø¨Ø¹Ø¯' : 'AprÃ¨s' ?>" loading="lazy" class="ba-after-img" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;clip-path:inset(0 50% 0 0)">
-                                        <input type="range" min="0" max="100" value="50" aria-label="<?= $isAr ? 'Ø´Ø±ÙŠØ· Ø§Ù„Ù…Ù‚Ø§Ø±Ù†Ø©' : 'Curseur de comparaison' ?>" style="position:absolute;inset:0;width:100%;height:100%;z-index:3;opacity:0;cursor:ew-resize">
+                                        <img src="<?= e($ba['image_before']) ?>" alt="<?= $isAr ? 'قبل' : 'Avant' ?>" loading="lazy" class="ba-before-img" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+                                        <img src="<?= e($ba['image_after']) ?>" alt="<?= $isAr ? 'بعد' : 'Après' ?>" loading="lazy" class="ba-after-img" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;clip-path:inset(0 50% 0 0)">
+                                        <input type="range" min="0" max="100" value="50" aria-label="<?= $isAr ? 'شريط المقارنة' : 'Curseur de comparaison' ?>" style="position:absolute;inset:0;width:100%;height:100%;z-index:3;opacity:0;cursor:ew-resize">
                                         <div class="ba-handle" style="position:absolute;top:0;left:50%;width:4px;height:100%;background:#fff;z-index:2;transform:translateX(-50%);pointer-events:none;box-shadow:0 0 16px rgba(0,0,0,0.3)"></div>
-                                        <span class="ba-label ba-before" style="position:absolute;bottom:0.8rem;left:0.8rem;background:rgba(255,255,255,0.85);padding:0.2rem 0.8rem;border-radius:999px;font-weight:700;font-size:0.7rem;z-index:2;color:var(--text-primary)"><?= $isAr ? 'Ù‚Ø¨Ù„' : 'Avant' ?></span>
-                                        <span class="ba-label ba-after" style="position:absolute;bottom:0.8rem;right:0.8rem;background:rgba(255,255,255,0.85);padding:0.2rem 0.8rem;border-radius:999px;font-weight:700;font-size:0.7rem;z-index:2;color:var(--text-primary)"><?= $isAr ? 'Ø¨Ø¹Ø¯' : 'AprÃ¨s' ?></span>
+                                        <span class="ba-label ba-before" style="position:absolute;bottom:0.8rem;left:0.8rem;background:rgba(255,255,255,0.85);padding:0.2rem 0.8rem;border-radius:999px;font-weight:700;font-size:0.7rem;z-index:2;color:var(--text-primary)"><?= $isAr ? 'قبل' : 'Avant' ?></span>
+                                        <span class="ba-label ba-after" style="position:absolute;bottom:0.8rem;right:0.8rem;background:rgba(255,255,255,0.85);padding:0.2rem 0.8rem;border-radius:999px;font-weight:700;font-size:0.7rem;z-index:2;color:var(--text-primary)"><?= $isAr ? 'بعد' : 'Après' ?></span>
                                     </div>
                                     <div class="ba-content">
                                         <h3><?= e($pick($ba['titre_fr']??'', $ba['titre_ar']??'')) ?></h3>
@@ -1042,28 +1042,28 @@ if (!function_exists('association_badge')) {
             <?php endif; ?>
         <?php endforeach; ?>
 
-        <!-- â•â•â• CARTE MAPBOX â•â•â• -->
+        <!-- ═══ CARTE MAPBOX ═══ -->
         <section class="section section-map" id="carte">
             <div class="container">
                 <div class="section-head" data-reveal>
-                    <span class="eyebrow"><i class="mdi mdi-map-outline"></i><?= $isAr ? 'Ø§Ù„ØªØ¯Ø®Ù„Ø§Øª Ø§Ù„Ù…ÙŠØ¯Ø§Ù†ÙŠØ©' : 'Le terrain en direct' ?></span>
+                    <span class="eyebrow"><i class="mdi mdi-map-outline"></i><?= $isAr ? 'التدخلات الميدانية' : 'Le terrain en direct' ?></span>
                     <h2 class="section-title"><?= e(__('landing.interventions')) ?></h2>
-                    <p class="section-lead"><?= $isAr ? 'ØªØ§Ø¨Ø¹ Ø¹Ù…Ù„ÙŠØ§Øª Ø§Ù„ÙˆÙ„Ø§ÙŠØ© Ø¹Ù„Ù‰ Ø§Ù„Ø®Ø±ÙŠØ·Ø©.' : 'Suivez les opÃ©rations de la wilaya sur la carte.' ?></p>
+                    <p class="section-lead"><?= $isAr ? 'تابع عمليات الولاية على الخريطة.' : 'Suivez les opérations de la wilaya sur la carte.' ?></p>
                 </div>
                 <div class="landing-map" id="landingMap" role="region" aria-label="<?= e(__('landing.interventions')) ?>"></div>
             </div>
         </section>
 
-        <!-- â•â•â• IA ASSISTANT â•â•â• -->
+        <!-- ═══ IA ASSISTANT ═══ -->
         <div id="ia-assistant">
-            <button class="ia-toggle" id="iaToggle" aria-label="<?= $isAr ? 'Ø§Ù„Ù…Ø³Ø§Ø¹Ø¯ Ø§Ù„Ø°ÙƒÙŠ' : 'Assistant IA' ?>"><i class="mdi mdi-robot-outline"></i></button>
+            <button class="ia-toggle" id="iaToggle" aria-label="<?= $isAr ? 'المساعد الذكي' : 'Assistant IA' ?>"><i class="mdi mdi-robot-outline"></i></button>
             <div class="ia-window" id="iaWindow">
-                <div class="ia-header"><span><?= $isAr ? 'Ø§Ù„Ù…Ø³Ø§Ø¹Ø¯ Ø§Ù„Ø°ÙƒÙŠ' : 'Assistant IA' ?></span><button id="iaClose" style="background:none;border:none;color:#fff;font-size:1.5rem;cursor:pointer">&times;</button></div>
+                <div class="ia-header"><span><?= $isAr ? 'المساعد الذكي' : 'Assistant IA' ?></span><button id="iaClose" style="background:none;border:none;color:#fff;font-size:1.5rem;cursor:pointer">&times;</button></div>
                 <div class="ia-messages" id="iaMessages">
-                    <div class="ia-msg bot"><?= $isAr ? 'Ù…Ø±Ø­Ø¨Ø§Ù‹! ÙƒÙŠÙ ÙŠÙ…ÙƒÙ†Ù†ÙŠ Ù…Ø³Ø§Ø¹Ø¯ØªÙƒ Ø§Ù„ÙŠÙˆÙ…ØŸ' : 'Bonjour ! Comment puis-je vous aider aujourdâ€™hui ?' ?></div>
+                    <div class="ia-msg bot"><?= $isAr ? 'مرحباً! كيف يمكنني مساعدتك اليوم؟' : 'Bonjour ! Comment puis-je vous aider aujourd’hui ?' ?></div>
                 </div>
                 <div class="ia-input">
-                    <input type="text" id="iaInput" placeholder="<?= $isAr ? 'Ø§ÙƒØªØ¨ Ø³Ø¤Ø§Ù„Ùƒ...' : 'Ã‰crivez votre question...' ?>" aria-label="<?= $isAr ? 'Ø¥Ø¯Ø®Ø§Ù„ Ø§Ù„Ù†Øµ' : 'Saisie' ?>">
+                    <input type="text" id="iaInput" placeholder="<?= $isAr ? 'اكتب سؤالك...' : 'Écrivez votre question...' ?>" aria-label="<?= $isAr ? 'إدخال النص' : 'Saisie' ?>">
                     <button id="iaSend"><i class="mdi mdi-send"></i></button>
                 </div>
             </div>
@@ -1071,7 +1071,7 @@ if (!function_exists('association_badge')) {
 
     </div> <!-- fin .landing -->
 
-    <!-- â•â•â• SCRIPTS â•â•â• -->
+    <!-- ═══ SCRIPTS ═══ -->
     <script type="importmap">
     {
         "imports": {
@@ -1095,7 +1095,7 @@ if (!function_exists('association_badge')) {
             return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
         }
 
-        // â”€â”€â”€ AURORA â”€â”€â”€
+        // ─── AURORA ───
         const auroraCanvas = document.getElementById('aurora-canvas');
         if (auroraCanvas) {
             const ctx = auroraCanvas.getContext('2d');
@@ -1125,13 +1125,13 @@ if (!function_exists('association_badge')) {
             drawAurora();
         }
 
-        // â”€â”€â”€ MAPBOX 3D â”€â”€â”€
+        // ─── MAPBOX 3D ───
         (function initMap() {
             const mapEl = document.getElementById('landingMap');
             if (!mapEl) return;
             const validEvents = mapEvents.filter(e => Number(e.latitude) && Number(e.longitude));
             if (validEvents.length === 0) {
-                mapEl.innerHTML = `<p class="text-muted text-center py-4">${isAr ? 'Ù„Ø§ ØªÙˆØ¬Ø¯ ØªØ¯Ø®Ù„Ø§Øª Ù„Ø¹Ø±Ø¶Ù‡Ø§.' : 'Aucune intervention Ã  afficher.'}</p>`;
+                mapEl.innerHTML = `<p class="text-muted text-center py-4">${isAr ? 'لا توجد تدخلات لعرضها.' : 'Aucune intervention à afficher.'}</p>`;
                 return;
             }
             const script = document.createElement('script');
@@ -1175,7 +1175,7 @@ if (!function_exists('association_badge')) {
                     });
                     validEvents.forEach(e => {
                         const popup = new mapboxgl.Popup({ offset: 25 })
-                            .setHTML(`<strong>${e.adresse || ''}</strong><br><small>${e.commune_nom||''} Â· ${e.date_evenement||''}</small>`);
+                            .setHTML(`<strong>${e.adresse || ''}</strong><br><small>${e.commune_nom||''} · ${e.date_evenement||''}</small>`);
                         new mapboxgl.Marker({ color: '#2a7a3e', scale: 0.8 })
                             .setLngLat([Number(e.longitude), Number(e.latitude)])
                             .setPopup(popup)
@@ -1187,7 +1187,7 @@ if (!function_exists('association_badge')) {
             document.head.appendChild(script);
         })();
 
-        // â”€â”€â”€ GSAP ANIMATIONS â”€â”€â”€
+        // ─── GSAP ANIMATIONS ───
         async function loadGSAP() {
             const { default: gsap } = await import('https://cdn.esm.sh/gsap');
             const { ScrollTrigger } = await import('https://cdn.esm.sh/gsap/ScrollTrigger');
@@ -1219,7 +1219,7 @@ if (!function_exists('association_badge')) {
         }
         loadGSAP();
 
-        // â”€â”€â”€ BEFORE / AFTER â”€â”€â”€
+        // ─── BEFORE / AFTER ───
         document.querySelectorAll('.ba-slider input[type="range"]').forEach(slider => {
             const afterImg = slider.parentElement.querySelector('.ba-after-img');
             const handle = slider.parentElement.querySelector('.ba-handle');
@@ -1230,7 +1230,7 @@ if (!function_exists('association_badge')) {
             });
         });
 
-        // â”€â”€â”€ ALBUMS LIGHTBOX AMÃ‰LIORÃ‰E â”€â”€â”€
+        // ─── ALBUMS LIGHTBOX AMÉLIORÉE ───
         window.__albumsData = albumsData;
         let __currentAlbumId = null;
         let __currentPhotoIndex = 0;
@@ -1259,8 +1259,8 @@ if (!function_exists('association_badge')) {
                 images.push({ image: null, legende: 'Aucune image' });
             }
             __lightboxImages = images;
-            // RÃ©cit
-            const narrativeText = album.recit || (album.adresse ? album.adresse + ' â€” ' : '') + (album.date_evenement ? new Date(album.date_evenement).toLocaleDateString() : '');
+            // Récit
+            const narrativeText = album.recit || (album.adresse ? album.adresse + ' — ' : '') + (album.date_evenement ? new Date(album.date_evenement).toLocaleDateString() : '');
             document.getElementById('lightboxNarrativeText').textContent = narrativeText;
             // Affichage
             __currentPhotoIndex = 0;
@@ -1321,7 +1321,7 @@ if (!function_exists('association_badge')) {
             else if (e.key === 'ArrowRight') { stepLightbox(1); }
         });
 
-        // â”€â”€â”€ FILTRES ALBUMS â”€â”€â”€
+        // ─── FILTRES ALBUMS ───
         const filterContainer = document.querySelector('.album-filters-row');
         if (filterContainer) {
             filterContainer.addEventListener('click', e => {
@@ -1340,7 +1340,7 @@ if (!function_exists('association_badge')) {
             });
         }
 
-        // â”€â”€â”€ IA ASSISTANT â”€â”€â”€
+        // ─── IA ASSISTANT ───
         (function initIA() {
             const toggle = document.getElementById('iaToggle');
             const windowEl = document.getElementById('iaWindow');
@@ -1367,7 +1367,7 @@ if (!function_exists('association_badge')) {
 
                 const botMsg = document.createElement('div');
                 botMsg.className = 'ia-msg bot';
-                botMsg.textContent = isAr ? 'Ø´ÙƒØ±Ø§Ù‹ Ù„Ø³Ø¤Ø§Ù„Ùƒ! Ø³Ø£Ù‚ÙˆÙ… Ø¨Ù…Ø¹Ø§Ù„Ø¬Ø© Ø·Ù„Ø¨Ùƒ.' : 'Merci pour votre question ! Je traite votre demande.';
+                botMsg.textContent = isAr ? 'شكراً لسؤالك! سأقوم بمعالجة طلبك.' : 'Merci pour votre question ! Je traite votre demande.';
                 setTimeout(() => {
                     messages.appendChild(botMsg);
                     messages.scrollTop = messages.scrollHeight;
@@ -1378,7 +1378,7 @@ if (!function_exists('association_badge')) {
             if (input) input.addEventListener('keypress', e => { if (e.key === 'Enter') sendMessage(); });
         })();
 
-        console.log('ðŸŒ¿ Landing Nature & Environnement (avec vidÃ©o et albums amÃ©liorÃ©s) chargÃ©e.');
+        console.log('🌿 Landing Nature & Environnement (avec vidéo et albums améliorés) chargée.');
     </script>
 
     <script nomodule>
