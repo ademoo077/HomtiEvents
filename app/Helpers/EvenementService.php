@@ -24,6 +24,15 @@ final class EvenementService
         'ANNULE',
     ];
 
+    /** Statuts considérés comme « validés » (pour les compteurs dashboard). */
+    public const STATUTS_VALIDES = ['VALIDÉ', 'PROGRAMME', 'QR_GENERE', 'EN_COURS', 'TERMINE'];
+
+    /** Statuts considérés comme « en attente » (pour les compteurs dashboard). */
+    public const STATUTS_EN_ATTENTE = ['EN_ATTENTE', 'MODIFICATION_DEMANDEE', 'REFUSE'];
+
+    /** Statuts pour les événements « à venir » ou « en cours » (côté citoyen). */
+    public const STATUTS_A_VENIR = ['PROGRAMME', 'QR_GENERE', 'EN_COURS'];
+
     /**
      * Transitions autorisées dans la machine à états stricte.
      *
@@ -153,6 +162,42 @@ final class EvenementService
         }
 
         return $counts;
+    }
+
+    /**
+     * Événements « à venir » ou « en cours » affichés au citoyen.
+     *
+     * Filtre sur STATUTS_A_VENIR et exclut les événements archivés
+     * (deleted_at IS NULL). Les statuts proviennent de constantes internes.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public static function evenementsAVenirPourCitoyen(): array
+    {
+        $in = implode(',', array_map(static fn (string $s): string => "'{$s}'", self::STATUTS_A_VENIR));
+
+        return Database::all(
+            "SELECT e.*, c.nom AS commune_nom FROM evenements e
+             LEFT JOIN commune c ON c.id = e.commune_id
+             WHERE e.statut IN ({$in}) AND e.date_evenement >= CURDATE() AND e.deleted_at IS NULL
+             ORDER BY e.date_evenement ASC"
+        );
+    }
+
+    /**
+     * Derniers événements terminés affichés au citoyen (exclut les archivés).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public static function evenementsPassesPourCitoyen(int $limit = 20): array
+    {
+        return Database::all(
+            'SELECT e.*, c.nom AS commune_nom FROM evenements e
+             LEFT JOIN commune c ON c.id = e.commune_id
+             WHERE e.statut = ? AND e.date_evenement < CURDATE() AND e.deleted_at IS NULL
+             ORDER BY e.date_evenement DESC LIMIT ' . max(1, (int) $limit),
+            ['TERMINE']
+        );
     }
 
     /**

@@ -95,7 +95,8 @@ try {
                             <span class="citoyen-card-heure"><?= e($ev['heure']) ?></span>
                         <?php endif; ?>
                     </p>
-                    <span class="badge badge-programme"><?= e(__('evenements.statut_programme')) ?></span>
+                    <?php $enCours = strtoupper((string) ($ev['statut'] ?? '')) === 'EN_COURS'; ?>
+                    <span class="badge <?= $enCours ? 'badge-en-cours' : 'badge-programme' ?>"><?= e(__($enCours ? 'evenements.statut_en_cours' : 'evenements.statut_programme')) ?></span>
                 </div>
                 <span class="citoyen-card-scan-btn" aria-hidden="true">
                     <i class="mdi mdi-qrcode-scan"></i>

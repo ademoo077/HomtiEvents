@@ -16,21 +16,8 @@ final class CitoyenController extends Controller
         $user = $this->user();
         $role = \App\Helpers\Rbac::role($user);
 
-        $upcoming = Database::all(
-            'SELECT e.*, c.nom AS commune_nom FROM evenements e
-             LEFT JOIN commune c ON c.id = e.commune_id
-             WHERE e.statut = ? AND e.date_evenement >= CURDATE()
-             ORDER BY e.date_evenement ASC',
-            ['PROGRAMME']
-        );
-
-        $past = Database::all(
-            'SELECT e.*, c.nom AS commune_nom FROM evenements e
-             LEFT JOIN commune c ON c.id = e.commune_id
-             WHERE e.statut = ? AND e.date_evenement < CURDATE()
-             ORDER BY e.date_evenement DESC LIMIT 20',
-            ['TERMINE']
-        );
+        $upcoming = EvenementService::evenementsAVenirPourCitoyen();
+        $past     = EvenementService::evenementsPassesPourCitoyen();
 
         $albums = Database::all(
             'SELECT a.id, a.titre, a.recit, a.date_creation, a.statut,
