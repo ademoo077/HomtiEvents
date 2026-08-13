@@ -1,5 +1,5 @@
 <?php
-/** @var array $user @var array $participations @var array $errors */
+/** @var array $user @var array $participations @var array $badges @var array $errors */
 $title = $user['prenom'] . ' ' . $user['nom'];
 $page  = 'admin.users.show';
 use App\Helpers\I18n;
@@ -23,6 +23,38 @@ $isAr = I18n::direction() === 'rtl';
                 ? 'هذا الحساب مؤرشف — لا يمكن لصاحبه تسجيل الدخول.'
                 : 'Compte archivé — son propriétaire ne peut plus se connecter.' ?></span>
         </div>
+    <?php endif; ?>
+
+    <?php if ($user['role_user'] === 'citoyen'): ?>
+    <div class="row g-3 mb-4">
+        <div class="col-md-4 col-6">
+            <div class="wh-kpi">
+                <div class="wh-kpi-icon blue"><i class="mdi mdi-account-group"></i></div>
+                <div>
+                    <div class="wh-kpi-value"><?= (int) $user['participations'] ?></div>
+                    <div class="wh-kpi-label"><?= e(__('common.participants')) ?></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-6">
+            <div class="wh-kpi">
+                <div class="wh-kpi-icon violet"><i class="mdi mdi-trophy-outline"></i></div>
+                <div>
+                    <div class="wh-kpi-value"><?= (int) $user['points'] ?></div>
+                    <div class="wh-kpi-label"><?= e(__('common.points')) ?></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-6">
+            <div class="wh-kpi">
+                <div class="wh-kpi-icon green"><i class="mdi mdi-star-outline"></i></div>
+                <div>
+                    <div class="wh-kpi-value"><?= count($badges) ?></div>
+                    <div class="wh-kpi-label"><?= e(__('common.badges')) ?></div>
+                </div>
+            </div>
+        </div>
+    </div>
     <?php endif; ?>
 
     <div class="row g-4">
@@ -74,6 +106,27 @@ $isAr = I18n::direction() === 'rtl';
                     </table>
                 </div>
             </div>
+
+            <?php if ($user['role_user'] === 'citoyen'): ?>
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="mdi mdi-star-outline me-1"></i><?= e(__('common.badges')) ?></h6>
+                </div>
+                <div class="card-body">
+                    <?php if ($badges): ?>
+                        <div class="d-flex flex-wrap gap-2">
+                            <?php foreach ($badges as $b): ?>
+                                <span class="wh-badge badge-violet">
+                                    <?php if ($b['icone']): ?><i class="mdi <?= e($b['icone']) ?>"></i> <?php endif; ?><?= e($b['nom']) ?>
+                                </span>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else: ?>
+                        <div class="wh-empty"><p><?= e(__('common.no_data')) ?></p></div>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endif; ?>
         </div>
 
         <!-- Rattachement -->

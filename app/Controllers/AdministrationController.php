@@ -280,72 +280,16 @@ final class AdministrationController extends Controller
         redirect('admin/anomalies');
     }
 
-    // ──────────────────────── CITOYENS ──────────────────────────
+    // ──────────────────────── CITOYENS (fusionnés → users?role=citoyen) ──────────────────────────
 
     public function citoyens(): never
     {
-        $q = trim((string) input('q', ''));
-        $sql = 'SELECT u.id, u.nom, u.prenom, u.email, u.telephone, u.points, u.is_active, u.created_at,
-                       (SELECT COUNT(*) FROM evenement_participant ep WHERE ep.user_id = u.id) AS participations
-                FROM users u
-                WHERE u.role_user = ?';
-        $params = ['citoyen'];
-
-        if ($q !== '') {
-            $sql .= ' AND (u.nom LIKE ? OR u.prenom LIKE ? OR u.email LIKE ?)';
-            $params[] = '%' . $q . '%';
-            $params[] = '%' . $q . '%';
-            $params[] = '%' . $q . '%';
-        }
-        $sql .= ' ORDER BY u.created_at DESC';
-
-        $result = Database::paginate($sql, $params, 15, (int) input('page', 1));
-
-        $this->view('admin.citoyens.index', [
-            'citoyens'  => $result['items'],
-            'q'         => $q,
-            'page'      => $result['page'],
-            'lastPage'  => $result['last_page'],
-            'total'     => $result['total'],
-            'errors'    => $this->errors(),
-        ]);
+        redirect('admin/users?role=citoyen');
     }
 
     public function citoyenShow(string $id): never
     {
-        $citoyen = Database::one(
-            'SELECT u.*,
-                    (SELECT COUNT(*) FROM evenement_participant ep WHERE ep.user_id = u.id) AS participations
-             FROM users u WHERE u.id = ? AND u.role_user = ?',
-            [(int) $id, 'citoyen']
-        );
-        if ($citoyen === null) {
-            abort(404, 'Citoyen introuvable');
-        }
-
-        $participations = Database::all(
-            'SELECT e.id, e.adresse, e.date_evenement, e.statut, c.nom AS commune_nom, ep.heure_scan
-             FROM evenement_participant ep
-             JOIN evenements e ON e.id = ep.evenement_id
-             LEFT JOIN commune c ON c.id = e.commune_id
-             WHERE ep.user_id = ?
-             ORDER BY ep.heure_scan DESC LIMIT 20',
-            [(int) $id]
-        );
-
-        $badges = Database::all(
-            'SELECT b.nom, b.icone FROM badges b
-             JOIN user_badges ub ON ub.badge_id = b.id
-             WHERE ub.user_id = ?',
-            [(int) $id]
-        );
-
-        $this->view('admin.citoyens.show', [
-            'citoyen'        => $citoyen,
-            'participations' => $participations,
-            'badges'         => $badges,
-            'errors'         => $this->errors(),
-        ]);
+        redirect('admin/users/' . $id);
     }
 
     public function citoyenToggle(string $id): never
@@ -355,11 +299,12 @@ final class AdministrationController extends Controller
             abort(404, 'Citoyen introuvable');
         }
 
-        Database::update('users', ['is_active' => (int) $citoyen['is_active'] === 1 ? 0 : 1], 'id = ?', [(int) $id]);
+        $newStatus = (int) $citoyen['is_active'] === 1 ? 0 : 1;
+        Database::update('users', ['is_active' => $newStatus], 'id = ?', [(int) $id]);
 
-        AuditLog::log('citoyen_activation', 'citoyen', (int) $id, ['is_active' => (int) $citoyen['is_active']], ['is_active' => (int) $citoyen['is_active'] === 1 ? 0 : 1]);
+        AuditLog::log('citoyen_activation', 'citoyen', (int) $id, ['is_active' => (int) $citoyen['is_active']], ['is_active' => $newStatus]);
         flash('success', 'Statut du compte mis à jour.');
-        redirect('admin/citoyens/' . $id);
+        redirect('admin/users/' . $id);
     }
 
     // ──────────────────────── USERS (TOUS RÔLES) ─────────────────
@@ -369,8 +314,14 @@ final class AdministrationController extends Controller
         $q = trim((string) input('q', ''));
         $role = (string) input('role', '');
 
-        $sql = 'SELECT u.id, u.nom, u.prenom, u.email, u.telephone, u.role_user, u.is_active, u.created_at,
-                       a.nom AS association_nom, e.nom AS epic_nom
+        $validRoles = ['citoyen', 'association', 'epic', 'wilaya'];
+        if ($role !== '' && ! in_array($role, $validRoles, true)) {
+            $role = '';
+        }
+
+        $sql = 'SELECT u.id, u.nom, u.prenom, u.email, u.telephone, u.points, u.role_user, u.is_active, u.created_at,
+                       a.nom AS association_nom, a.valide AS association_valide, e.nom AS epic_nom,
+                       (SELECT COUNT(*) FROM evenement_participant ep WHERE ep.user_id = u.id) AS participations
                 FROM users u
                 LEFT JOIN associations a ON a.id = u.association_id
                 LEFT JOIN epic e ON e.id = u.epic_id
@@ -378,7 +329,9 @@ final class AdministrationController extends Controller
         $params = [];
 
         if ($q !== '') {
-            $sql .= ' AND (u.nom LIKE ? OR u.prenom LIKE ? OR u.email LIKE ?)';
+            $sql .= ' AND (u.nom LIKE ? OR u.prenom LIKE ? OR u.email LIKE ? OR a.nom LIKE ? OR e.nom LIKE ?)';
+            $params[] = '%' . $q . '%';
+            $params[] = '%' . $q . '%';
             $params[] = '%' . $q . '%';
             $params[] = '%' . $q . '%';
             $params[] = '%' . $q . '%';
@@ -407,7 +360,8 @@ final class AdministrationController extends Controller
     public function userShow(string $id): never
     {
         $user = Database::one(
-            'SELECT u.*, a.nom AS association_nom, e.nom AS epic_nom
+            'SELECT u.*, a.nom AS association_nom, e.nom AS epic_nom,
+                    (SELECT COUNT(*) FROM evenement_participant ep WHERE ep.user_id = u.id) AS participations
              FROM users u
              LEFT JOIN associations a ON a.id = u.association_id
              LEFT JOIN epic e ON e.id = u.epic_id
@@ -428,9 +382,19 @@ final class AdministrationController extends Controller
             [(int) $id]
         );
 
+        $badges = $user['role_user'] === 'citoyen'
+            ? Database::all(
+                'SELECT b.nom, b.icone FROM badges b
+                 JOIN user_badges ub ON ub.badge_id = b.id
+                 WHERE ub.user_id = ?',
+                [(int) $id]
+            )
+            : [];
+
         $this->view('admin.users.show', [
             'user'           => $user,
             'participations' => $participations,
+            'badges'         => $badges,
             'errors'         => $this->errors(),
         ]);
     }
@@ -499,59 +463,16 @@ final class AdministrationController extends Controller
         redirect('admin/users');
     }
 
-    // ──────────────────────── PRÉSIDENTS ────────────────────────
+    // ──────────────────────── PRÉSIDENTS (fusionnés → users?role=association) ────────────────────────
 
     public function presidents(): never
     {
-        $q = trim((string) input('q', ''));
-
-        $sql = 'SELECT u.id, u.nom, u.prenom, u.email, u.telephone, u.is_active, u.created_at,
-                       a.id AS association_id, a.nom AS association_nom, a.valide AS association_valide
-                FROM users u
-                JOIN associations a ON a.id = u.association_id
-                WHERE u.role_user = ?';
-        $params = ['association'];
-
-        if ($q !== '') {
-            $sql .= ' AND (u.nom LIKE ? OR u.prenom LIKE ? OR u.email LIKE ? OR a.nom LIKE ?)';
-            $params[] = '%' . $q . '%';
-            $params[] = '%' . $q . '%';
-            $params[] = '%' . $q . '%';
-            $params[] = '%' . $q . '%';
-        }
-
-        $sql .= ' ORDER BY u.created_at DESC';
-
-        $result = Database::paginate($sql, $params, 15, (int) input('page', 1));
-
-        $this->view('admin.presidents.index', [
-            'presidents' => $result['items'],
-            'q'          => $q,
-            'page'       => $result['page'],
-            'lastPage'   => $result['last_page'],
-            'total'      => $result['total'],
-            'errors'     => $this->errors(),
-        ]);
+        redirect('admin/users?role=association');
     }
 
     public function presidentShow(string $id): never
     {
-        $president = Database::one(
-            'SELECT u.*, a.nom AS association_nom, a.valide AS association_valide, a.email AS association_email
-             FROM users u
-             JOIN associations a ON a.id = u.association_id
-             WHERE u.id = ? AND u.role_user = ?',
-            [(int) $id, 'association']
-        );
-        if ($president === null) {
-            abort(404, 'Président introuvable');
-        }
-
-        $this->view('admin.users.show', [
-            'user'           => $president,
-            'participations' => [],
-            'errors'         => $this->errors(),
-        ]);
+        redirect('admin/users/' . $id);
     }
 
     public function presidentToggle(string $id): never
@@ -566,6 +487,6 @@ final class AdministrationController extends Controller
 
         AuditLog::log('president_toggle', 'user', (int) $id, ['is_active' => (int) $president['is_active']], ['is_active' => $newStatus]);
         flash('success', 'Statut du président mis à jour.');
-        redirect('admin/presidents/' . $id);
+        redirect('admin/users/' . $id);
     }
 }

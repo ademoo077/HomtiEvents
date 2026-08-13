@@ -93,6 +93,8 @@
   "common.nom": "الاسم",
   "common.prenom": "اللقب",
   "common.email": "البريد الإلكتروني",
+  "common.role": "الدور",
+  "common.telephone": "الهاتف",
   "common.points": "النقاط",
   "common.badges": "الأوسمة",
   "common.participants": "المشاركون",

@@ -101,6 +101,7 @@
   "common.prenom": "Prénom",
   "common.email": "Email",
   "common.telephone": "Téléphone",
+  "common.role": "Rôle",
   "common.password": "Mot de passe",
   "common.confirm": "Confirmer",
   "common.confirm_title": "Confirmation",

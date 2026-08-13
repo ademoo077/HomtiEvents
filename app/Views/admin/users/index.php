@@ -4,7 +4,25 @@ $title = __('common.users');
 $page  = 'admin.users.index';
 use App\Helpers\I18n;
 $isAr = I18n::direction() === 'rtl';
-$roles = ['citoyen', 'association', 'epic', 'wilaya'];
+
+$roles = [
+    'citoyen'     => $isAr ? 'المواطنون' : 'Citoyens',
+    'association' => $isAr ? 'رؤساء الجمعيات' : 'Présidents d\'associations',
+    'epic'        => 'EPIC',
+    'wilaya'      => $isAr ? 'الولاية' : 'Wilaya',
+];
+
+$showCitoyenCols    = $role === 'citoyen';
+$showAssocCol       = $role === '' || $role === 'association' || $role === 'wilaya';
+$showAssocStatutCol = $role === '' || $role === 'association';
+$showEpicCol        = $role === '' || $role === 'epic';
+
+$ncols = 3
+    + ($showCitoyenCols ? 3 : 0)
+    + ($showAssocCol ? 1 : 0)
+    + ($showAssocStatutCol ? 1 : 0)
+    + ($showEpicCol ? 1 : 0)
+    + 2;
 ?>
 <div class="wh-page">
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
@@ -22,8 +40,8 @@ $roles = ['citoyen', 'association', 'epic', 'wilaya'];
             <div class="col-md-3">
                 <select name="role" class="form-select">
                     <option value=""><?= $isAr ? 'جميع الأدوار' : 'Tous les rôles' ?></option>
-                    <?php foreach ($roles as $r): ?>
-                        <option value="<?= e($r) ?>" <?= $role === $r ? 'selected' : '' ?>><?= e(ucfirst($r)) ?></option>
+                    <?php foreach ($roles as $value => $label): ?>
+                        <option value="<?= e($value) ?>" <?= $role === $value ? 'selected' : '' ?>><?= e($label) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -42,8 +60,20 @@ $roles = ['citoyen', 'association', 'epic', 'wilaya'];
                     <th><?= e(__('common.nom')) ?></th>
                     <th><?= e(__('common.email')) ?></th>
                     <th><?= e(__('common.role')) ?></th>
-                    <th><?= $isAr ? 'الجمعية' : 'Association' ?></th>
-                    <th>EPIC</th>
+                    <?php if ($showCitoyenCols): ?>
+                        <th><?= e(__('common.telephone')) ?></th>
+                        <th><?= e(__('common.participants')) ?></th>
+                        <th><?= e(__('common.points')) ?></th>
+                    <?php endif; ?>
+                    <?php if ($showAssocCol): ?>
+                        <th><?= $isAr ? 'الجمعية' : 'Association' ?></th>
+                    <?php endif; ?>
+                    <?php if ($showAssocStatutCol): ?>
+                        <th><?= $isAr ? 'حالة الجمعية' : 'Statut association' ?></th>
+                    <?php endif; ?>
+                    <?php if ($showEpicCol): ?>
+                        <th>EPIC</th>
+                    <?php endif; ?>
                     <th><?= e(__('common.status')) ?></th>
                     <th><?= e(__('common.actions')) ?></th>
                 </tr>
@@ -63,8 +93,30 @@ $roles = ['citoyen', 'association', 'epic', 'wilaya'];
                                 default => 'gray'
                             } ?>"><?= e(ucfirst($u['role_user'])) ?></span>
                         </td>
-                        <td class="wh-text-muted"><?= e($u['association_nom'] ?? '-') ?></td>
-                        <td class="wh-text-muted"><?= e($u['epic_nom'] ?? '-') ?></td>
+                        <?php if ($showCitoyenCols): ?>
+                            <td class="wh-text-muted"><?= e($u['telephone'] ?? '-') ?></td>
+                            <td><span class="wh-badge badge-blue"><?= (int) $u['participations'] ?></span></td>
+                            <td><span class="wh-badge badge-violet"><?= (int) $u['points'] ?> pts</span></td>
+                        <?php endif; ?>
+                        <?php if ($showAssocCol): ?>
+                            <td class="wh-text-muted"><?= e($u['association_nom'] ?? '-') ?></td>
+                        <?php endif; ?>
+                        <?php if ($showAssocStatutCol): ?>
+                            <td>
+                                <?php if ($u['association_nom'] !== null): ?>
+                                    <?php if ((int) $u['association_valide'] === 1): ?>
+                                        <span class="wh-badge badge-green"><?= $isAr ? 'موثقة' : 'Validée' ?></span>
+                                    <?php else: ?>
+                                        <span class="wh-badge badge-yellow"><?= $isAr ? 'قيد المراجعة' : 'En attente' ?></span>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <span class="wh-text-muted">-</span>
+                                <?php endif; ?>
+                            </td>
+                        <?php endif; ?>
+                        <?php if ($showEpicCol): ?>
+                            <td class="wh-text-muted"><?= e($u['epic_nom'] ?? '-') ?></td>
+                        <?php endif; ?>
                         <td>
                             <?php if ((int) $u['is_active'] === 1): ?>
                                 <span class="wh-badge badge-green"><?= $isAr ? 'نشط' : 'Actif' ?></span>
@@ -93,7 +145,7 @@ $roles = ['citoyen', 'association', 'epic', 'wilaya'];
                     </tr>
                 <?php endforeach; ?>
                 <?php if ($users === []): ?>
-                    <tr><td colspan="7"><div class="wh-empty"><i class="mdi mdi-account-group"></i><p><?= e(__('common.no_data')) ?></p></div></td></tr>
+                    <tr><td colspan="<?= $ncols ?>"><div class="wh-empty"><i class="mdi mdi-account-group"></i><p><?= e(__('common.no_data')) ?></p></div></td></tr>
                 <?php endif; ?>
                 </tbody>
             </table>
