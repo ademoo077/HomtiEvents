@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Helpers\Database;
+use App\Helpers\EvenementService;
 use App\Helpers\GeoHelper;
 
 final class CitoyenController extends Controller
@@ -26,7 +27,7 @@ final class CitoyenController extends Controller
                      (SELECT COUNT(*) FROM photos p WHERE p.album_id = a.id AND p.status = ?) AS nb_photos
               FROM albums a
               JOIN evenements e ON e.id = a.evenement_id
-              WHERE a.statut = ?
+              WHERE a.statut = ? AND e.deleted_at IS NULL
               ORDER BY a.date_creation DESC LIMIT 12',
             ['publie', 'active', 'active']
         );
