@@ -22,16 +22,22 @@ $notifUrl = static function (array $n): ?string {
 };
 ?>
 <div class="wh-page">
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-        <div>
-            <h1 class="wh-page-title"><?= e(__('common.notifications')) ?></h1>
-            <p class="wh-page-sub"><?= $isAr ? 'سجل الإشعارات' : 'Vos notifications et alertes' ?></p>
+    <div class="wh-hero" style="background: linear-gradient(135deg, #0B5ED7 0%, #6C63FF 100%)">
+        <div class="wh-hero-inner">
+            <div class="wh-hero-row">
+                <div class="wh-hero-text">
+                    <h1 class="wh-hero-title"><i class="mdi mdi-bell-outline me-2"></i><?= e(__('common.notifications')) ?></h1>
+                    <p class="wh-hero-sub"><?= $isAr ? 'سجل الإشعارات' : 'Vos notifications et alertes' ?></p>
+                </div>
+                <div class="wh-hero-actions">
+                    <?php if ($unread > 0): ?>
+                        <button type="button" class="btn btn-light" data-notif-read-all>
+                            <i class="mdi mdi-check-all me-1"></i><?= $isAr ? 'قراءة الكل' : 'Tout marquer comme lu' ?>
+                        </button>
+                    <?php endif; ?>
+                </div>
+            </div>
         </div>
-        <?php if ($unread > 0): ?>
-            <button type="button" class="btn btn-outline-primary" data-notif-read-all>
-                <i class="mdi mdi-check-all me-1"></i><?= $isAr ? 'قراءة الكل' : 'Tout marquer comme lu' ?>
-            </button>
-        <?php endif; ?>
     </div>
 
     <?php if ($total > 0): ?>
@@ -117,6 +123,10 @@ $notifUrl = static function (array $n): ?string {
             </ul>
         </nav>
     <?php endif; ?>
+
+    <style>
+.wh-hero{border-radius:0 0 1.5rem 1.5rem;padding:1.5rem;margin-bottom:1.5rem}.wh-hero-inner{max-width:1200px;margin:0 auto}.wh-hero-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}.wh-hero-title{color:#fff;font-size:1.35rem;font-weight:700;margin:0}.wh-hero-sub{color:rgba(255,255,255,.8);font-size:.85rem;margin:.25rem 0 0}.wh-hero-actions{display:flex;align-items:center;gap:.5rem}
+    </style>
 </div>
 
 <style>

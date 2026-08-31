@@ -13,6 +13,17 @@ final class ActualiteController extends Controller
 {
     public function index(): never
     {
-        $this->view('actualites.index', ActualiteService::data(), 'landing');
+        $filters = [
+            'q'          => trim((string) input('q', '')),
+            'du'         => input('du'),
+            'au'         => input('au'),
+            'commune_id' => input('commune_id'),
+            'type'       => input('type'),
+        ];
+
+        $data = ActualiteService::data($filters);
+        $data['filters'] = $filters;
+
+        $this->view('actualites.index', $data, 'landing');
     }
 }

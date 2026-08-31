@@ -311,7 +311,7 @@ final class ControlCenter
      */
     public static function allCommunes(): array
     {
-        return Database::all('SELECT * FROM communes ORDER BY wilaya, daira, nom');
+        return Database::all('SELECT c.*, ca.nom AS daira FROM commune c LEFT JOIN ca ON ca.id = c.ca_id ORDER BY c.nom');
     }
 
     private static function warm(): void

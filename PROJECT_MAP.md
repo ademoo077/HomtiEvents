@@ -130,5 +130,5 @@ Règles de conception maintenues :
 | 4 — Statistiques | ✔ livrée | `ba99ed6` |
 | 5 — UI/UX transverse | ◐ partielle | dark mode + toasts + data-confirm + wh-empty + read-all ✔ ; manifest, regroupement, validation client, skeletons restants |
 | 6 — Espace EPIC | ◐ partielle | dashboard ✔ (`7c1450f`) ; `updateStatut` audit/notif + contact assoc restants |
-| 7 — Membres association | ✖ non démarrée | — |
+| 7 — Membres association | ✔ livrée | améliorations UX (recherche, stats, badges, activité) |
 | 8 — Notifications & réponses | ◐ partielle | refus ✔, QR ✔, album-assoc ✔, toasts ✔ ; participants-album + feedback JSON à vérifier |

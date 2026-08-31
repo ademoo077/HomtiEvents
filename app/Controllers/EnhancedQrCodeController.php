@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Helpers\Database;
 use App\Helpers\QrCodeGenerator;
+use App\Helpers\Rbac;
 use App\Helpers\Session;
 
 final class EnhancedQrCodeController extends Controller
@@ -19,11 +20,13 @@ final class EnhancedQrCodeController extends Controller
         $this->requireAuth();
 
         $evenements = Database::all(
-            'SELECT e.id, e.adresse, e.date_evenement, e.statut, e.heure,
+            'SELECT e.id, e.description, e.adresse, e.date_evenement, e.statut, e.heure,
                     q.token_qr, q.date_expiration
              FROM evenements e
              LEFT JOIN qr_event q ON q.evenement_id = e.id
-             WHERE e.deleted_at IS NULL AND q.token_qr IS NOT NULL
+             WHERE e.deleted_at IS NULL
+               AND e.statut IN (\'PROGRAMME\', \'QR_GENERE\', \'EN_COURS\')
+               AND q.token_qr IS NOT NULL
              ORDER BY e.date_evenement DESC LIMIT 10'
         );
 
@@ -55,10 +58,10 @@ final class EnhancedQrCodeController extends Controller
 
         if (!QrCodeGenerator::isValid($qr, true)) {
             $errorMsg = "Ce code QR n'est plus valide.";
-            if (($qr['statut'] ?? '') !== 'PROGRAMME') {
-                $errorMsg = "Cet événement n'est plus ouvert à la participation.";
-            } elseif (strtotime((string) ($qr['date_expiration'] ?? '')) < time()) {
+            if (($qr['date_expiration'] ?? null) !== null && strtotime((string) $qr['date_expiration']) < time()) {
                 $errorMsg = "Ce code QR a expiré après la fin de l'événement.";
+            } elseif (! in_array(($qr['statut'] ?? ''), ['PROGRAMME', 'QR_GENERE', 'EN_COURS'], true)) {
+                $errorMsg = "Cet événement n'est plus ouvert à la participation.";
             }
             json_response(['success' => false, 'error' => $errorMsg, 'expired' => true]);
         }
@@ -66,6 +69,10 @@ final class EnhancedQrCodeController extends Controller
         $userId = Session::userId();
         if (QrCodeGenerator::hasParticipated((int) $qr['evenement_id'], (int) $userId)) {
             json_response(['success' => false, 'error' => "Vous avez déjà participé à cet événement."]);
+        }
+
+        if (QrCodeGenerator::estComplet((int) $qr['evenement_id'])) {
+            json_response(['success' => false, 'error' => "Désolé, la capacité maximale de cet événement est atteinte."]);
         }
 
         $ok = QrCodeGenerator::registerParticipation((int) $qr['evenement_id'], (int) $userId);
@@ -76,25 +83,39 @@ final class EnhancedQrCodeController extends Controller
 
         $event = Database::one(
             'SELECT e.adresse, e.date_evenement, e.heure, e.description, e.adresse AS lieu
-             FROM evenements e WHERE e.id = ?',
+             FROM evenements e WHERE e.id = ? AND e.deleted_at IS NULL',
             [(int) $qr['evenement_id']]
+        );
+
+        $newBadge = Database::one(
+            'SELECT b.id, b.nom, b.description, b.icone, b.couleur
+             FROM user_badges ub
+             JOIN badges b ON b.id = ub.badge_id
+             WHERE ub.user_id = ? AND ub.date_obtention >= DATE_SUB(NOW(), INTERVAL 2 MINUTE)
+             ORDER BY ub.date_obtention DESC LIMIT 1',
+            [(int) $userId]
         );
 
         json_response([
             'success' => true,
             'event' => $event,
             'message' => 'Participation enregistrée avec succès !',
+            'points_gagnes' => \App\Helpers\Gamification::POINTS_PARTICIPATION,
+            'new_badge' => $newBadge,
         ]);
     }
 
     /**
      * Lister les participations d'un citoyen (historique avec preuve de scan).
+     * Adaptatif : utilise le layout membre si l'utilisateur est membre.
      */
     public function participations(): never
     {
         $this->requireAuth();
 
+        $user   = Session::user();
         $userId = Session::userId();
+        $role   = Rbac::role($user);
 
         $participations = Database::all(
             'SELECT e.id AS evenement_id, e.adresse, e.date_evenement, e.heure, e.statut AS event_statut,
@@ -103,7 +124,7 @@ final class EnhancedQrCodeController extends Controller
                     a.id AS album_id, a.titre AS album_titre,
                     (SELECT COUNT(*) FROM photos p WHERE p.album_id = a.id AND p.status = ?) AS nb_photos
              FROM evenement_participant ep
-             JOIN evenements e ON e.id = ep.evenement_id
+             JOIN evenements e ON e.id = ep.evenement_id AND e.deleted_at IS NULL
              LEFT JOIN commune c ON c.id = e.commune_id
              LEFT JOIN albums a ON a.evenement_id = e.id AND a.statut = ?
              WHERE ep.user_id = ?
@@ -111,9 +132,12 @@ final class EnhancedQrCodeController extends Controller
             ['publie', 'active', $userId]
         );
 
+        $layout = $role === 'membre' ? 'member' : 'citoyen';
+
         $this->view('citoyen/participations', [
             'participations' => $participations,
-        ], 'citoyen');
+            'role'           => $role,
+        ], $layout);
     }
 
     /**
@@ -154,11 +178,17 @@ final class EnhancedQrCodeController extends Controller
             [(int) $id, Session::userId()]
         );
 
+        $isFavori = Database::exists(
+            'SELECT 1 FROM citoyen_favoris WHERE evenement_id = ? AND user_id = ?',
+            [(int) $id, Session::userId()]
+        );
+
         $this->view('citoyen/event-detail', [
             'event'          => $event,
             'photos'         => $photos,
             'album'          => $album,
             'hasParticipated' => $hasParticipated,
+            'isFavori'       => $isFavori,
         ], 'citoyen');
     }
 
@@ -179,7 +209,10 @@ final class EnhancedQrCodeController extends Controller
             'q'        => $_GET['q'] ?? null,
         ];
 
-        $where = ['e.deleted_at IS NULL'];
+        $where = [
+            'e.deleted_at IS NULL',
+            "e.statut IN ('PROGRAMME', 'QR_GENERE', 'EN_COURS', 'TERMINE', 'VALIDÉ')",
+        ];
         $params = [];
 
         if ($filters['date'] === 'today') {
@@ -233,6 +266,17 @@ final class EnhancedQrCodeController extends Controller
                 LIMIT 50';
 
         $events = Database::all($sql, $params);
+
+        // Marquer les événements déjà en favori (pour les boutons cœur).
+        $favoriIds = array_map(
+            static fn (array $r): int => (int) $r['evenement_id'],
+            Database::all('SELECT evenement_id FROM citoyen_favoris WHERE user_id = ?', [Session::userId()])
+        );
+        $isFavori = array_flip($favoriIds);
+        foreach ($events as &$ev) {
+            $ev['is_favori'] = isset($isFavori[(int) $ev['id']]);
+        }
+        unset($ev);
 
         $isAjax = ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest' || (($_GET['ajax'] ?? null) === '1');
 

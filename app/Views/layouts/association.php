@@ -81,18 +81,27 @@ $navItems = [
 ];
 ?>
 <!DOCTYPE html>
-<html lang="<?= e($langAttr) ?>" dir="<?= e($dir) ?>">
+<html lang="<?= e($langAttr) ?>" dir="<?= e($dir) ?>" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="حومتي ايفانت">
     <title><?= e($title ?? $appName) ?> — <?= e(__('app.name')) ?></title>
-    <link rel="icon" href="<?= asset('/assets/img/icon-192.png') ?>">
+    <link rel="icon" href="<?= asset('/favicon.ico') ?>">
+    <link rel="icon" type="image/svg+xml" href="<?= asset('/favicon.svg') ?>">
     <link rel="manifest" href="<?= url('manifest.json') ?>">
+    <link rel="apple-touch-icon" href="<?= asset('/apple-touch-icon.png') ?>">
     <link rel="stylesheet" href="<?= asset($bootstrapCss) ?>">
     <link rel="stylesheet" href="<?= asset('/assets/css/fonts.css') ?>">
     <link rel="stylesheet" href="<?= asset('/assets/vendor/mdi/css/materialdesignicons.min.css') ?>">
     <link rel="stylesheet" href="<?= asset('/assets/css/admin.css') ?>">
+    <link rel="stylesheet" href="<?= asset('/assets/css/control-center.css') ?>">
+<script>window.WH_I18N = <?= json_encode(App\Helpers\I18n::lines(), JSON_UNESCAPED_UNICODE) ?>;
+window.WH_CSRF = <?= json_encode(App\Helpers\Csrf::token()) ?>;</script>
 </head>
 <body>
 <div class="wh-app">
@@ -211,7 +220,12 @@ $navItems = [
                         <ul class="dropdown-menu dropdown-menu-end shadow-sm">
                             <li><a class="dropdown-item" href="<?= url('profile') ?>"><i class="mdi mdi-account-circle me-2"></i><?= $isAr ? 'ملفي الشخصي' : 'Mon profil' ?></a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="<?= url('auth/logout') ?>"><i class="mdi mdi-logout me-2"></i><?= e(__('common.logout')) ?></a></li>
+                            <li>
+                                <form method="post" action="<?= url('auth/logout') ?>" data-confirm="<?= e(__('common.logout_confirm')) ?>" class="d-inline">
+                                    <?= csrf_field() ?>
+                                    <button type="submit" class="dropdown-item" style="background:none;border:none;width:100%;text-align:left;cursor:pointer"><i class="mdi mdi-logout me-2"></i><?= e(__('common.logout')) ?></button>
+                                </form>
+                            </li>
                         </ul>
                     </div>
                     <?php endif; ?>
@@ -222,18 +236,10 @@ $navItems = [
         <main class="wh-content">
             <?php $success = flash('success'); $error = flash('error'); ?>
             <?php if ($success !== null): ?>
-                <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2" data-autohide role="alert">
-                    <i class="mdi mdi-check-circle"></i>
-                    <div class="flex-grow-1"><?= e($success) ?></div>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
+                <script>document.addEventListener('DOMContentLoaded', function () { showToast(<?= json_encode($success) ?>, 'success'); });</script>
             <?php endif; ?>
             <?php if ($error !== null): ?>
-                <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center gap-2" data-autohide role="alert">
-                    <i class="mdi mdi-alert-circle"></i>
-                    <div class="flex-grow-1"><?= e($error) ?></div>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
+                <script>document.addEventListener('DOMContentLoaded', function () { showToast(<?= json_encode($error) ?>, 'error'); });</script>
             <?php endif; ?>
 
             <?= $content ?>
@@ -251,9 +257,14 @@ $navItems = [
 
 <div class="wh-toast-wrap"></div>
 
-<script>window.WH_I18N = <?= json_encode(App\Helpers\I18n::lines(), JSON_UNESCAPED_UNICODE) ?>;
-window.WH_CSRF = <?= json_encode(App\Helpers\Csrf::token()) ?>;</script>
 <script src="<?= asset('/assets/vendor/bootstrap/bootstrap.bundle.min.js') ?>"></script>
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+        navigator.serviceWorker.register('<?= asset('/sw.js') ?>').catch(function () {});
+    });
+}
+</script>
 <script src="<?= asset('/assets/js/admin.js') ?>"></script>
 </body>
 </html>

@@ -167,6 +167,31 @@ final class LandingAdminController extends Controller
         redirect('admin/landing');
     }
 
+    public function updateFaq(string $id): never
+    {
+        $data = all_input();
+        $validator = Validator::make($data, [
+            'question_fr' => 'required|string',
+            'reponse_fr'  => 'required|string',
+            'question_ar' => 'nullable|string',
+            'reponse_ar'  => 'nullable|string',
+        ]);
+        if ($validator->fails()) {
+            $this->backWithErrors($validator->errors(), $data);
+        }
+        Database::run('UPDATE landing_faq SET question_fr = ?, question_ar = ?, reponse_fr = ?, reponse_ar = ?, ordre = ?, actif = ? WHERE id = ?', [
+            trim((string) $data['question_fr']),
+            trim((string) ($data['question_ar'] ?? '')) ?: null,
+            trim((string) $data['reponse_fr']),
+            trim((string) ($data['reponse_ar'] ?? '')) ?: null,
+            (int) ($data['ordre'] ?? 0),
+            isset($data['actif']) ? 1 : 0,
+            (int) $id,
+        ]);
+        flash('success', 'FAQ mise à jour.');
+        redirect('admin/landing');
+    }
+
     public function saveTestimonial(): never
     {
         $data = all_input();
@@ -202,6 +227,32 @@ final class LandingAdminController extends Controller
         redirect('admin/landing');
     }
 
+    public function updateTestimonial(string $id): never
+    {
+        $data = all_input();
+        $validator = Validator::make($data, [
+            'auteur'    => 'required|string|max:100',
+            'texte_fr'  => 'required|string',
+            'texte_ar'  => 'nullable|string',
+            'role'      => 'nullable|string|max:100',
+            'note'      => 'integer',
+        ]);
+        if ($validator->fails()) {
+            $this->backWithErrors($validator->errors(), $data);
+        }
+        Database::run('UPDATE landing_testimonials SET auteur = ?, role = ?, texte_fr = ?, texte_ar = ?, note = ?, actif = ? WHERE id = ?', [
+            trim((string) $data['auteur']),
+            trim((string) ($data['role'] ?? '')) ?: null,
+            trim((string) $data['texte_fr']),
+            trim((string) ($data['texte_ar'] ?? '')) ?: null,
+            min(5, max(1, (int) ($data['note'] ?? 5))),
+            isset($data['actif']) ? 1 : 0,
+            (int) $id,
+        ]);
+        flash('success', 'Témoignage mis à jour.');
+        redirect('admin/landing');
+    }
+
     public function savePartner(): never
     {
         $data = all_input();
@@ -214,12 +265,38 @@ final class LandingAdminController extends Controller
             $this->backWithErrors($validator->errors(), $data);
         }
 
-        Database::insert('landing_partners', [
+        $partnerData = [
             'nom'   => trim((string) $data['nom']),
             'url'   => trim((string) ($data['url'] ?? '')) ?: null,
             'ordre' => (int) ($data['ordre'] ?? 0),
             'actif' => isset($data['actif']) ? 1 : 0,
-        ]);
+        ];
+
+        if (!empty($_FILES['logo_file']['tmp_name'])) {
+            // RNSI §9 — SVG bloqué (XSS stored) — OWASP A08
+            $allowed = ['image/jpeg', 'image/png', 'image/webp'];
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mime = finfo_file($finfo, $_FILES['logo_file']['tmp_name']);
+            finfo_close($finfo);
+            if (in_array($mime, $allowed, true)) {
+                $ext = match ($mime) {
+                    'image/jpeg'     => '.jpg',
+                    'image/png'      => '.png',
+                    'image/webp'     => '.webp',
+                    default          => '.jpg',
+                };
+                $name = 'partner_' . time() . '_' . bin2hex(random_bytes(4)) . $ext;
+                $dest = UPLOAD_DIR . '/landing/' . $name;
+                if (!is_dir(UPLOAD_DIR . '/landing')) {
+                    mkdir(UPLOAD_DIR . '/landing', 0755, true);
+                }
+                if (move_uploaded_file($_FILES['logo_file']['tmp_name'], $dest)) {
+                    $partnerData['logo'] = '/uploads/landing/' . $name;
+                }
+            }
+        }
+
+        Database::insert('landing_partners', $partnerData);
 
         flash('success', 'Partenaire ajouté.');
         redirect('admin/landing');
@@ -229,6 +306,62 @@ final class LandingAdminController extends Controller
     {
         Database::run('DELETE FROM landing_partners WHERE id = ?', [(int) $id]);
         flash('success', 'Partenaire supprimé.');
+        redirect('admin/landing');
+    }
+
+    public function updatePartner(string $id): never
+    {
+        $data = all_input();
+        $validator = Validator::make($data, [
+            'nom'  => 'required|string|max:100',
+            'url'  => 'nullable|string|max:255',
+        ]);
+        if ($validator->fails()) {
+            $this->backWithErrors($validator->errors(), $data);
+        }
+
+        $update = [
+            'nom'   => trim((string) $data['nom']),
+            'url'   => trim((string) ($data['url'] ?? '')) ?: null,
+            'ordre' => (int) ($data['ordre'] ?? 0),
+            'actif' => isset($data['actif']) ? 1 : 0,
+        ];
+
+        if (!empty($_FILES['logo_file']['tmp_name'])) {
+            $allowed = ['image/jpeg', 'image/png', 'image/webp'];
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mime = finfo_file($finfo, $_FILES['logo_file']['tmp_name']);
+            finfo_close($finfo);
+            if (in_array($mime, $allowed, true)) {
+                $ext = match ($mime) {
+                    'image/jpeg'     => '.jpg',
+                    'image/png'      => '.png',
+                    'image/webp'     => '.webp',
+                    default          => '.jpg',
+                };
+                $name = 'partner_' . time() . '_' . bin2hex(random_bytes(4)) . $ext;
+                $dest = UPLOAD_DIR . '/landing/' . $name;
+                if (!is_dir(UPLOAD_DIR . '/landing')) {
+                    mkdir(UPLOAD_DIR . '/landing', 0755, true);
+                }
+                if (move_uploaded_file($_FILES['logo_file']['tmp_name'], $dest)) {
+                    $update['logo'] = '/uploads/landing/' . $name;
+                }
+            }
+        } elseif (!empty($data['logo_url'])) {
+            $update['logo'] = trim((string) $data['logo_url']);
+        }
+
+        $sets = [];
+        $params = [];
+        foreach ($update as $k => $v) {
+            $sets[] = "$k = ?";
+            $params[] = $v;
+        }
+        $params[] = (int) $id;
+        Database::run('UPDATE landing_partners SET ' . implode(', ', $sets) . ' WHERE id = ?', $params);
+
+        flash('success', 'Partenaire mis à jour.');
         redirect('admin/landing');
     }
 
@@ -355,21 +488,51 @@ final class LandingAdminController extends Controller
     public function saveBeforeAfter(): never
     {
         $data = all_input();
+        $hasBefore = ! empty($_FILES['image_before_file']['name']) && $_FILES['image_before_file']['error'] !== UPLOAD_ERR_NO_FILE;
+        $hasAfter  = ! empty($_FILES['image_after_file']['name']) && $_FILES['image_after_file']['error'] !== UPLOAD_ERR_NO_FILE;
+
         $validator = Validator::make($data, [
-            'titre_fr'      => 'required|string|max:255',
-            'image_before'  => 'required|string|max:255',
-            'image_after'   => 'required|string|max:255',
+            'titre_fr'     => 'required|string|max:255',
+            'image_before' => ($hasBefore ? 'nullable' : 'required') . '|string|max:255',
+            'image_after'  => ($hasAfter ? 'nullable' : 'required') . '|string|max:255',
         ]);
 
         if ($validator->fails()) {
             $this->backWithErrors($validator->errors(), $data);
         }
 
+        $imageBefore = trim((string) ($data['image_before'] ?? ''));
+        $imageAfter  = trim((string) ($data['image_after'] ?? ''));
+
+        $uploadDir = config('paths.uploads.landing', public_path('uploads/landing'));
+        if (! is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        if ($hasBefore) {
+            $result = UploadHelper::uploadImage($_FILES['image_before_file'], $uploadDir, (int) config('security.upload_max', 5242880));
+            if (! $result['success']) {
+                $this->backWithErrors(['image_before_file' => $result['error']], $data);
+            }
+            $imageBefore = $result['path'];
+        }
+        if ($hasAfter) {
+            $result = UploadHelper::uploadImage($_FILES['image_after_file'], $uploadDir, (int) config('security.upload_max', 5242880));
+            if (! $result['success']) {
+                $this->backWithErrors(['image_after_file' => $result['error']], $data);
+            }
+            $imageAfter = $result['path'];
+        }
+
+        if ($imageBefore === '' || $imageAfter === '') {
+            $this->backWithErrors(['image' => 'Les deux images sont requises (fichier ou URL).'], $data);
+        }
+
         Database::insert('landing_before_after', [
             'titre_fr'       => trim((string) $data['titre_fr']),
             'titre_ar'       => trim((string) ($data['titre_ar'] ?? '')) ?: null,
-            'image_before'   => trim((string) $data['image_before']),
-            'image_after'    => trim((string) $data['image_after']),
+            'image_before'   => $imageBefore,
+            'image_after'    => $imageAfter,
             'description_fr' => trim((string) ($data['description_fr'] ?? '')) ?: null,
             'description_ar' => trim((string) ($data['description_ar'] ?? '')) ?: null,
             'statut'         => (string) ($data['statut'] ?? 'publie'),
@@ -400,21 +563,51 @@ final class LandingAdminController extends Controller
     public function updateBeforeAfter(string $id): never
     {
         $data = all_input();
+        $hasBefore = ! empty($_FILES['image_before_file']['name']) && $_FILES['image_before_file']['error'] !== UPLOAD_ERR_NO_FILE;
+        $hasAfter  = ! empty($_FILES['image_after_file']['name']) && $_FILES['image_after_file']['error'] !== UPLOAD_ERR_NO_FILE;
+
         $validator = Validator::make($data, [
             'titre_fr'     => 'required|string|max:255',
-            'image_before' => 'required|string|max:255',
-            'image_after'  => 'required|string|max:255',
+            'image_before' => ($hasBefore ? 'nullable' : 'required') . '|string|max:255',
+            'image_after'  => ($hasAfter ? 'nullable' : 'required') . '|string|max:255',
         ]);
 
         if ($validator->fails()) {
             $this->backWithErrors($validator->errors(), $data);
         }
 
+        $imageBefore = trim((string) ($data['image_before'] ?? ''));
+        $imageAfter  = trim((string) ($data['image_after'] ?? ''));
+
+        $uploadDir = config('paths.uploads.landing', public_path('uploads/landing'));
+        if (! is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        if ($hasBefore) {
+            $result = UploadHelper::uploadImage($_FILES['image_before_file'], $uploadDir, (int) config('security.upload_max', 5242880));
+            if (! $result['success']) {
+                $this->backWithErrors(['image_before_file' => $result['error']], $data);
+            }
+            $imageBefore = $result['path'];
+        }
+        if ($hasAfter) {
+            $result = UploadHelper::uploadImage($_FILES['image_after_file'], $uploadDir, (int) config('security.upload_max', 5242880));
+            if (! $result['success']) {
+                $this->backWithErrors(['image_after_file' => $result['error']], $data);
+            }
+            $imageAfter = $result['path'];
+        }
+
+        if ($imageBefore === '' || $imageAfter === '') {
+            $this->backWithErrors(['image' => 'Les deux images sont requises (fichier ou URL).'], $data);
+        }
+
         Database::update('landing_before_after', [
             'titre_fr'       => trim((string) $data['titre_fr']),
             'titre_ar'       => trim((string) ($data['titre_ar'] ?? '')) ?: null,
-            'image_before'   => trim((string) $data['image_before']),
-            'image_after'    => trim((string) $data['image_after']),
+            'image_before'   => $imageBefore,
+            'image_after'    => $imageAfter,
             'description_fr' => trim((string) ($data['description_fr'] ?? '')) ?: null,
             'description_ar' => trim((string) ($data['description_ar'] ?? '')) ?: null,
             'statut'         => (string) ($data['statut'] ?? 'publie'),
@@ -774,6 +967,38 @@ final class LandingAdminController extends Controller
         }
 
         flash('success', 'Élément supprimé.');
+        redirect('admin/landing/news');
+    }
+
+    /**
+     * Toggle rapide publie/brouillon pour une actualité (AJAX ou redirect).
+     */
+    public function newsToggle(string $id): never
+    {
+        $this->requirePermission('landing.manage');
+
+        $item = Database::one('SELECT statut, actif FROM landing_news WHERE id = ? AND deleted_at IS NULL', [(int) $id]);
+        if ($item === null) {
+            abort(404, 'Élément introuvable.');
+        }
+
+        $newStatut = ($item['statut'] ?? 'publie') === 'publie' ? 'brouillon' : 'publie';
+        $newActif = $newStatut === 'publie' ? 1 : 0;
+
+        Database::update('landing_news', [
+            'statut' => $newStatut,
+            'actif'  => $newActif,
+        ], 'id = ?', [(int) $id]);
+
+        AuditLog::log('actualite_toggle', 'landing_news', (int) $id, ['statut' => $item['statut']], ['statut' => $newStatut]);
+
+        if (headers_sent()) {
+            header('Content-Type: application/json');
+            echo json_encode(['ok' => true, 'statut' => $newStatut, 'actif' => $newActif]);
+            exit;
+        }
+
+        flash('success', $newStatut === 'publie' ? 'Élément publié.' : 'Élément mis en brouillon.');
         redirect('admin/landing/news');
     }
 

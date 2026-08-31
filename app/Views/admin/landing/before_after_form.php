@@ -12,18 +12,28 @@ $val = static function (string $k) use ($item): string {
 };
 ?>
 <div class="wh-page">
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-        <div>
-            <h1 class="wh-page-title"><?= e(__('landing.admin.before_after')) ?> — <?= e($title) ?></h1>
-            <p class="wh-page-sub"><?= e(__('common.informations')) ?></p>
+    <div style="background:linear-gradient(135deg,#198754 0%,#0B5ED7 100%);border-radius:var(--wh-radius);padding:1.75rem 2rem;margin-bottom:1.5rem;color:#fff;">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.2);display:grid;place-items:center;font-size:1.3rem;"><i class="mdi mdi-compare-horizontal"></i></div>
+                <div>
+                    <h1 style="font-size:1.35rem;font-weight:700;margin:0;"><?= e(__('landing.admin.before_after')) ?> — <?= e($title) ?></h1>
+                    <p style="margin:0;opacity:.85;font-size:.85rem;"><?= e(__('common.informations')) ?></p>
+                </div>
+            </div>
+            <a href="<?= url('admin/landing/before-after') ?>" class="btn btn-light"><i class="mdi mdi-arrow-left me-1"></i><?= e(__('common.back')) ?></a>
         </div>
-        <a href="<?= url('admin/landing/before-after') ?>" class="btn btn-outline-secondary"><i class="mdi mdi-arrow-left me-1"></i><?= e(__('common.back')) ?></a>
     </div>
 
-    <form method="post" action="<?= $editing ? url('admin/landing/before-after/' . (int) $item['id'] . '/update') : url('admin/landing/before-after') ?>" novalidate>
+    <form method="post" action="<?= $editing ? url('admin/landing/before-after/' . (int) $item['id'] . '/update') : url('admin/landing/before-after') ?>" enctype="multipart/form-data" novalidate>
         <?= csrf_field() ?>
         <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header"><span><i class="mdi mdi-compare-horizontal me-2"></i><?= e(__('landing.admin.before_after')) ?></span></div>
+            <div class="card-header" style="background:#ede9fe;border-bottom:1px solid #ddd6fe;">
+                <span class="d-flex align-items-center gap-2 fw-bold">
+                    <span style="width:32px;height:32px;border-radius:8px;background:rgba(124,58,237,.15);display:grid;place-items:center;color:#7c3aed;"><i class="mdi mdi-compare-horizontal"></i></span>
+                    <?= e(__('landing.admin.before_after')) ?>
+                </span>
+            </div>
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-6">
@@ -36,8 +46,11 @@ $val = static function (string $k) use ($item): string {
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="image_before">Image « avant » *</label>
-                        <input type="text" class="form-control" id="image_before" name="image_before" value="<?= e($val('image_before')) ?>" required maxlength="255" placeholder="/assets/img/avant.jpg">
-                        <div class="mt-2 ba-thumb" id="thumb_before">
+                        <input type="text" class="form-control mb-1" id="image_before" name="image_before" value="<?= e($val('image_before')) ?>" maxlength="255" placeholder="/assets/img/avant.jpg">
+                        <input type="file" class="form-control" name="image_before_file" accept=".jpg,.jpeg,.png,.webp">
+                        <small class="text-muted">Ou saisir une URL ci-dessus. Le fichier remplace l'URL si fourni.</small>
+                        <label class="form-label mt-3" style="font-size:.8rem;color:#7c3aed;font-weight:600;">Aperçu</label>
+                        <div class="mt-1 ba-thumb" id="thumb_before">
                             <?php if ($val('image_before') !== ''): ?>
                                 <img src="<?= e(asset($val('image_before'))) ?>" alt="Avant" loading="lazy">
                             <?php endif; ?>
@@ -45,8 +58,11 @@ $val = static function (string $k) use ($item): string {
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="image_after">Image « après » *</label>
-                        <input type="text" class="form-control" id="image_after" name="image_after" value="<?= e($val('image_after')) ?>" required maxlength="255" placeholder="/assets/img/apres.jpg">
-                        <div class="mt-2 ba-thumb" id="thumb_after">
+                        <input type="text" class="form-control mb-1" id="image_after" name="image_after" value="<?= e($val('image_after')) ?>" maxlength="255" placeholder="/assets/img/apres.jpg">
+                        <input type="file" class="form-control" name="image_after_file" accept=".jpg,.jpeg,.png,.webp">
+                        <small class="text-muted">Ou saisir une URL ci-dessus. Le fichier remplace l'URL si fourni.</small>
+                        <label class="form-label mt-3" style="font-size:.8rem;color:#7c3aed;font-weight:600;">Aperçu</label>
+                        <div class="mt-1 ba-thumb" id="thumb_after">
                             <?php if ($val('image_after') !== ''): ?>
                                 <img src="<?= e(asset($val('image_after'))) ?>" alt="Après" loading="lazy">
                             <?php endif; ?>
@@ -82,7 +98,7 @@ $val = static function (string $k) use ($item): string {
             </div>
         </div>
 
-        <div class="d-flex justify-content-end gap-2">
+        <div class="d-flex justify-content-end gap-2 mt-4 pt-3" style="border-top:1px solid var(--wh-border);">
             <a href="<?= url('admin/landing/before-after') ?>" class="btn btn-outline-secondary"><?= e(__('common.cancel')) ?></a>
             <button type="submit" class="btn btn-primary"><i class="mdi mdi-content-save me-1"></i><?= e(__('common.save')) ?></button>
         </div>
@@ -93,13 +109,13 @@ $val = static function (string $k) use ($item): string {
 .ba-thumb {
     width: 100%;
     height: 120px;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
+    border: 2px dashed #c4b5fd;
+    border-radius: 12px;
     overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #f8fafc;
+    background: #faf5ff;
 }
 .ba-thumb img {
     width: 100%;

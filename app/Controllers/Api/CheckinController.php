@@ -23,7 +23,7 @@ final class CheckinController
             json_response(['success' => false, 'code' => 'INCONNU', 'message' => 'QR code inconnu.'], 404);
         }
 
-        if (! in_array(($qr['statut'] ?? ''), ['PROGRAMME', 'QR_GENERE'], true)) {
+        if (! in_array(($qr['statut'] ?? ''), ['PROGRAMME', 'QR_GENERE', 'EN_COURS'], true)) {
             json_response(['success' => false, 'code' => 'INACTIF', 'message' => 'L\'événement n\'est plus actif.']);
         }
 
@@ -71,6 +71,10 @@ final class CheckinController
 
         if ($already) {
             json_response(['success' => false, 'code' => 'DEJA', 'message' => 'Participation déjà enregistrée.'], 409);
+        }
+
+        if (QrCodeGenerator::estComplet((int) $qr['evenement_id'])) {
+            json_response(['success' => false, 'code' => 'COMPLET', 'message' => 'La capacité maximale de cet événement est atteinte.'], 409);
         }
 
         QrCodeGenerator::registerParticipation((int) $qr['evenement_id'], $userId, $already);

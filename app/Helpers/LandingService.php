@@ -13,6 +13,9 @@ namespace App\Helpers;
  */
 final class LandingService
 {
+    /** Garde anti-doublon (au plus une clôture automatique par requête). */
+    private static bool $autoClotureTente = false;
+
     /**
      * Rassemble toutes les données nécessaires au rendu de la page landing.
      *
@@ -20,18 +23,27 @@ final class LandingService
      */
     public static function data(): array
     {
+        // Auto-clôture : passe en TERMINE les événements dont la date est dépassée.
+        if (! self::$autoClotureTente) {
+            self::$autoClotureTente = true;
+            EvenementService::autoCloturer();
+        }
+
         // Événements à venir
+        $upcomingMax = max(1, min(12, (int) settings('general_upcoming_max', 3)));
         $upcoming = Database::all(
             'SELECT e.*, c.nom AS commune_nom FROM evenements e
               LEFT JOIN commune c ON c.id = e.commune_id
-              WHERE e.statut IN (' . implode(',', array_map(fn($s) => "'$s'", EvenementService::STATUTS_A_VENIR)) . ') AND e.date_evenement >= CURDATE()
-              ORDER BY e.date_evenement ASC LIMIT 3'
+              WHERE e.statut IN (' . implode(',', array_map(fn($s) => "'$s'", EvenementService::STATUTS_A_VENIR)) . ')
+                AND e.date_evenement >= CURDATE()
+                AND e.deleted_at IS NULL
+              ORDER BY e.date_evenement ASC LIMIT ' . $upcomingMax
         );
 
         $stats = [
             ['valeur' => (int) Database::value('SELECT COUNT(*) FROM associations WHERE valide = 1'), 'libelle' => __('landing.stat_associations'), 'icone' => 'mdi-account-group-outline', 'teinte' => 'violet'],
             ['valeur' => (int) Database::value('SELECT COUNT(*) FROM users WHERE role_user = ?', ['citoyen']), 'libelle' => __('landing.stat_citoyens'), 'icone' => 'mdi-account-heart-outline', 'teinte' => 'cyan'],
-            ['valeur' => (int) Database::value('SELECT COUNT(*) FROM anomalies_evenement'), 'libelle' => __('landing.stat_signalements'), 'icone' => 'mdi-alert-octgon-outline', 'teinte' => 'amber'],
+            ['valeur' => (int) Database::value('SELECT COUNT(*) FROM anomalies_evenement'), 'libelle' => __('landing.stat_signalements'), 'icone' => 'mdi-bullhorn-outline', 'teinte' => 'amber'],
             ['valeur' => (int) Database::value('SELECT COUNT(*) FROM evenements'), 'libelle' => __('landing.stat_interventions'), 'icone' => 'mdi-map-marker-radius-outline', 'teinte' => 'green'],
         ];
 
@@ -49,34 +61,76 @@ final class LandingService
                          e.id AS evenement_id, e.adresse, e.date_evenement, e.association_id,
                          c.nom AS commune_nom,
                          (SELECT COUNT(*) FROM photos p WHERE p.album_id = a.id AND p.status = ?) AS nb_photos_count,
-                         (SELECT p.image FROM photos p WHERE p.album_id = a.id AND p.status = ? ORDER BY p.uploaded_at ASC LIMIT 1) AS first_photo
+                         (SELECT p.image FROM photos p WHERE p.album_id = a.id AND p.status = ? ORDER BY p.uploaded_at ASC LIMIT 1) AS first_photo,
+                         (SELECT COALESCE(p.thumbnail, p.image) FROM photos p WHERE p.album_id = a.id AND p.status = ? ORDER BY p.uploaded_at ASC LIMIT 1) AS first_photo_src
                     FROM albums a
                     JOIN evenements e ON e.id = a.evenement_id
                     LEFT JOIN commune c ON c.id = e.commune_id
                     WHERE a.statut = ?
                     ORDER BY a.date_creation DESC LIMIT 12',
-            ['active', 'active', 'publie']
+            ['active', 'active', 'active', 'publie']
         );
 
         foreach ($albums as &$al) {
-            // Couverture explicite de l'album, sinon première photo
-            $al['display_image'] = $al['couverture'] ?: $al['first_photo'];
+            // Couverture explicite de l'album, sinon première photo (vignette si dispo)
+            $al['display_image'] = $al['couverture'] ?: ($al['first_photo_src'] ?: $al['first_photo']);
+        }
+        unset($al);
 
-            // Liste complète des photos pour la lightbox
-            $al['photos'] = Database::all(
-                'SELECT * FROM photos WHERE album_id = ? AND status = ? ORDER BY sort_order ASC, uploaded_at DESC',
-                [(int) $al['id'], 'active']
+        // Batch-fetch photos for all albums (avoids N+1)
+        $albumIds = array_values(array_column($albums, 'id'));
+        $allPhotos = [];
+        if ($albumIds !== []) {
+            $placeholders = implode(',', array_fill(0, count($albumIds), '?'));
+            $photoRows = Database::all(
+                'SELECT * FROM photos WHERE album_id IN (' . $placeholders . ') AND status = ? ORDER BY sort_order ASC, uploaded_at DESC',
+                array_merge($albumIds, ['active'])
             );
-
-            // Badge association
-            if (! empty($al['association_id'])) {
-                $al['association'] = Database::one(
-                    'SELECT id, nom, numero_agrement, valide FROM associations WHERE id = ?',
-                    [(int) $al['association_id']]
-                );
-            } else {
-                $al['association'] = null;
+            foreach ($photoRows as $ph) {
+                $allPhotos[(int) $ph['album_id']][] = $ph;
             }
+        }
+        foreach ($albums as &$al) {
+            $al['photos'] = $allPhotos[(int) $al['id']] ?? [];
+        }
+        unset($al);
+
+        // Batch-fetch associations (avoids N+1)
+        $assocIds = array_values(array_unique(array_filter(array_column($albums, 'association_id'))));
+        $assocMap = [];
+        if ($assocIds !== []) {
+            $placeholders = implode(',', array_fill(0, count($assocIds), '?'));
+            $assocRows = Database::all(
+                'SELECT id, nom, numero_agrement, valide FROM associations WHERE id IN (' . $placeholders . ')',
+                $assocIds
+            );
+            foreach ($assocRows as $ar) {
+                $assocMap[(int) $ar['id']] = $ar;
+            }
+        }
+        foreach ($albums as &$al) {
+            $al['association'] = (! empty($al['association_id'])) ? ($assocMap[(int) $al['association_id']] ?? null) : null;
+        }
+        unset($al);
+
+        // Batch-fetch anomalies per album event (avoids N+1 in view)
+        $eventIds = array_values(array_unique(array_filter(array_column($albums, 'evenement_id'))));
+        $anomalyMap = [];
+        if ($eventIds !== []) {
+            $placeholders = implode(',', array_fill(0, count($eventIds), '?'));
+            $anomalyRows = Database::all(
+                'SELECT ae.evenement_id, a.id, a.nom, a.icone, a.couleur
+                 FROM anomalies a
+                 JOIN anomalies_evenement ae ON ae.anomalie_id = a.id
+                 WHERE ae.evenement_id IN (' . $placeholders . ')',
+                $eventIds
+            );
+            foreach ($anomalyRows as $ar) {
+                $anomalyMap[(int) $ar['evenement_id']][] = $ar;
+            }
+        }
+        foreach ($albums as &$al) {
+            $al['anomalies'] = $anomalyMap[(int) $al['evenement_id']] ?? [];
         }
         unset($al);
 

@@ -188,6 +188,78 @@ final class UploadHelper
     }
 
     /**
+     * Génère une vignette JPEG (largeur max 400 px) pour une image uploadée.
+     *
+     * @param string $path   Chemin relatif de l'image source (depuis public/)
+     * @param int    $width  Largeur maximale de la vignette en pixels
+     *
+     * @return string|null Chemin relatif de la vignette (thumbs/<nom>.jpg), null si échec
+     */
+    public static function makeThumbnail(string $path, int $width = 400): ?string
+    {
+        $publicPath = rtrim((string) config('paths.public', ''), '/');
+        $source = $publicPath . '/' . ltrim($path, '/');
+
+        if (! is_file($source)) {
+            return null;
+        }
+
+        [$origW, $origH, $type] = @getimagesize($source);
+        if ($origW === null || $origW <= 0 || $origH === null || $origH <= 0) {
+            return null;
+        }
+
+        $image = match ($type) {
+            IMAGETYPE_JPEG  => @imagecreatefromjpeg($source),
+            IMAGETYPE_PNG   => @imagecreatefrompng($source),
+            IMAGETYPE_WEBP  => @imagecreatefromwebp($source),
+            default         => false,
+        };
+        if ($image === false) {
+            return null;
+        }
+
+        if ($origW <= $width) {
+            $thumbW = $origW;
+            $thumbH = $origH;
+        } else {
+            $thumbW = $width;
+            $thumbH = (int) round($origH * $width / $origW);
+        }
+
+        $thumb = imagecreatetruecolor($thumbW, $thumbH);
+        if ($thumb === false) {
+            imagedestroy($image);
+
+            return null;
+        }
+
+        imagecopyresampled($thumb, $image, 0, 0, 0, 0, $thumbW, $thumbH, $origW, $origH);
+        imagedestroy($image);
+
+        $dir = dirname($source) . '/thumbs';
+        if (! is_dir($dir) && ! mkdir($dir, 0755, true) && ! is_dir($dir)) {
+            imagedestroy($thumb);
+
+            return null;
+        }
+
+        $name = pathinfo($source, PATHINFO_FILENAME) . '.jpg';
+        if (! imagejpeg($thumb, $dir . '/' . $name, 82)) {
+            imagedestroy($thumb);
+
+            return null;
+        }
+        imagedestroy($thumb);
+
+        $publicDir = rtrim((string) config('paths.public', ''), '/');
+        $relative = str_replace($publicDir, '', $dir . '/' . $name);
+        $relative = '/' . ltrim($relative, '/');
+
+        return $relative;
+    }
+
+    /**
      * Supprimer un fichier uploadé.
      */
     public static function delete(string $path): bool

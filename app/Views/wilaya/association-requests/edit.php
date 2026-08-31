@@ -17,20 +17,22 @@ $val = static function (string $key, mixed $default = '') use ($request, $old): 
 };
 ?>
 <div class="wh-page">
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-        <div>
-            <h1 class="wh-page-title">
-                <i class="mdi mdi-pencil-outline me-2"></i>Modifier la demande #<?= (int) $request['id'] ?>
-            </h1>
-            <p class="wh-page-sub"><?= e($request['association_name']) ?></p>
-        </div>
-        <div class="d-flex gap-2">
-            <a class="btn btn-outline-secondary" href="<?= url('admin/association-requests/' . (int) $request['id']) ?>">
-                <i class="mdi mdi-arrow-left me-1"></i>Retour au détail
-            </a>
-            <a class="btn btn-outline-primary" href="<?= url('admin/association-requests') ?>">
-                <i class="mdi mdi-view-list me-1"></i>Liste
-            </a>
+    <div class="wh-hero" style="background: linear-gradient(135deg, #0B5ED7 0%, #6C63FF 100%)">
+        <div class="wh-hero-inner">
+            <div class="wh-hero-row">
+                <div class="wh-hero-text">
+                    <h1 class="wh-hero-title"><i class="mdi mdi-pencil-outline me-2"></i>Modifier la demande #<?= (int) $request['id'] ?></h1>
+                    <p class="wh-hero-sub"><?= e($request['association_name']) ?></p>
+                </div>
+                <div class="wh-hero-actions">
+                    <a class="btn btn-light" href="<?= url('admin/association-requests/' . (int) $request['id']) ?>">
+                        <i class="mdi mdi-arrow-left me-1"></i>Retour au détail
+                    </a>
+                    <a class="btn btn-outline-light" href="<?= url('admin/association-requests') ?>">
+                        <i class="mdi mdi-view-list me-1"></i>Liste
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -213,4 +215,8 @@ $val = static function (string $key, mixed $default = '') use ($request, $old): 
             </div>
         </div>
     </form>
+
+    <style>
+.wh-hero{border-radius:0 0 1.5rem 1.5rem;padding:1.5rem;margin-bottom:1.5rem}.wh-hero-inner{max-width:1200px;margin:0 auto}.wh-hero-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}.wh-hero-title{color:#fff;font-size:1.35rem;font-weight:700;margin:0}.wh-hero-sub{color:rgba(255,255,255,.8);font-size:.85rem;margin:.25rem 0 0}.wh-hero-actions{display:flex;align-items:center;gap:.5rem}
+    </style>
 </div>

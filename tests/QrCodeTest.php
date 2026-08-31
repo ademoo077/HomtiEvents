@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests;
 
 use App\Helpers\Database;
+use App\Helpers\Gamification;
 use App\Helpers\QrCodeGenerator;
 
 final class QrCodeTest extends DatabaseTestCase
@@ -57,7 +58,22 @@ final class QrCodeTest extends DatabaseTestCase
         $this->assertTrue(QrCodeGenerator::hasParticipated((int) $event['id'], (int) $citoyen['id']));
 
         $points = (int) Database::value('SELECT points FROM users WHERE id = ?', [(int) $citoyen['id']]);
-        $this->assertSame((int) $citoyen['points'] + 50, $points);
+        $badgePts = (int) Database::value(
+            "SELECT points_recompense FROM badges WHERE condition_type = 'first_participation'"
+        );
+        $this->assertSame(
+            Gamification::POINTS_PARTICIPATION + $badgePts,
+            $points - (int) $citoyen['points'],
+            'Participation (+50 pts) + badge "Première Participation" (+' . $badgePts . ' pts)'
+        );
+        $this->assertTrue(
+            Database::exists(
+                'SELECT 1 FROM user_badges ub JOIN badges b ON b.id = ub.badge_id
+                 WHERE ub.user_id = ? AND b.condition_type = ?',
+                [(int) $citoyen['id'], 'first_participation']
+            ),
+            'Le badge de première participation doit être attribué'
+        );
 
         $ok2 = QrCodeGenerator::registerParticipation((int) $event['id'], (int) $citoyen['id']);
         $this->assertFalse($ok2, 'Double check-in refusé');

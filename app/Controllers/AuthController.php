@@ -7,9 +7,13 @@ namespace App\Controllers;
 use App\Helpers\AuditLog;
 use App\Helpers\Csrf;
 use App\Helpers\Database;
+use App\Helpers\I18n;
+use App\Helpers\Mailer;
 use App\Helpers\Notification;
 use App\Helpers\Rbac;
+use App\Helpers\Security;
 use App\Helpers\Session;
+use App\Helpers\Totp;
 use App\Helpers\UploadHelper;
 use App\Helpers\Validator;
 
@@ -20,6 +24,13 @@ final class AuthController extends Controller
         if (Session::isLogged()) {
             redirect('/');
         }
+
+        // Ne jamais servir une page de connexion en cache (fichier statique / proxy /
+        // navigateur) : un formulaire périmé porterait un jeton CSRF incohérent avec la
+        // session → erreur « Session expirée » à la soumission.
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('Pragma: no-cache');
+        header('Expires: 0');
 
         $this->view('auth.login', [
             'errors' => $this->errors(),
@@ -71,6 +82,8 @@ final class AuthController extends Controller
         );
 
         if ($user === null || ! password_verify((string) $data['password'], (string) $user['password'])) {
+            Security::evenement('login_fail', 'Échec de connexion : ' . mb_strtolower(trim((string) ($data['email'] ?? ''))), 2);
+            Security::limiteTentatives('login:' . mb_strtolower(trim((string) ($data['email'] ?? ''))), (int) Security::param('securite.tentatives_max', 5), (int) Security::param('securite.blocage_duree_min', 10));
             $this->backWithErrors(['email' => __('auth.invalid')], $data);
         }
 
@@ -90,20 +103,190 @@ final class AuthController extends Controller
             }
         }
 
+        // Défi 2FA : si le paramètre global est actif et que l'utilisateur
+        // a activé la double authentification, on ne connecte pas encore —
+        // un code à usage unique est généré puis envoyé par email (ou TOTP).
+        if ($this->requires2fa((int) $user['id'])) {
+            $method = $this->get2faMethod((int) $user['id']);
+
+            Session::set('auth_2fa', [
+                'user_id' => (int) $user['id'],
+                'next'    => trim((string) ($_POST['next'] ?? '')),
+                'expires' => time() + 300,
+                'method'  => $method,
+            ]);
+
+            if ($method === 'authenticator') {
+                redirect('auth/verify-2fa');
+            }
+
+            $code = Security::genererCode2fa((int) $user['id']);
+            $this->envoyerCode2fa((int) $user['id'], $code);
+            redirect('auth/verify-2fa');
+        }
+
         Csrf::rotate();
         Session::login((int) $user['id']);
         Session::set('user', $user);
         Session::set('user_roles', [(string) ($user['role_user'] ?? 'citoyen')]);
         Rbac::loadPermissions((int) $user['id']);
 
+        Session::persistToDatabase();
+        Security::evenement('login_success', 'Connexion réussie', 1, ['role' => $user['role_user'] ?? 'citoyen']);
         AuditLog::log('login', 'user', (int) $user['id']);
 
         $next = trim((string) ($_POST['next'] ?? ''));
         if ($next !== '' && str_starts_with($next, '/') && ! str_starts_with($next, '//') && ! preg_match('#^[a-z]+:#i', $next)) {
-            redirect($next);
+            // Les rôles back-office ne doivent pas atterrir sur des pages citoyen.
+            $role = Rbac::role($user);
+            $isCitoyenOnly = str_starts_with($next, '/citoyen') || str_starts_with($next, '/qrcode');
+            $isBackOffice = in_array($role, ['wilaya', 'chef_section', 'chef_unite', 'association', 'membre', 'epic'], true);
+
+            if (! ($isCitoyenOnly && $isBackOffice)) {
+                redirect($next);
+            }
         }
 
         redirect(dashboard_path());
+    }
+
+    public function showVerify2fa(): never
+    {
+        $pending = Session::get('auth_2fa');
+
+        if (! is_array($pending) || Session::isLogged() || (int) ($pending['expires'] ?? 0) < time()) {
+            Session::forget('auth_2fa');
+            redirect('auth/login');
+        }
+
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+
+        $this->view('auth.verify-2fa', [
+            'errors' => $this->errors(),
+            'method' => $pending['method'] ?? 'email',
+        ], 'guest');
+    }
+
+    public function verify2fa(): never
+    {
+        if (! $this->rateLimit('verify_2fa', 10, 300)) {
+            flash('error', __('auth.too_many'));
+            redirect('auth/verify-2fa');
+        }
+
+        $pending = Session::get('auth_2fa');
+
+        if (! is_array($pending) || (int) ($pending['expires'] ?? 0) < time()) {
+            Session::forget('auth_2fa');
+            flash('error', __('auth.2fa_expired'));
+            redirect('auth/login');
+        }
+
+        $data = all_input();
+        $validator = Validator::make($data, ['code' => 'required|numeric']);
+
+        $code = trim((string) ($data['code'] ?? ''));
+        if ($validator->fails() || ! preg_match('/^\d{6}$/', $code)) {
+            $this->backWithErrors(['code' => __('auth.2fa_invalid')]);
+        }
+
+        $userId = (int) ($pending['user_id'] ?? 0);
+        $method = $pending['method'] ?? 'email';
+
+        if ($method === 'authenticator') {
+            $twoFactor = Database::one('SELECT secret FROM two_factor WHERE user_id = ? AND method = "authenticator" AND enabled = 1', [$userId]);
+            if ($twoFactor === null || ! Totp::verify((string) $twoFactor['secret'], $code)) {
+                Security::evenement('tfa_fail', 'Code TOTP invalide', 2, ['user_id' => $userId]);
+                $this->backWithErrors(['code' => __('auth.2fa_invalid')]);
+            }
+        } else {
+            if (! Security::validerCode2fa($userId, $code)) {
+                $this->backWithErrors(['code' => __('auth.2fa_invalid')]);
+            }
+        }
+
+        // Code valide : compléter la connexion.
+        Session::forget('auth_2fa');
+        Csrf::rotate();
+        Session::login($userId);
+
+        $user = Database::one(
+            'SELECT u.*, a.valide AS association_valide FROM users u
+             LEFT JOIN associations a ON a.id = u.association_id
+             WHERE u.id = ?',
+            [$userId]
+        );
+        Session::set('user', $user);
+        Session::set('user_roles', [(string) ($user['role_user'] ?? 'citoyen')]);
+        Rbac::loadPermissions($userId);
+
+        Session::persistToDatabase();
+        Security::evenement('tfa_success', '2FA validé, connexion complétée', 1, ['user_id' => $userId]);
+        AuditLog::log('login', 'user', $userId, null, ['2fa' => true]);
+
+        $next = trim((string) ($pending['next'] ?? ''));
+        if ($next !== '' && str_starts_with($next, '/') && ! str_starts_with($next, '//') && ! preg_match('#^[a-z]+:#i', $next)) {
+            $role = Rbac::role($user);
+            $isCitoyenOnly = str_starts_with($next, '/citoyen') || str_starts_with($next, '/qrcode');
+            $isBackOffice = in_array($role, ['wilaya', 'chef_section', 'chef_unite', 'association', 'membre', 'epic'], true);
+
+            if (! ($isCitoyenOnly && $isBackOffice)) {
+                redirect($next);
+            }
+        }
+
+        redirect(dashboard_path());
+    }
+
+    /**
+     * Le défi 2FA s'applique uniquement si le paramètre global est actif
+     * ET que l'utilisateur a activé la double authentification.
+     */
+    private function requires2fa(int $userId): bool
+    {
+        if (! Security::param('securite.tfa_obligatoire', false)) {
+            return false;
+        }
+
+        return Database::exists(
+            'SELECT id FROM two_factor WHERE user_id = ? AND enabled = 1',
+            [$userId]
+        );
+    }
+
+    /**
+     * Retourne la méthode 2FA de l'utilisateur (email|authenticator).
+     */
+    private function get2faMethod(int $userId): string
+    {
+        $row = Database::one(
+            'SELECT method FROM two_factor WHERE user_id = ? AND enabled = 1',
+            [$userId]
+        );
+
+        return ($row !== null && ($row['method'] ?? '') === 'authenticator') ? 'authenticator' : 'email';
+    }
+
+    /**
+     * Envoie le code 2FA par email (+ notification in-app).
+     */
+    private function envoyerCode2fa(int $userId, string $code): void
+    {
+        $user = Database::one('SELECT email, prenom FROM users WHERE id = ?', [$userId]);
+
+        if ($user === null || empty($user['email'])) {
+            return;
+        }
+
+        Mailer::send2faCode((string) $user['email'], (string) ($user['prenom'] ?? ''), $code);
+
+        Notification::send($userId, __('auth.2fa_code'), __('auth.2fa_sent') . ' Code : ' . $code, 'tfa_code');
+
+        if (Mailer::lastFailed()) {
+            Security::evenement('tfa_mail_fail', 'Échec d\'envoi du code 2FA', 2, ['user_id' => $userId], $userId);
+        }
     }
 
     public function showRegister(): never
@@ -152,7 +335,19 @@ final class AuthController extends Controller
             'role_id' => (int) Database::value('SELECT id FROM roles WHERE nom = ?', ['citoyen']),
         ]);
 
+        // Préférences par défaut (notifications email activées)
+        Database::insert('user_preferences', [
+            'user_id'     => $userId,
+            'notif_email' => 1,
+            'notif_inapp' => 1,
+        ]);
+
         AuditLog::log('register', 'user', $userId, null, ['email' => mb_strtolower(trim((string) $data['email']))]);
+
+        // Email de bienvenue (asynchrone — on ne bloque pas l'inscription)
+        $prenom = trim((string) $data['prenom']);
+        $emailAddr = mb_strtolower(trim((string) $data['email']));
+        Mailer::sendWelcomeEmail($emailAddr, $prenom, 'citoyen');
 
         // Après inscription, on envoie le nouveau citoyen sur la page de
         // connexion en conservant la destination d'origine (scan, etc.).
@@ -265,7 +460,7 @@ final class AuthController extends Controller
         $nom            = trim((string) $data['president_lastname']);
         $prenom         = trim((string) $data['president_firstname']);
 
-        Database::transaction(function () use ($data, $email, $presidentEmail, $approvalFile, $hashedPassword, $nom, $prenom, &$id) {
+        Database::transaction(function () use ($data, $email, $presidentEmail, $approvalFile, $hashedPassword, $nom, $prenom, &$id, &$userId) {
             // 1. Créer le compte président dès l'inscription (association_id NULL tant que non validée)
             $userId = Database::insert('users', [
                 'nom'            => $nom,
@@ -313,6 +508,16 @@ final class AuthController extends Controller
             'email'            => $email,
         ]);
 
+        // Préférences par défaut
+        Database::insert('user_preferences', [
+            'user_id'     => $userId,
+            'notif_email' => 1,
+            'notif_inapp' => 1,
+        ]);
+
+        // Email de bienvenue
+        Mailer::sendWelcomeEmail($presidentEmail, $prenom, 'association');
+
         // Notifier la Wilaya : nouvelle demande à traiter
         Notification::sendToRole('wilaya', 'Nouvelle demande d\'inscription', 'Demande de « ' . trim((string) $data['association_name']) . ' » en attente de validation.', 'association_request', [
             'request_id' => $id,
@@ -351,6 +556,8 @@ final class AuthController extends Controller
 
     public function forgot(): never
     {
+        $this->rateLimit('forgot', 5, 300);
+
         $data = all_input();
         $validator = Validator::make($data, ['email' => 'required|email']);
 
@@ -358,17 +565,19 @@ final class AuthController extends Controller
             $this->backWithErrors($validator->errors(), $data);
         }
 
-        $user = Database::one('SELECT id, email FROM users WHERE email = ?', [mb_strtolower(trim((string) $data['email']))]);
+        $email = mb_strtolower(trim((string) $data['email']));
+        $user = Database::one('SELECT id, email FROM users WHERE email = ?', [$email]);
 
         if ($user !== null) {
             $token = bin2hex(random_bytes(32));
+            $tokenHash = hash('sha256', $token);
             Database::run(
                 'INSERT INTO password_resets (email, token) VALUES (?, ?)',
-                [$user['email'], $token]
+                [$user['email'], $tokenHash]
             );
 
-            // En production : envoyer un email. En dev, on le journalise.
-            AuditLog::log('password_reset_request', 'user', (int) $user['id'], null, ['token' => $token]);
+            AuditLog::log('password_reset_request', 'user', (int) $user['id'], null, ['email' => $email]);
+            Mailer::sendResetLink($user['email'], $token);
         }
 
         flash('success', __('auth.forgot_sent'));
@@ -377,7 +586,8 @@ final class AuthController extends Controller
 
     public function showReset(string $token): never
     {
-        $reset = Database::one('SELECT * FROM password_resets WHERE token = ?', [$token]);
+        $tokenHash = hash('sha256', $token);
+        $reset = Database::one('SELECT * FROM password_resets WHERE token = ?', [$tokenHash]);
 
         if ($reset === null || strtotime((string) $reset['created_at']) < time() - 3600) {
             flash('error', __('auth.reset_invalid'));
@@ -389,7 +599,8 @@ final class AuthController extends Controller
 
     public function reset(string $token): never
     {
-        $reset = Database::one('SELECT * FROM password_resets WHERE token = ?', [$token]);
+        $tokenHash = hash('sha256', $token);
+        $reset = Database::one('SELECT * FROM password_resets WHERE token = ?', [$tokenHash]);
 
         if ($reset === null || strtotime((string) $reset['created_at']) < time() - 3600) {
             flash('error', __('auth.reset_invalid'));
@@ -405,12 +616,20 @@ final class AuthController extends Controller
             $this->backWithErrors($validator->errors(), $data);
         }
 
+        $newHash = password_hash((string) $data['password'], PASSWORD_BCRYPT);
         Database::run(
             'UPDATE users SET password = ? WHERE email = ?',
-            [password_hash((string) $data['password'], PASSWORD_BCRYPT), $reset['email']]
+            [$newHash, $reset['email']]
         );
 
-        Database::delete('password_resets', 'token = ?', [$token]);
+        Database::delete('password_resets', 'token = ?', [$tokenHash]);
+
+        $user = Database::one('SELECT id FROM users WHERE email = ?', [$reset['email']]);
+        if ($user !== null) {
+            Database::delete('sessions', 'user_id = ?', [(int) $user['id']]);
+        }
+
+        AuditLog::log('password_reset_success', 'user', (int) ($user['id'] ?? 0), null, ['email' => $reset['email']]);
 
         flash('success', __('auth.reset_success'));
         redirect('auth/login');

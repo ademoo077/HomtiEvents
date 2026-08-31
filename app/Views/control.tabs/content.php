@@ -52,7 +52,7 @@ $isAr = $dir === 'rtl';
         <span><i class="mdi mdi-shield-check"></i> <?= $isAr ? 'مراقبة المحتوى' : 'Modération du contenu' ?></span>
     </div>
     <div class="futur-card-body p-0">
-        <div class="table-responsive">
+        <div class="table-responsive futur-table-responsive">
             <table class="futur-table mb-0">
                 <thead>
                     <tr>
@@ -67,17 +67,23 @@ $isAr = $dir === 'rtl';
                     <?php if (!empty($pendingContent)): ?>
                         <?php foreach ($pendingContent as $item): ?>
                             <tr>
-                                <td><span class="badge bg-info"><?= e($item['type'] ?? '—') ?></span></td>
+                                <td><span class="futur-badge" style="background: var(--wh-info-soft); color: var(--wh-info);"><?= e($item['type'] ?? '—') ?></span></td>
                                 <td><?= e(mb_substr((string) ($item['titre'] ?? ''), 0, 50)) ?></td>
                                 <td><?= e($item['auteur'] ?? '—') ?></td>
                                 <td><?= e($item['created_at'] ?? '—') ?></td>
-                                <td>
-                                    <span class="futur-chip chip-warning"><?= $isAr ? 'قيد المراجعة' : 'En attente' ?></span>
-                                </td>
+                                <td><span class="futur-badge pending"><?= $isAr ? 'قيد المراجعة' : 'En attente' ?></span></td>
                             </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <tr><td colspan="5" class="text-center"><?= $isAr ? 'لا يوجد محتوى معلّق' : 'Aucun contenu en attente' ?></td></tr>
+                        <tr>
+                            <td colspan="5">
+                                <div class="futur-empty">
+                                    <i class="mdi mdi-shield-check"></i>
+                                    <p class="futur-empty-title"><?= $isAr ? 'لا يوجد محتوى معلّق' : 'Aucun contenu en attente' ?></p>
+                                    <p class="futur-empty-text"><?= $isAr ? 'كل المحتوى تمت مراجعته' : 'Tout le contenu a été modéré' ?></p>
+                                </div>
+                            </td>
+                        </tr>
                     <?php endif; ?>
                 </tbody>
             </table>

@@ -22,19 +22,29 @@ $isAr = I18n::direction() === 'rtl';
             </div>
         </div>
         <div class="citoyen-event-list" id="participationList">
-            <?php foreach ($participations as $p): ?>
+            <?php foreach ($participations as $p):
+                try {
+                    $evDate = new DateTimeImmutable((string) $p['date_evenement']);
+                    $dayLabel = $evDate->format('d');
+                    $monthLabel = $evDate->format('M');
+                } catch (Throwable) {
+                    $dayLabel = '—';
+                    $monthLabel = '';
+                }
+                $scanTs = strtotime((string) ($p['heure_scan'] ?? ''));
+            ?>
                 <a class="citoyen-card" href="<?= url('citoyen/evenement/' . (int) $p['evenement_id']) ?>">
                     <div class="citoyen-card-date">
-                        <span class="citoyen-card-day"><?= e((new DateTimeImmutable((string) $p['date_evenement']))->format('d')) ?></span>
-                        <span class="citoyen-card-month"><?= e((new DateTimeImmutable((string) $p['date_evenement']))->format('M')) ?></span>
+                        <span class="citoyen-card-day"><?= e($dayLabel) ?></span>
+                        <span class="citoyen-card-month"><?= e($monthLabel) ?></span>
                     </div>
                     <div class="citoyen-card-body">
                         <h3 class="citoyen-card-title"><?= e($p['adresse'] ?? 'Événement') ?></h3>
                         <p class="citoyen-card-meta">
                             <i class="mdi mdi-map-marker-outline"></i> <?= e($p['commune_nom'] ?? '') ?>
-                            <span class="participants-count"><i class="mdi mdi-qrcode"></i> <?= e(date('d/m/Y H:i', strtotime((string) ($p['heure_scan'] ?? '')))) ?></span>
+                            <span class="participants-count"><i class="mdi mdi-qrcode"></i> <?= e($scanTs ? date('d/m/Y H:i', $scanTs) : '—') ?></span>
                         </p>
-                        <span class="badge badge-<?= e(statut_key((string) ($p['event_statut'] ?? 'programme'))) ?>"><?= e(statut_label((string) ($p['event_statut'] ?? 'programme'))) ?></span>
+                        <span class="badge badge-<?= e(statut_badge_class((string) ($p['event_statut'] ?? 'programme'))) ?>"><?= e(statut_label((string) ($p['event_statut'] ?? 'programme'))) ?></span>
                         <?php if (! empty($p['album_id'])): ?>
                             <span class="badge badge-album">
                                 <i class="mdi mdi-image-multiple"></i> <?= e($p['album_titre']) ?> (<?= (int) $p['nb_photos'] ?>)

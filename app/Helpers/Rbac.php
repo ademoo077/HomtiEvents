@@ -139,27 +139,32 @@ final class Rbac
 
     /**
      * Portée de données : filtres SQL selon le rôle.
-     * Retourne le fragment SQL (vide = aucune restriction).
+     * Retourne le fragment SQL avec placeholder (vide = aucune restriction).
+     * OWASP A03 — évite injection via $column (allowlist) et valeurs bindées.
      */
     public static function scope(?array $user, string $column = 'e.association_id'): string
     {
+        $allow = ['e.association_id', 'association_id', 'evenements.association_id', 'e.id'];
+        if (!in_array($column, $allow, true)) {
+            return '1 = 0';
+        }
         $role = self::role($user);
-
         return match ($role) {
             'wilaya', 'chef_section', 'chef_unite' => '',
-            'association'   => sprintf('%s = %d', $column, (int) ($user['association_id'] ?? 0)),
-            'membre'        => sprintf('%s = %d', $column, (int) ($user['association_id'] ?? 0)),
-            'epic'          => sprintf(
-                'e.id IN (SELECT evenement_id FROM evenement_epic WHERE epic_id = %d)',
-                (int) ($user['epic_id'] ?? 0)
-            ),
+            'association', 'membre' => sprintf('%s = ?', $column),
+            'epic' => 'e.id IN (SELECT evenement_id FROM evenement_epic WHERE epic_id = ?)',
             default => '1 = 0',
         };
     }
 
     public static function scopeParams(?array $user): array
     {
-        return [];
+        $role = self::role($user);
+        return match ($role) {
+            'association', 'membre' => [(int) ($user['association_id'] ?? 0)],
+            'epic' => [(int) ($user['epic_id'] ?? 0)],
+            default => [],
+        };
     }
 
     /**

@@ -12,6 +12,7 @@ use App\Helpers\RoutingService;
 use App\Helpers\Rbac;
 use App\Helpers\Security;
 use App\Helpers\Session;
+use App\Helpers\StatsService;
 use App\Helpers\Validator;
 
 /**
@@ -41,6 +42,12 @@ final class ControlCenterController extends Controller
                 'evenements'       => (int) Database::value('SELECT COUNT(*) FROM evenements'),
                 'audit'            => AuditLog::count(),
             ],
+            'tendances' => $this->computeTrends(),
+            'chartData' => [
+                'evolution'   => StatsService::evolutionMensuelle(),
+                'parStatut'   => StatsService::parStatut(),
+            ],
+            'actionsRequises' => $this->pendingActions(),
             'users'          => $this->allUsers(),
             'roles'          => Database::all('SELECT * FROM roles ORDER BY niveau'),
             'associationsList' => ControlCenter::allAssociations(),
@@ -49,13 +56,105 @@ final class ControlCenterController extends Controller
             'settings'       => $this->settingsMap(),
             'auditLogs'      => AuditLog::all('', 100),
             'pendingContent' => Database::all(
-                "SELECT c.*, u.nom AS auteur_nom, u.prenom AS auteur_prenom
-                 FROM content c
-                 LEFT JOIN users u ON u.id = c.user_id
-                 WHERE c.statut = 'brouillon'
-                 ORDER BY c.created_at DESC LIMIT 50"
+                "SELECT cv.*, u.nom AS auteur_nom, u.prenom AS auteur_prenom
+                 FROM content_validations cv
+                 LEFT JOIN users u ON u.id = cv.proposer_par
+                 WHERE cv.statut = 'BROUILLON'
+                 ORDER BY cv.created_at DESC LIMIT 50"
             ),
         ], 'dashboard-futur');
+    }
+
+    // ── Fragment HTML d'un onglet (AJAX) ─────────────────────────────
+    private const VALID_TABS = [
+        'dashboard', 'users', 'epics', 'communes', 'associations',
+        'rules', 'settings', 'audit', 'content', 'security',
+    ];
+
+    public function tabFragment(string $tab): never
+    {
+        $this->requirePermission('control.view');
+
+        if (! in_array($tab, self::VALID_TABS, true)) {
+            $tab = 'dashboard';
+        }
+
+        $data = $this->tabData($tab);
+
+        header('Content-Type: text/html; charset=utf-8');
+        echo $this->renderContent('control.tabs.' . $tab, $data);
+        exit;
+    }
+
+    /**
+     * Chargement ciblé des données pour un onglet donné.
+     *
+     * @return array<string, mixed>
+     */
+    private function tabData(string $tab): array
+    {
+        return match ($tab) {
+            'dashboard' => [
+                'modules'    => ControlCenter::modules(),
+                'regles'     => BusinessRules::liste(),
+                'securite'   => [
+                    'sessions'   => Security::sessionsActives(),
+                    'evenements' => $this->securityEvents(30),
+                ],
+                'statistiques' => [
+                    'utilisateurs' => (int) Database::value('SELECT COUNT(*) FROM users'),
+                    'suspendus'    => (int) Database::value("SELECT COUNT(*) FROM users WHERE status != 'actif'"),
+                    'associations' => (int) Database::value('SELECT COUNT(*) FROM associations'),
+                    'evenements'   => (int) Database::value('SELECT COUNT(*) FROM evenements'),
+                    'audit'        => AuditLog::count(),
+                ],
+                'tendances' => $this->computeTrends(),
+                'chartData' => [
+                    'evolution' => StatsService::evolutionMensuelle(),
+                    'parStatut' => StatsService::parStatut(),
+                ],
+                'actionsRequises' => $this->pendingActions(),
+            ],
+            'users' => [
+                'users' => $this->allUsers(),
+            ],
+            'epics' => [
+                'epics' => ControlCenter::allEpics(),
+            ],
+            'communes' => [
+                'communes' => ControlCenter::allCommunes(),
+            ],
+            'associations' => [
+                'associationsList' => ControlCenter::allAssociations(),
+            ],
+            'rules' => [
+                'regles' => BusinessRules::liste(),
+            ],
+            'settings' => [
+                'settings' => $this->settingsMap(),
+            ],
+            'audit' => [
+                'auditLogs' => AuditLog::all('', 100),
+            ],
+            'content' => [
+                'pendingContent' => Database::all(
+                    "SELECT cv.*, u.nom AS auteur_nom, u.prenom AS auteur_prenom
+                     FROM content_validations cv
+                     LEFT JOIN users u ON u.id = cv.proposer_par
+                     WHERE cv.statut = 'BROUILLON'
+                     ORDER BY cv.created_at DESC LIMIT 50"
+                ),
+            ],
+            'security' => [
+                'securite' => [
+                    'sessions'    => Security::sessionsActives(),
+                    'evenements'  => $this->securityEvents(30),
+                    'blocked_ips' => Database::all('SELECT * FROM blocked_ips ORDER BY created_at DESC LIMIT 50'),
+                    'blocked_count' => (int) Database::value("SELECT COUNT(*) FROM blocked_ips WHERE expires_at IS NULL OR expires_at > NOW()"),
+                ],
+            ],
+            default => [],
+        };
     }
 
     // ── Activation / désactivation des modules ───────────────────────
@@ -460,16 +559,90 @@ public function contentPublish(): never
 // ── Security ────────────────────────────────────────────────
 public function securityRevoke(): never
 {
-    $this->requirePermission('control.security');
+    $this->requirePermission('control.security.revoke');
 
-    $sessionId = (int) input('session_id');
+    $sessionId = (string) input('session_id');
 
+    if ($sessionId === '') {
+        flash('error', 'ID de session invalide.');
+        redirect('control?tab=security');
+    }
+
+    // 1. Ajouter à la table des sessions révoquées
+    Database::run(
+        'INSERT IGNORE INTO revoked_sessions (session_id, revoked_by) VALUES (?, ?)',
+        [$sessionId, Session::userId()]
+    );
+
+    // 2. Supprimer de la table sessions (nettoyage)
     Database::run('DELETE FROM sessions WHERE id = ?', [$sessionId]);
 
-    AuditLog::log('security.revoke', 'session', $sessionId);
+    Security::evenement('force_logout', 'Session révoquée : ' . $sessionId, 2, ['session_id' => $sessionId]);
+    AuditLog::log('security.revoke', 'session', 0, ['session_id' => $sessionId]);
 
-    flash('success', 'Session révoquée.');
+    flash('success', 'Session révoquée. L\'utilisateur sera déconnecté à sa prochaine requête.');
     redirect('control?tab=security');
+}
+
+// ── IP Blocking (Manual) ────────────────────────────────
+public function blockedIps(): never
+{
+    $this->requirePermission('control.security');
+
+    $ips = Database::all('SELECT * FROM blocked_ips ORDER BY created_at DESC');
+
+    $this->view('control.security.blocked-ips', [
+        'blockedIps' => $ips,
+    ], 'dashboard-futur');
+}
+
+public function blockIp(): never
+{
+    $this->requirePermission('control.security.block-ip');
+
+    $ip     = trim((string) input('ip_address', ''));
+    $reason = trim((string) input('reason', 'Blocage manuel'));
+    $duree  = (int) input('duree_min', 0);
+
+    if ($ip === '' || ! filter_var($ip, FILTER_VALIDATE_IP)) {
+        flash('error', 'Adresse IP invalide.');
+        redirect('control/security/blocked-ips');
+    }
+
+    $expires = $duree > 0 ? date('Y-m-d H:i:s', time() + ($duree * 60)) : null;
+
+    Database::run(
+        'INSERT INTO blocked_ips (ip_address, raison, blocked_by, expires_at)
+         VALUES (?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE raison = VALUES(raison), blocked_by = VALUES(blocked_by), expires_at = VALUES(expires_at), created_at = NOW()',
+        [$ip, $reason, Session::userId(), $expires]
+    );
+
+    Security::evenement('ip_blocked', 'IP bloquée manuellement : ' . $ip, 3, ['ip_address' => $ip, 'reason' => $reason]);
+    AuditLog::log('security.block_ip', 'blocked_ip', 0, ['ip' => $ip, 'reason' => $reason]);
+
+    flash('success', "IP $ip bloquée.");
+    redirect('control/security/blocked-ips');
+}
+
+public function unblockIp(): never
+{
+    $this->requirePermission('control.security.unblock');
+
+    $ip = trim((string) input('ip_address', ''));
+
+    if ($ip === '') {
+        flash('error', 'Adresse IP invalide.');
+        redirect('control/security/blocked-ips');
+    }
+
+    Database::run('DELETE FROM blocked_ips WHERE ip_address = ?', [$ip]);
+
+    Security::evenement('ip_unblocked', 'IP débloquée : ' . $ip, 1, ['ip_address' => $ip]);
+    AuditLog::log('security.unblock_ip', 'blocked_ip', 0, ['ip' => $ip]);
+
+    flash('success', "IP $ip débloquée.");
+    redirect('control/security/blocked-ips');
 }
 
 // ── User Control ──────────────────────────────────────
@@ -1126,5 +1299,88 @@ public function epicDelete(string $id): never
 
         fclose($out);
         exit;
+    }
+
+    /**
+     * Tendances des KPIs : comparaison mois en cours vs mois précédent.
+     *
+     * @return array<string, array{current: int, previous: int, pct: float, direction: string}>
+     */
+    private function computeTrends(): array
+    {
+        $trends = [];
+        $queries = [
+            'utilisateurs' => "SELECT COUNT(*) FROM users WHERE created_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01')",
+            'suspendus'    => "SELECT COUNT(*) FROM users WHERE status != 'actif' AND updated_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01')",
+            'associations' => "SELECT COUNT(*) FROM associations WHERE created_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01')",
+            'evenements'   => "SELECT COUNT(*) FROM evenements WHERE deleted_at IS NULL AND created_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01')",
+            'audit'        => "SELECT COUNT(*) FROM audit_logs WHERE created_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01')",
+        ];
+        $prevQueries = [
+            'utilisateurs' => "SELECT COUNT(*) FROM users WHERE created_at >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01') AND created_at < DATE_FORMAT(CURDATE(), '%Y-%m-01')",
+            'suspendus'    => "SELECT COUNT(*) FROM users WHERE status != 'actif' AND updated_at >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01') AND updated_at < DATE_FORMAT(CURDATE(), '%Y-%m-01')",
+            'associations' => "SELECT COUNT(*) FROM associations WHERE created_at >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01') AND created_at < DATE_FORMAT(CURDATE(), '%Y-%m-01')",
+            'evenements'   => "SELECT COUNT(*) FROM evenements WHERE deleted_at IS NULL AND created_at >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01') AND created_at < DATE_FORMAT(CURDATE(), '%Y-%m-01')",
+            'audit'        => "SELECT COUNT(*) FROM audit_logs WHERE created_at >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01') AND created_at < DATE_FORMAT(CURDATE(), '%Y-%m-01')",
+        ];
+
+        foreach ($queries as $key => $sql) {
+            $current  = (int) Database::value($sql);
+            $previous = (int) Database::value($prevQueries[$key]);
+            $pct = $previous > 0 ? round((($current - $previous) / $previous) * 100) : ($current > 0 ? 100 : 0);
+            $trends[$key] = [
+                'current'   => $current,
+                'previous'  => $previous,
+                'pct'       => $pct,
+                'direction' => $pct > 0 ? 'up' : ($pct < 0 ? 'down' : 'flat'),
+            ];
+        }
+
+        return $trends;
+    }
+
+    /**
+     * Actions en attente nécessitant une intervention admin.
+     *
+     * @return array<int, array{label: string, count: int, icon: string, color: string, link: string}>
+     */
+    private function pendingActions(): array
+    {
+        $pendingAssociations = (int) Database::value('SELECT COUNT(*) FROM associations WHERE valide = 0');
+        $unprocessedSecurity = (int) Database::value(
+            "SELECT COUNT(*) FROM security_events WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) AND type != 'login_success'"
+        );
+        $suspendedAccounts   = (int) Database::value("SELECT COUNT(*) FROM users WHERE status = 'suspendu'");
+
+        $actions = [];
+        if ($pendingAssociations > 0) {
+            $actions[] = [
+                'label' => 'Demandes d\'association en attente',
+                'count' => $pendingAssociations,
+                'icon'  => 'mdi-account-clock-outline',
+                'color' => 'amber',
+                'link'  => url('control?tab=associations'),
+            ];
+        }
+        if ($unprocessedSecurity > 0) {
+            $actions[] = [
+                'label' => 'Événements de sécurité récents',
+                'count' => $unprocessedSecurity,
+                'icon'  => 'mdi-shield-alert-outline',
+                'color' => 'red',
+                'link'  => url('control?tab=security'),
+            ];
+        }
+        if ($suspendedAccounts > 0) {
+            $actions[] = [
+                'label' => 'Comptes suspendus à réévaluer',
+                'count' => $suspendedAccounts,
+                'icon'  => 'mdi-account-off-outline',
+                'color' => 'gray',
+                'link'  => url('control?tab=users'),
+            ];
+        }
+
+        return $actions;
     }
 }

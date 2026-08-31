@@ -163,4 +163,144 @@ final class EvenementServiceTest extends DatabaseTestCase
             $this->assertSame('PROGRAMME', $row['statut']);
         }
     }
+
+    public function testAutoCloturerClotureLesEvenementsDepasses(): void
+    {
+        $event = $this->eventByStatus('EN_ATTENTE');
+        $epic  = (int) Database::value('SELECT epic_id FROM epic_anomalies ORDER BY epic_id, anomalie_id LIMIT 1');
+
+        EvenementService::programmer(
+            (int) $event['id'],
+            date('Y-m-d', strtotime('-5 days')),
+            '09:30:00',
+            [$epic],
+            (int) ($event['association_id'] ?? 0)
+        );
+
+        $count = EvenementService::autoCloturer();
+
+        $this->assertGreaterThanOrEqual(1, $count);
+        $this->assertSame(
+            'TERMINE',
+            Database::value('SELECT statut FROM evenements WHERE id = ?', [(int) $event['id']])
+        );
+
+        $transition = Database::one(
+            'SELECT * FROM transition_history WHERE evenement_id = ? ORDER BY id DESC LIMIT 1',
+            [(int) $event['id']]
+        );
+        $this->assertSame('TERMINE', $transition['statut_apres']);
+        $this->assertSame('PROGRAMME', $transition['statut_avant']);
+    }
+
+    public function testAutoCloturerEpargneLesEvenementsFuturs(): void
+    {
+        $event = $this->eventByStatus('EN_ATTENTE');
+        $epic  = (int) Database::value('SELECT epic_id FROM epic_anomalies ORDER BY epic_id, anomalie_id LIMIT 1');
+
+        EvenementService::programmer(
+            (int) $event['id'],
+            date('Y-m-d', strtotime('+30 days')),
+            '09:30:00',
+            [$epic],
+            (int) ($event['association_id'] ?? 0)
+        );
+
+        EvenementService::autoCloturer();
+
+        $this->assertSame(
+            'PROGRAMME',
+            Database::value('SELECT statut FROM evenements WHERE id = ?', [(int) $event['id']])
+        );
+    }
+
+    public function testNextActionPourEnAttente(): void
+    {
+        $na = EvenementService::nextAction(
+            ['id' => 5, 'statut' => 'EN_ATTENTE', 'deadline_at' => null, 'capacite' => 0],
+            []
+        );
+        $this->assertSame('EN_ATTENTE', $na['statut']);
+        $this->assertSame('Wilaya', $na['responsable']);
+        $this->assertSame('haute', $na['priorite']);
+        $this->assertNotSame('', $na['titre']);
+    }
+
+    public function testNextActionTermineSansAlbum(): void
+    {
+        $na = EvenementService::nextAction(
+            ['id' => 9, 'statut' => 'TERMINE', 'deadline_at' => null, 'capacite' => 50],
+            ['album_existe' => false]
+        );
+        $this->assertSame('TERMINE', $na['statut']);
+        $this->assertStringContainsString('album', strtolower($na['titre']));
+    }
+
+    public function testCompletudeDetecteDossierIncomplet(): void
+    {
+        $event = ['adresse' => '', 'commune_id' => 0, 'association_id' => 0, 'description' => '', 'date_evenement' => '', 'heure' => '', 'capacite' => 0, 'latitude' => '', 'statut' => 'EN_ATTENTE'];
+        $comp = EvenementService::completudeEvent($event, []);
+        $this->assertLessThan(100, $comp['score']);
+        $this->assertNotEmpty($comp['manque']);
+    }
+
+    public function testCompletudeDossierComplet(): void
+    {
+        $event = ['adresse' => 'A', 'commune_id' => 1, 'association_id' => 1, 'description' => 'D', 'date_evenement' => '2026-12-01', 'heure' => '09:00:00', 'capacite' => 100, 'latitude' => 36.7, 'longitude' => 3.0, 'statut' => 'PROGRAMME'];
+        $comp = EvenementService::completudeEvent($event, ['epics_count' => 1]);
+        $this->assertSame(100, $comp['score']);
+        $this->assertSame([], $comp['manque']);
+    }
+
+    public function testPrioriteDossierUrgent(): void
+    {
+        $event = ['statut' => 'EN_ATTENTE', 'deadline_at' => date('Y-m-d H:i:s', strtotime('-2 days')), 'created_at' => date('Y-m-d H:i:s', strtotime('-10 days')), 'id' => 7];
+        $prio = EvenementService::prioriteDossier($event, []);
+        $this->assertSame('urgent', $prio['niveau']);
+        $this->assertNotEmpty($prio['raisons']);
+    }
+
+    public function testSuggestionsAdminRemplies(): void
+    {
+        $event = ['statut' => 'EN_ATTENTE', 'adresse' => 'A', 'commune_id' => 1, 'association_id' => 1, 'description' => 'D', 'date_evenement' => '', 'heure' => '09:00:00', 'capacite' => 10, 'latitude' => 36.7, 'longitude' => 3.0, 'deadline_at' => null, 'id' => 8, 'created_at' => date('Y-m-d H:i:s')];
+        $sugs = EvenementService::suggestionsAdmin($event, ['epics_count' => 0]);
+        $this->assertNotEmpty($sugs);
+    }
+
+    public function testEstimationDelaiTermine(): void
+    {
+        $est = EvenementService::estimDelaiTraitement(['statut' => 'TERMINE'], []);
+        $this->assertSame(0, $est['jours']);
+        $this->assertSame('haute', $est['confiance']);
+    }
+
+    public function testEstimationDelaiAvantEvenement(): void
+    {
+        $est = EvenementService::estimDelaiTraitement([
+            'statut'        => 'PROGRAMME',
+            'date_evenement'=> date('Y-m-d', strtotime('+5 days')),
+        ], []);
+        $this->assertSame(5, $est['jours']);
+    }
+
+    public function testEstimationDelaiSlaDepasse(): void
+    {
+        $est = EvenementService::estimDelaiTraitement([
+            'statut'     => 'EN_ATTENTE',
+            'deadline_at'=> date('Y-m-d H:i:s', strtotime('-1 day')),
+        ], []);
+        $this->assertStringContainsString('dépassé', strtolower($est['label']));
+    }
+
+    public function testRelancesEscaladesStructure(): void
+    {
+        $escs = EvenementService::relancesEscalades(10);
+        $this->assertIsArray($escs);
+        foreach (array_slice($escs, 0, 5) as $e) {
+            $this->assertArrayHasKey('type', $e);
+            $this->assertArrayHasKey('gravite', $e);
+            $this->assertArrayHasKey('evenement_id', $e);
+            $this->assertContains($e['gravite'], ['haute', 'moyenne', 'normale']);
+        }
+    }
 }

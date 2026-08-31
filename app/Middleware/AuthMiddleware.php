@@ -20,5 +20,19 @@ final class AuthMiddleware
         if (! Session::isLogged()) {
             redirect('auth/login?next=' . urlencode(request_path() . (empty($_SERVER['QUERY_STRING']) ? '' : '?' . $_SERVER['QUERY_STRING'])));
         }
+
+        // Vérifier si la session a été révoquée par un administrateur
+        try {
+            $revoked = \App\Helpers\Database::exists(
+                'SELECT 1 FROM revoked_sessions WHERE session_id = ?',
+                [Session::id()]
+            );
+            if ($revoked) {
+                Session::logout();
+                redirect('auth/login');
+            }
+        } catch (\Throwable) {
+            // Table n'existe pas encore — ignorer
+        }
     }
 }

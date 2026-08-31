@@ -132,9 +132,10 @@ final class EventGalleryController extends Controller
         $inserted = 0;
         foreach ($result['successes'] as $path) {
             Database::insert('photos', [
-                'album_id' => (int) $album['id'],
-                'image'    => $path,
-                'legende'  => null,
+                'album_id'   => (int) $album['id'],
+                'image'      => $path,
+                'thumbnail'  => UploadHelper::makeThumbnail($path, 400),
+                'legende'    => null,
             ]);
             $inserted++;
         }

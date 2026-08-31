@@ -17,7 +17,8 @@ $bootstrapCss = $isAr
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>403 — <?= $isAr ? 'الوصول مرفوض' : 'Accès refusé' ?></title>
-    <link rel="icon" href="<?= asset('/assets/img/icon-192.png') ?>">
+    <link rel="icon" href="<?= asset('/favicon.ico') ?>">
+    <link rel="icon" type="image/svg+xml" href="<?= asset('/favicon.svg') ?>">
     <link rel="stylesheet" href="<?= asset($bootstrapCss) ?>">
     <link rel="stylesheet" href="<?= asset('/assets/css/fonts.css') ?>">
     <link rel="stylesheet" href="<?= asset('/assets/vendor/mdi/css/materialdesignicons.min.css') ?>">

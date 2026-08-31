@@ -19,16 +19,21 @@ $notifUrl = static function (array $n): ?string {
 };
 ?>
 <div class="wh-page">
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-        <div>
-            <h1 class="wh-page-title"><?= e(__('common.notifications')) ?></h1>
-            <p class="wh-page-sub"><?= $isAr ? 'سجل الإشعارات' : 'Vos notifications et alertes' ?></p>
+    <div style="background:linear-gradient(135deg,#198754 0%,#0B5ED7 100%);border-radius:var(--wh-radius);padding:1.75rem 2rem;margin-bottom:1.5rem;color:#fff;">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.2);display:grid;place-items:center;font-size:1.3rem;"><i class="mdi mdi-bell-outline"></i></div>
+                <div>
+                    <h1 style="font-size:1.35rem;font-weight:700;margin:0;"><?= e(__('common.notifications')) ?></h1>
+                    <p style="margin:0;opacity:.85;font-size:.85rem;"><?= $isAr ? 'سجل الإشعارات' : 'Vos notifications et alertes' ?></p>
+                </div>
+            </div>
+            <?php if ($unread > 0): ?>
+                <button type="button" class="btn btn-warning fw-bold btn-sm" data-notif-read-all>
+                    <i class="mdi mdi-check-all me-1"></i><?= $isAr ? 'قراءة الكل' : 'Tout marquer comme lu' ?>
+                </button>
+            <?php endif; ?>
         </div>
-        <?php if ($unread > 0): ?>
-            <button type="button" class="btn btn-outline-primary" data-notif-read-all>
-                <i class="mdi mdi-check-all me-1"></i><?= $isAr ? 'قراءة الكل' : 'Tout marquer comme lu' ?>
-            </button>
-        <?php endif; ?>
     </div>
 
     <?php if ($total > 0): ?>
@@ -42,9 +47,10 @@ $notifUrl = static function (array $n): ?string {
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
             <?php if ($notifications === []): ?>
-                <div class="wh-empty py-5 text-center">
-                    <i class="mdi mdi-bell-sleep-outline text-muted" style="font-size:2.5rem"></i>
-                    <p class="mb-0 mt-2 text-muted"><?= $isAr ? 'لا توجد إشعارات بعد' : 'Aucune notification pour le moment.' ?></p>
+                <div class="futur-empty">
+                    <i class="mdi mdi-bell-sleep-outline"></i>
+                    <p class="futur-empty-title"><?= $isAr ? 'لا توجد إشعارات بعد' : 'Aucune notification pour le moment.' ?></p>
+                    <p class="futur-empty-text"><?= $isAr ? 'Les notifications apparaîtront ici.' : 'Les notifications apparaîtront ici.' ?></p>
                 </div>
             <?php else: ?>
                 <?php $currentType = null; ?>

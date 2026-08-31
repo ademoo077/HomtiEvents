@@ -367,6 +367,135 @@ final class RoutingService
         ], 'id = ?', [$alerteId]);
     }
 
+    /**
+     * Preview multi-anomalie : retourne le routing prévisionnel pour CHAQUE anomalie.
+     *
+     * @param int[] $anomalieIds
+     * @return array<int, array{anomalie_id: int, anomalie_nom: string, epic_id: int|null, epic_nom: string|null, rule_matched: string, detail: string}>
+     */
+    public static function previewPerAnomaly(int $communeId, array $anomalieIds): array
+    {
+        $anomalieIds = array_values(array_map('intval', array_filter($anomalieIds, static fn ($id) => $id > 0)));
+        $anomalieIds = array_unique($anomalieIds);
+        $results = [];
+
+        foreach ($anomalieIds as $aId) {
+            $aNom = (string) Database::value('SELECT nom FROM anomalies WHERE id = ?', [$aId]);
+            $res = self::resoudreAnomalie($communeId, $aId);
+            $results[] = [
+                'anomalie_id'   => $aId,
+                'anomalie_nom'  => $aNom,
+                'epic_id'       => $res['epic_id'],
+                'epic_nom'      => $res['epic_nom'],
+                'rule_matched'  => $res['rule_matched'],
+                'detail'        => $res['detail'],
+            ];
+        }
+
+        return $results;
+    }
+
+    /**
+     * Résout l'organisation cible pour UNE anomalie spécifique.
+     */
+    public static function resoudreAnomalie(int $communeId, int $anomalieId): array
+    {
+        $rules = self::regles();
+        $valid = array_values(array_filter($rules, static fn (array $r): bool => (int) $r['anomalie_id'] === $anomalieId));
+
+        // Priorité 1 : règle sur le type d'anomalie (sans daira)
+        foreach ($valid as $rule) {
+            if ($rule['ca_id'] === null) {
+                return self::previewResult($rule, self::RULE_ANOMALIE);
+            }
+        }
+
+        // Priorité 2 : règle type d'anomalie + daira
+        $caId = $communeId > 0 ? Database::value('SELECT ca_id FROM commune WHERE id = ?', [$communeId]) : null;
+        if ($caId !== null) {
+            foreach ($valid as $rule) {
+                if ((int) $rule['ca_id'] === (int) $caId) {
+                    return self::previewResult($rule, self::RULE_DAIRA);
+                }
+            }
+        }
+
+        return ['epic_id' => null, 'epic_nom' => null, 'rule_matched' => self::RULE_AUCUNE, 'detail' => 'Aucune règle pour anomalie #' . $anomalieId];
+    }
+
+    /**
+     * Assignation multi-EPIC : crée des anomaly_assignments pour chaque anomalie.
+     */
+    public static function assignPerAnomaly(int $evenementId): array
+    {
+        $event = Database::one('SELECT * FROM evenements WHERE id = ?', [$evenementId]);
+        if ($event === null) {
+            abort(404, 'Événement introuvable.');
+        }
+
+        $anomalies = Database::all('SELECT anomalie_id FROM anomalies_evenement WHERE evenement_id = ?', [$evenementId]);
+        $assignments = [];
+        $epicCounts = [];
+
+        foreach ($anomalies as $an) {
+            $aId = (int) $an['anomalie_id'];
+            $res = self::resoudreAnomalie((int) $event['commune_id'], $aId);
+
+            $epicId = $res['epic_id'];
+            $autoRouted = $res['rule_matched'] !== self::RULE_AUCUNE ? 1 : 0;
+
+            Database::insert('anomaly_assignments', [
+                'evenement_id' => $evenementId,
+                'anomalie_id'  => $aId,
+                'epic_id'      => $epicId ?? 0,
+                'auto_routed'  => $autoRouted,
+            ]);
+
+            $assignments[] = [
+                'anomalie_id'  => $aId,
+                'epic_id'      => $epicId,
+                'rule_matched' => $res['rule_matched'],
+            ];
+
+            if ($epicId !== null) {
+                $epicCounts[$epicId] = ($epicCounts[$epicId] ?? 0) + 1;
+            }
+        }
+
+        AuditLog::log('evenement_routing_multi', 'evenement', $evenementId, null, [
+            'assignments' => $assignments,
+        ]);
+
+        return ['assignments' => $assignments, 'epic_counts' => $epicCounts];
+    }
+
+    /**
+     * Override manuel d'une assignation d'anomalie.
+     */
+    public static function overrideAssignment(int $assignmentId, int $newEpicId, string $reason = ''): void
+    {
+        $current = Database::one('SELECT * FROM anomaly_assignments WHERE id = ?', [$assignmentId]);
+        if ($current === null) {
+            abort(404, 'Assignation introuvable.');
+        }
+
+        Database::update('anomaly_assignments', [
+            'epic_id'         => $newEpicId,
+            'assigned_org_id' => $newEpicId,
+            'auto_routed'     => 0,
+            'override_reason' => $reason,
+            'override_by'     => Session::userId(),
+            'override_at'     => date('Y-m-d H:i:s'),
+        ], 'id = ?', [$assignmentId]);
+
+        AuditLog::log('anomaly_reroute', 'anomaly_assignments', $assignmentId, [
+            'epic_id' => (int) $current['epic_id'],
+        ], [
+            'epic_id'         => $newEpicId,
+            'override_reason' => $reason,
+        ]);
+    }
+
     // ── CRUD règles de routage (back-office) ─────────────────────────
 
     /**

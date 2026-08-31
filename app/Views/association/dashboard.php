@@ -22,31 +22,31 @@ $badgeColor = static function (string $statut): string {
 };
 ?>
 <div class="wh-page">
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-        <div class="d-flex align-items-center gap-3">
-            <div class="wh-page-title-icon green"><i class="mdi mdi-view-dashboard-outline"></i></div>
-            <div>
-                <h1 class="wh-page-title"><?= e(__('common.dashboard')) ?></h1>
-                <p class="wh-page-sub">
-                    <?= e(($association['nom'] ?? 'Association')) ?> — <?= $isAr ? 'مراقبة نشاطات الجمعية' : 'Suivi de l\'activité de votre association' ?>
-                </p>
-                <div class="mt-1"><?= association_badge($association) ?></div>
-                <?php if (($stats['avg_note'] ?? 0) > 0): ?>
-                    <div class="mt-2 d-flex align-items-center gap-2">
-                        <span class="badge bg-warning text-dark fs-6">
-                            <?= str_repeat('★', (int) round((float) $stats['avg_note'])) ?><?= str_repeat('☆', 5 - (int) round((float) $stats['avg_note'])) ?>
-                        </span>
-                        <span class="wh-text-muted small">
-                            <strong><?= e(number_format((float) $stats['avg_note'], 1)) ?></strong> / 5
-                            — <?= $isAr ? 'متوسط التقييم' : 'note moyenne' ?>
-                        </span>
-                    </div>
-                <?php endif; ?>
+    <div style="background:linear-gradient(135deg,#198754 0%,#0B5ED7 100%);border-radius:var(--wh-radius);padding:1.75rem 2rem;margin-bottom:1.5rem;color:#fff;">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.2);display:grid;place-items:center;font-size:1.3rem;"><i class="mdi mdi-view-dashboard-outline"></i></div>
+                <div>
+                    <h1 style="font-size:1.35rem;font-weight:700;margin:0;"><?= e(__('common.dashboard')) ?></h1>
+                    <p style="margin:0;opacity:.85;font-size:.85rem;"><?= e(($association['nom'] ?? 'Association')) ?> — <?= $isAr ? 'مراقبة نشاطات الجمعية' : 'Suivi de l\'activité de votre association' ?></p>
+                    <div class="mt-1"><?= association_badge($association) ?></div>
+                    <?php if (($stats['avg_note'] ?? 0) > 0): ?>
+                        <div class="mt-2 d-flex align-items-center gap-2">
+                            <span class="badge bg-warning text-dark fs-6">
+                                <?= str_repeat('★', (int) round((float) $stats['avg_note'])) ?><?= str_repeat('☆', 5 - (int) round((float) $stats['avg_note'])) ?>
+                            </span>
+                            <span style="opacity:.85;font-size:.85rem;">
+                                <strong><?= e(number_format((float) $stats['avg_note'], 1)) ?></strong> / 5
+                                — <?= $isAr ? 'متوسط التقييم' : 'note moyenne' ?>
+                            </span>
+                        </div>
+                    <?php endif; ?>
+                </div>
             </div>
+            <a class="btn btn-warning fw-bold" href="<?= url('association/create') ?>">
+                <i class="mdi mdi-plus-circle me-1"></i><?= e(__('evenements.create')) ?>
+            </a>
         </div>
-        <a class="btn btn-primary" href="<?= url('association/create') ?>">
-            <i class="mdi mdi-plus-circle me-1"></i><?= e(__('evenements.create')) ?>
-        </a>
     </div>
 
     <!-- Alerte : action requise (modifications demandées) -->
@@ -72,6 +72,30 @@ $badgeColor = static function (string $statut): string {
             </a>
         </div>
     <?php endif; ?>
+
+    <!-- Score de performance -->
+    <?php $s = $score ?? ['score' => 0, 'details' => ['participation' => 0, 'evaluation' => 0, 'completion' => 0, 'volume' => 0]]; ?>
+    <div class="card border-0 shadow-sm mb-4" style="border-radius:var(--wh-radius);overflow:hidden;">
+        <div style="padding:.65rem 1.25rem;background:var(--wh-green-soft);border-bottom:1px solid #b7e4c7;display:flex;align-items:center;gap:.5rem;">
+            <span style="width:28px;height:28px;border-radius:7px;background:rgba(25,135,84,.15);display:grid;place-items:center;color:var(--wh-green);font-size:.85rem;"><i class="mdi mdi-speedometer"></i></span>
+            <span class="fw-bold" style="font-size:.88rem;"><?= $isAr ? 'مؤشر الأداء' : 'Score de performance' ?></span>
+        </div>
+        <div class="card-body d-flex flex-wrap align-items-center gap-4">
+            <div class="wh-score-ring <?= $s['score'] >= 80 ? 'wh-score-excellent' : ($s['score'] >= 60 ? 'wh-score-good' : ($s['score'] >= 40 ? 'wh-score-average' : 'wh-score-poor')) ?>"
+                 style="--score: <?= (int) $s['score'] ?>">
+                <span><?= (int) $s['score'] ?></span>
+            </div>
+            <div>
+                <h6 class="mb-1"><?= $isAr ? 'مؤشر الأداء' : 'Score de performance' ?></h6>
+                <div class="d-flex flex-wrap gap-3 small text-muted">
+                    <span><i class="mdi mdi-account-group me-1"></i><?= $isAr ? 'المشاركة' : 'Participation' ?> : <?= (int) $s['details']['participation'] ?>/30</span>
+                    <span><i class="mdi mdi-star me-1"></i><?= $isAr ? 'التقييم' : 'Évaluation' ?> : <?= (int) $s['details']['evaluation'] ?>/30</span>
+                    <span><i class="mdi mdi-check-circle me-1"></i><?= $isAr ? 'الإنجاز' : 'Complétion' ?> : <?= (int) $s['details']['completion'] ?>/20</span>
+                    <span><i class="mdi mdi-chart-bar me-1"></i><?= $isAr ? 'الحجم' : 'Volume' ?> : <?= (int) $s['details']['volume'] ?>/20</span>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- KPIs : compteurs de statuts cliquables -->
     <?php $sc = $statutsCounts ?? []; ?>
@@ -175,46 +199,77 @@ $badgeColor = static function (string $statut): string {
         $suggestions = [];
         if (($association['email'] ?? '') === '' || ($association['telephone'] ?? '') === '') {
             $suggestions[] = ['icon' => 'mdi-account-edit-outline', 'color' => 'primary',
-                'texte' => $isAr ? 'أكمل معلومات الاتصال الخاصة بجمعيتك (البريد الإلكتروني / الهاتف) لضمان التواصل.' : 'Complétez vos coordonnées (email / téléphone) pour que la Wilaya puisse vous joindre.'];
-
+                'titre' => $isAr ? 'أكمل معلومات الاتصال' : 'Coordonnées incomplètes',
+                'texte' => $isAr ? 'أكمل معلومات الاتصال الخاصة بجمعيتك (البريد الإلكتروني / الهاتف) لضمان التواصل مع الوالي.' : 'Complétez vos coordonnées (email / téléphone) pour que la Wilaya puisse vous joindre.',
+                'lien'  => url('profile'),
+                'cta'   => $isAr ? 'إكمال الملف' : 'Compléter le profil'];
         }
         if (($sc['EN_ATTENTE'] ?? 0) > 0) {
             $suggestions[] = ['icon' => 'mdi-clock-outline', 'color' => 'warning',
-                'texte' => $isAr ? 'لديك ' . (int) $sc['EN_ATTENTE'] . ' طلب بانتظار موافقة الوالي، تابع حالة طلباتك.' : (int) $sc['EN_ATTENTE'] . ' demande(s) en attente de décision de la Wilaya — suivez leur avancement.'];
+                'titre' => $isAr ? (int) $sc['EN_ATTENTE'] . ' طلب بانتظار القبول' : (int) $sc['EN_ATTENTE'] . ' demande(s) en attente',
+                'texte' => $isAr ? 'طلباتك بانتظار قرار الوالي — تابع حالة تقدمها من صفحة الفعاليات.' : 'Vos demandes sont en attente de décision de la Wilaya — suivez leur avancement.',
+                'lien'  => url('association/events?tab=pending'),
+                'cta'   => $isAr ? 'متابعة الطلبات' : 'Suivre les demandes'];
         }
         if (($sc['MODIFICATION_DEMANDEE'] ?? 0) > 0) {
             $suggestions[] = ['icon' => 'mdi-pencil-circle-outline', 'color' => 'danger',
-                'texte' => $isAr ? 'طلبات بانتظار تعديلكم: انقر عليها وصحح البيانات المطلوبة ثم أعد إرسالها.' : 'Des événements attendent vos corrections — modifiez-les puis re-soumettez-les à la Wilaya.'];
+                'titre' => $isAr ? (int) $sc['MODIFICATION_DEMANDEE'] . ' طلب بانتظار تعديلكم' : (int) $sc['MODIFICATION_DEMANDEE'] . ' correction(s) requise(s)',
+                'texte' => $isAr ? 'انقر على الطلبات وصحّح البيانات المطلوبة ثم أعد إرسالها للوالي.' : 'Modifiez les événements concernés puis re-soumettez-les à la Wilaya.',
+                'lien'  => url('association/events?tab=pending'),
+                'cta'   => $isAr ? 'تصحيح الطلبات' : 'Corriger les demandes'];
         }
         if (($sc['VALIDÉ'] ?? 0) > 0) {
             $suggestions[] = ['icon' => 'mdi-calendar-check-outline', 'color' => 'success',
-                'texte' => $isAr ? 'أحداث مؤكدة بانتظار تحديد التاريخ والوقت — قم ببرمجتها.' : 'Événement(s) validé(s) en attente de date/heure — programmez-les pour générer le QR code.'];
+                'titre' => $isAr ? (int) $sc['VALIDÉ'] . ' حدث مؤكد بانتظار البرمجة' : (int) $sc['VALIDÉ'] . ' événement(s) validé(s)',
+                'texte' => $isAr ? 'حدد التاريخ والوقت لإنشاء رمز QR للفعالية.' : 'Programmez-les (date/heure) pour générer le QR code.',
+                'lien'  => url('association/events?tab=validated'),
+                'cta'   => $isAr ? 'برمجة الفعاليات' : 'Programmer les événements'];
         }
         if (($sc['PROGRAMME'] ?? 0) > 0) {
             $suggestions[] = ['icon' => 'mdi-qrcode-scan', 'color' => 'info',
-                'texte' => $isAr ? 'أحداث مبرمجة: شارك رمز QR مع المشاركين لتسجيل حضورهم.' : 'Événement(s) programmé(s) : partagez le QR code aux participants pour l\'enregistrement.'];
+                'titre' => $isAr ? (int) $sc['PROGRAMME'] . ' حدث مبرمج' : (int) $sc['PROGRAMME'] . ' événement(s) programmé(s)',
+                'texte' => $isAr ? 'شارك رمز QR مع المشاركين لتسجيل حضورهم في الفعالية.' : 'Partagez le QR code aux participants pour enregistrer leur présence.',
+                'lien'  => url('association/events?tab=programme'),
+                'cta'   => $isAr ? 'عرض الرموز' : 'Voir les QR codes'];
         }
         if (($sc['TERMINE'] ?? 0) > 0) {
             $suggestions[] = ['icon' => 'mdi-star-circle-outline', 'color' => 'purple',
-                'texte' => $isAr ? 'أحداث منجزة: لا تنسَ إرسال تقييمك وتقرير المشاركة.' : 'Événement(s) terminé(s) : pensez à évaluer et renseigner le bilan de participation.'];
+                'titre' => $isAr ? (int) $sc['TERMINE'] . ' حدث منجز' : (int) $sc['TERMINE'] . ' événement(s) terminé(s)',
+                'texte' => $isAr ? 'لا تنسَ إرسال تقييمك وتقرير المشاركة لتحسين النتائج.' : 'Pensez à évaluer et renseigner le bilan de participation.',
+                'lien'  => url('association/events?tab=termine'),
+                'cta'   => $isAr ? 'إرسال التقييم' : 'Renseigner le bilan'];
         }
         if ($suggestions === []) {
             $suggestions[] = ['icon' => 'mdi-lightbulb-on-outline', 'color' => 'primary',
-                'texte' => $isAr ? 'ابدأ بإرسال طلب حدث جديد عبر زر "إنشاء حدث".' : 'Commencez par soumettre une nouvelle demande d\'événement via le bouton « Créer un événement ».'];
+                'titre' => $isAr ? 'ابدأ نشاط جمعيتكم' : 'Lancez votre première activité',
+                'texte' => $isAr ? 'أرسل طلب حدث جديد وسيعاينه الوالي قبل برمجته.' : 'Soumettez une nouvelle demande d\'événement, elle sera examinée par la Wilaya.',
+                'lien'  => url('association/create'),
+                'cta'   => $isAr ? 'إنشاء حدث' : 'Créer un événement'];
         }
     ?>
     <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-light d-flex align-items-center gap-2">
-            <i class="mdi mdi-lightbulb-on-outline text-warning"></i>
-            <h3 class="h6 mb-0"><?= $isAr ? 'أفكار ونصائح' : 'Idées & conseils' ?></h3>
+        <div style="padding:.65rem 1.25rem;background:#fff3cd;border-bottom:1px solid #ffeaa7;display:flex;align-items:center;gap:.5rem;">
+            <span style="width:28px;height:28px;border-radius:7px;background:rgba(245,158,11,.15);display:grid;place-items:center;color:var(--wh-amber);font-size:.85rem;"><i class="mdi mdi-lightbulb-on-outline"></i></span>
+            <span class="fw-bold" style="font-size:.88rem;"><?= $isAr ? 'أفكار ونصائح' : 'Idées & conseils' ?></span>
         </div>
         <div class="card-body">
-            <div class="row g-3">
+            <div class="wh-ideas">
                 <?php foreach ($suggestions as $s): ?>
-                    <div class="col-md-6">
-                        <div class="d-flex gap-2 align-items-start p-2 rounded-3 bg-light">
-                            <i class="mdi <?= e($s['icon']) ?> text-<?= e($s['color']) ?>" style="font-size:1.25rem"></i>
-                            <span class="small"><?= e($s['texte']) ?></span>
+                    <div class="wh-idea">
+                        <span class="wh-idea-icon <?= e($s['color'] ?? 'primary') ?>">
+                            <i class="mdi <?= e($s['icon']) ?>"></i>
+                        </span>
+                        <div class="wh-idea-body">
+                            <?php if (! empty($s['titre'])): ?>
+                                <div class="wh-idea-title"><?= e($s['titre']) ?></div>
+                            <?php endif; ?>
+                            <div class="wh-idea-text"><?= e($s['texte']) ?></div>
+                            <?php if (! empty($s['lien'])): ?>
+                                <a class="wh-idea-link" href="<?= e($s['lien']) ?>">
+                                    <?= e($s['cta'] ?? ($isAr ? 'عرض التفاصيل' : 'Voir les détails')) ?>
+                                    <i class="mdi <?= $isAr ? 'mdi-arrow-left' : 'mdi-arrow-right' ?>"></i>
+                                </a>
+                            <?php endif; ?>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -224,9 +279,9 @@ $badgeColor = static function (string $statut): string {
 
     <!-- Événements déjà envoyés à la Wilaya -->
     <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-light d-flex align-items-center gap-2">
-            <i class="mdi mdi-send-outline text-primary"></i>
-            <h3 class="h6 mb-0"><?= $isAr ? 'الطلبات المرسلة' : 'Événements envoyés' ?></h3>
+        <div style="padding:.65rem 1.25rem;background:var(--wh-blue-soft);border-bottom:1px solid #b6d4fe;display:flex;align-items:center;gap:.5rem;">
+            <span style="width:28px;height:28px;border-radius:7px;background:rgba(11,94,215,.15);display:grid;place-items:center;color:var(--wh-blue);font-size:.85rem;"><i class="mdi mdi-send-outline"></i></span>
+            <span class="fw-bold" style="font-size:.88rem;"><?= $isAr ? 'الطلبات المرسلة' : 'Événements envoyés' ?></span>
             <a class="ms-auto btn btn-sm btn-outline-primary" href="<?= url('association/events?tab=envoyes') ?>">
                 <?= $isAr ? 'عرض الكل' : 'Voir tout' ?>
             </a>
@@ -273,9 +328,9 @@ $badgeColor = static function (string $statut): string {
 
     <!-- Historique des actions -->
     <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-light d-flex align-items-center gap-2">
-            <i class="mdi mdi-history text-primary"></i>
-            <h3 class="h6 mb-0"><?= $isAr ? 'النشاط الأخير' : 'Historique récent' ?></h3>
+        <div style="padding:.65rem 1.25rem;background:#ede9fe;border-bottom:1px solid #ddd6fe;display:flex;align-items:center;gap:.5rem;">
+            <span style="width:28px;height:28px;border-radius:7px;background:rgba(124,58,237,.15);display:grid;place-items:center;color:#7c3aed;font-size:.85rem;"><i class="mdi mdi-history"></i></span>
+            <span class="fw-bold" style="font-size:.88rem;"><?= $isAr ? 'النشاط الأخير' : 'Historique récent' ?></span>
         </div>
         <div class="card-body">
             <?php if (!empty($historique)): ?>
@@ -316,9 +371,9 @@ $badgeColor = static function (string $statut): string {
 
     <!-- Évaluations -->
     <div class="card border-0 shadow-sm">
-        <div class="card-header bg-light d-flex align-items-center gap-2">
-            <i class="mdi mdi-star-circle text-warning"></i>
-            <h3 class="h6 mb-0"><?= $isAr ? 'التقييمات الأخيرة' : 'Évaluations récentes' ?></h3>
+        <div style="padding:.65rem 1.25rem;background:#fff3cd;border-bottom:1px solid #ffeaa7;display:flex;align-items:center;gap:.5rem;">
+            <span style="width:28px;height:28px;border-radius:7px;background:rgba(245,158,11,.15);display:grid;place-items:center;color:var(--wh-amber);font-size:.85rem;"><i class="mdi mdi-star-circle"></i></span>
+            <span class="fw-bold" style="font-size:.88rem;"><?= $isAr ? 'التقييمات الأخيرة' : 'Évaluations récentes' ?></span>
         </div>
         <div class="card-body">
             <?php if (!empty($evaluations)): ?>

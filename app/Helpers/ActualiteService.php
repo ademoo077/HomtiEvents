@@ -27,31 +27,80 @@ final class ActualiteService
     /**
      * Rassemble les données nécessaires au rendu de la page /actualites.
      *
+     * @param array<string, mixed> $filters Filtres optionnels (q, du, au, commune_id, type)
      * @return array<string, mixed>
      */
-    public static function data(): array
+    public static function data(array $filters = []): array
     {
+        $q          = trim((string) ($filters['q'] ?? ''));
+        $du         = (string) ($filters['du'] ?? '');
+        $au         = (string) ($filters['au'] ?? '');
+        $communeId  = (int) ($filters['commune_id'] ?? 0);
+        $typeFilter = (string) ($filters['type'] ?? '');
+
         // 1. Actualités publiées (les plus récentes d'abord)
-        $actualites = Database::all(
-            "SELECT * FROM landing_news
-             WHERE type = 'actualite' AND statut = 'publie' AND deleted_at IS NULL
-             ORDER BY date_event DESC, sort_order ASC, id DESC"
-        );
+        $actSql  = "SELECT * FROM landing_news
+                    WHERE type = 'actualite' AND statut = 'publie' AND deleted_at IS NULL";
+        $actParams = [];
+
+        if ($q !== '') {
+            $actSql .= ' AND (titre_fr LIKE ? OR titre_ar LIKE ? OR description_fr LIKE ? OR lieu LIKE ?)';
+            $like = '%' . $q . '%';
+            $actParams = array_merge($actParams, [$like, $like, $like, $like]);
+        }
+        if ($du !== '') {
+            $actSql .= ' AND date_event >= ?';
+            $actParams[] = $du;
+        }
+        if ($au !== '') {
+            $actSql .= ' AND date_event <= ?';
+            $actParams[] = $au;
+        }
+        $actSql .= ' ORDER BY date_event DESC, sort_order ASC, id DESC';
+        $actualites = Database::all($actSql, $actParams);
 
         // 2. Événements « saisie libre » du CMS (non liés à un événement structuré)
-        $manuels = Database::all(
-            "SELECT * FROM landing_news
-             WHERE type = 'evenement' AND evenement_id IS NULL
-               AND statut = 'publie' AND deleted_at IS NULL
-             ORDER BY date_event ASC, sort_order ASC, id ASC"
-        );
+        $manSql  = "SELECT * FROM landing_news
+                    WHERE type = 'evenement' AND evenement_id IS NULL
+                      AND statut = 'publie' AND deleted_at IS NULL";
+        $manParams = [];
+
+        if ($q !== '') {
+            $manSql .= ' AND (titre_fr LIKE ? OR titre_ar LIKE ? OR description_fr LIKE ? OR lieu LIKE ?)';
+            $like = '%' . $q . '%';
+            $manParams = array_merge($manParams, [$like, $like, $like, $like]);
+        }
+        if ($du !== '') {
+            $manSql .= ' AND date_event >= ?';
+            $manParams[] = $du;
+        }
+        if ($au !== '') {
+            $manSql .= ' AND date_event <= ?';
+            $manParams[] = $au;
+        }
+        $manSql .= ' ORDER BY date_event ASC, sort_order ASC, id ASC';
+        $manuels = Database::all($manSql, $manParams);
 
         // 3. Événements « liés » (curation) : masquent leur événement structuré
-        $lies = Database::all(
-            "SELECT * FROM landing_news
-             WHERE type = 'evenement' AND evenement_id IS NOT NULL
-               AND statut = 'publie' AND deleted_at IS NULL"
-        );
+        $liesSql  = "SELECT * FROM landing_news
+                     WHERE type = 'evenement' AND evenement_id IS NOT NULL
+                       AND statut = 'publie' AND deleted_at IS NULL";
+        $liesParams = [];
+
+        if ($q !== '') {
+            $liesSql .= ' AND (titre_fr LIKE ? OR titre_ar LIKE ? OR description_fr LIKE ? OR lieu LIKE ?)';
+            $like = '%' . $q . '%';
+            $liesParams = array_merge($liesParams, [$like, $like, $like, $like]);
+        }
+        if ($du !== '') {
+            $liesSql .= ' AND date_event >= ?';
+            $liesParams[] = $du;
+        }
+        if ($au !== '') {
+            $liesSql .= ' AND date_event <= ?';
+            $liesParams[] = $au;
+        }
+        $lies = Database::all($liesSql, $liesParams);
 
         $exclus = [];
         foreach ($lies as $lie) {
@@ -63,24 +112,41 @@ final class ActualiteService
         // 4. Événements structurés auto-synchronisés (à venir, non archivés)
         $in      = implode(',', array_map(static fn (string $s): string => "'{$s}'", self::STATUTS_SYNC));
         $exclude = '';
-        $params  = [];
+        $syncParams = [];
         if ($exclus !== []) {
             $exclude = ' AND e.id NOT IN (' . implode(',', array_fill(0, count($exclus), '?')) . ')';
-            $params  = $exclus;
+            $syncParams = $exclus;
         }
 
-        $synced = Database::all(
-            "SELECT e.id, e.adresse, e.date_evenement, e.heure, c.nom AS commune_nom
-             FROM evenements e
-             LEFT JOIN commune c ON c.id = e.commune_id
-             WHERE e.statut IN ({$in})
-               AND e.deleted_at IS NULL
-               AND e.date_evenement >= CURDATE()
-               {$exclude}
-             ORDER BY e.date_evenement ASC, e.heure ASC, e.id ASC
-             LIMIT 30",
-            $params
-        );
+        $syncSql = "SELECT e.id, e.adresse, e.date_evenement, e.heure,
+                           c.nom AS commune_nom, c.latitude, c.longitude
+                    FROM evenements e
+                    LEFT JOIN commune c ON c.id = e.commune_id
+                    WHERE e.statut IN ({$in})
+                      AND e.deleted_at IS NULL
+                      AND e.date_evenement >= CURDATE()
+                      {$exclude}";
+
+        if ($q !== '') {
+            $syncSql .= ' AND (e.adresse LIKE ? OR e.description LIKE ? OR c.nom LIKE ?)';
+            $like = '%' . $q . '%';
+            $syncParams = array_merge($syncParams, [$like, $like, $like]);
+        }
+        if ($du !== '') {
+            $syncSql .= ' AND e.date_evenement >= ?';
+            $syncParams[] = $du;
+        }
+        if ($au !== '') {
+            $syncSql .= ' AND e.date_evenement <= ?';
+            $syncParams[] = $au;
+        }
+        if ($communeId > 0) {
+            $syncSql .= ' AND e.commune_id = ?';
+            $syncParams[] = $communeId;
+        }
+
+        $syncSql .= ' ORDER BY e.date_evenement ASC, e.heure ASC, e.id ASC LIMIT 30';
+        $synced = Database::all($syncSql, $syncParams);
 
         $evenements = [];
 
@@ -116,6 +182,8 @@ final class ActualiteService
             $row['titre_ar']     = null;
             $row['lieu']         = $row['commune_nom'] ?? null;
             $row['lieu_ar']      = null;
+            $row['latitude']     = $row['latitude'] ?? null;
+            $row['longitude']    = $row['longitude'] ?? null;
 
             $evenements[] = self::card($row, 'evenement', 'evenement');
         }
@@ -139,12 +207,25 @@ final class ActualiteService
 
         $prochains = array_slice(array_values(array_filter($evenements, static fn (array $c): bool => $c['date_event'] !== null)), 0, 6);
 
+        $allActualites = array_map(static fn (array $row): array => self::card($row, 'actualite', 'cms'), $actualites);
+        $allEvenements = $evenements;
+
+        // Appliquer le filtre type
+        $items = [...$allActualites, ...$allEvenements];
+        if ($typeFilter !== '' && in_array($typeFilter, ['actualite', 'evenement'], true)) {
+            $items = array_values(array_filter($items, static fn (array $i): bool => $i['type'] === $typeFilter));
+        }
+
+        // Communes disponibles (pour le dropdown filtre)
+        $communes = Database::all('SELECT id, nom FROM commune WHERE is_active = 1 ORDER BY nom');
+
         return [
-            'actualites' => array_map(static fn (array $row): array => self::card($row, 'actualite', 'cms'), $actualites),
-            'evenements' => $evenements,
-            'items'      => [...array_map(static fn (array $row): array => self::card($row, 'actualite', 'cms'), $actualites), ...$evenements],
+            'actualites' => $allActualites,
+            'evenements' => $allEvenements,
+            'items'      => $items,
             'prochains'  => $prochains,
             'theme'      => LandingService::theme(),
+            'communes'   => $communes,
         ];
     }
 
@@ -172,6 +253,8 @@ final class ActualiteService
             'lieu'          => $row['lieu'] ?? null,
             'lieu_ar'       => $row['lieu_ar'] ?? null,
             'url_externe'   => $row['url_externe'] ?? null,
+            'latitude'      => isset($row['latitude']) ? (float) $row['latitude'] : null,
+            'longitude'     => isset($row['longitude']) ? (float) $row['longitude'] : null,
         ];
     }
 }

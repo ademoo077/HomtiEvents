@@ -24,20 +24,31 @@ final class GeoHelper
 
     /**
      * Événements triés par proximité depuis (lat, lon).
+     *
+     * @param array<int, string>|string $statuts Statut(s) retenus
      */
-    public static function evenementsProches(float $lat, float $lon, int $rayonKm = 20, string $statut = 'PROGRAMME', int $limit = 50): array
+    public static function evenementsProches(float $lat, float $lon, int $rayonKm = 20, array|string $statuts = ['PROGRAMME'], int $limit = 50): array
     {
+        $statuts = (array) $statuts;
+        $in = implode(',', array_map(
+            static fn (string $s): string => "'" . addslashes($s) . "'",
+            array_values(array_filter($statuts))
+        ));
+        if ($in === '') {
+            return [];
+        }
+
         return Database::all(
             'SELECT e.*, c.nom AS commune_nom, c.latitude, c.longitude,
                     (6371 * 2 * ASIN(SQRT(POWER(SIN(RADIANS(? - c.latitude) / 2), 2)
                         + COS(RADIANS(?)) * COS(RADIANS(c.latitude)) * POWER(SIN(RADIANS(? - c.longitude) / 2), 2)))) AS distance_km
              FROM evenements e
              JOIN commune c ON c.id = e.commune_id
-             WHERE e.statut = ? AND c.latitude IS NOT NULL
+             WHERE e.statut IN (' . $in . ') AND e.deleted_at IS NULL AND c.latitude IS NOT NULL
              HAVING distance_km <= ?
              ORDER BY distance_km ASC
              LIMIT ' . (int) $limit,
-            [$lat, $lat, $lon, $statut, $rayonKm]
+            [$lat, $lat, $lon, $rayonKm]
         );
     }
 

@@ -83,14 +83,7 @@
         Array.prototype.forEach.call(targets, function (el) { io.observe(el); });
     }
 
-    /* ════════════ THÈME (light only) ════════════ */
-    function theme() {
-        var root = document.documentElement;
-        root.setAttribute('data-theme', 'light');
-        try { localStorage.setItem('wh-theme', 'light'); } catch (e) { /* stockage indisponible */ }
-    }
-
-    /* ════════════ NAVIGATION MOBILE ════════════ */
+   /* ════════════ NAVIGATION MOBILE ════════════ */
     function mobileNav() {
         var toggle = document.getElementById('navToggle');
         var nav = document.getElementById('siteNav');
@@ -254,7 +247,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        theme();
         mobileNav();
         stickyHeader();
         smoothAnchors();

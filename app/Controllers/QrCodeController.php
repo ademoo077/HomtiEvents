@@ -84,6 +84,41 @@ final class QrCodeController extends Controller
     }
 
     /**
+     * Endpoint de détection réseau : retourne l'URL courante accessible
+     * depuis le même réseau. Utile au scanner pour construire les
+     * URLs de checkin dynamiquement.
+     */
+    public function networkInfo(): never
+    {
+        $scheme = 'http';
+        $host   = $_SERVER['HTTP_HOST'] ?? config('app.url', 'localhost');
+        // Supprimer le port de l'APP_URL si présent
+        $host = preg_replace('#^https?://#', '', $host);
+
+        $httpsHeaders = ['HTTP_X_FORWARDED_PROTO', 'HTTP_CF_VISITOR', 'HTTP_X_FORWARDED_SCHEME'];
+        if (! empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+            $scheme = 'https';
+        } else {
+            foreach ($httpsHeaders as $h) {
+                $val = $_SERVER[$h] ?? '';
+                if (stripos($val, 'https') !== false) {
+                    $scheme = 'https';
+                    break;
+                }
+            }
+        }
+
+        header('Content-Type: application/json');
+        echo json_encode([
+            'base_url'  => $scheme . '://' . $host,
+            'scheme'    => $scheme,
+            'host'      => $host,
+            'scan_url'  => $scheme . '://' . $host . '/qrcode/scan-optimise',
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    /**
      * Retourne les octets PNG d'un événement : fichier sur disque ou régénéré.
      */
     private function pngBytes(int $evenementId): string
@@ -101,7 +136,7 @@ final class QrCodeController extends Controller
             abort(404, 'QR code introuvable pour cet événement.');
         }
 
-        $uri = QrCodeGenerator::pngDataUri(url('checkin/' . $token), 300);
+        $uri = QrCodeGenerator::pngDataUri(network_url('checkin/' . $token), 300);
         $base64 = explode(';base64,', $uri, 2)[1] ?? '';
         $bytes = base64_decode($base64, true);
         if ($bytes === false) {

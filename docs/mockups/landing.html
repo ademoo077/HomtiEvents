@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<!--
+  ═══════════════════════════════════════════════════════════════════════════
+  MAQUETTE HAUTE-FIDÉLITÉ — LANDING PAGE « WILAYA HARMONIA »
+  ---------------------------------------------------------------------------
+  Fichier autonome (HTML/CSS/JS embarqués) — version desktop 1440×900.
+  Charte graphique : vert forêt #1A4D3E · or #D4AF37 · blanc cassé #FAF6EC.
+  Icônes : Font Awesome 6 (vendored, public/assets/vendor/fontawesome).
+  Images : illustrations 100 % SVG inline (libres de droits, optimisées).
+  Contexte fonctionnel : gestion participative d'événements citoyens
+  et d'anomalies environnementales (citoyens · associations · EPIC · wilaya).
+  ═══════════════════════════════════════════════════════════════════════════
+-->
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wilaya Harmonia — Ensemble pour notre Wilaya</title>
+<meta name="description" content="Plateforme participative des événements citoyens et des anomalies environnementales.">
+<meta name="color-scheme" content="light">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<!-- Font Awesome 6 vendored dans le projet -->
+<link rel="stylesheet" href="../../public/assets/vendor/fontawesome/css/all.min.css">
+
+<style>
+/* ══════════════════════════════ CHARTE GRAPHIQUE ══════════════════════════ */
+:root{
+  --vert-fonce:      #1A4D3E;
+  --vert-emeraude:   #14745C;
+  --vert-clair:      #3C7A5F;
+  --vert-doux:       #7FB396;
+  --vert-mousse:     #E9F2EC;
+  --or:              #D4AF37;
+  --or-clair:        #E8CD7E;
+  --or-pale:         #F6EDD4;
+  --blanc-casse:     #FAF6EC;
+  --blanc:           #FFFFFF;
+  --texte:           #1F2E28;
+  --texte-doux:      #55685F;
+  --ombre:           0 18px 50px rgba(18,60,47,.14);
+  --ombre-or:        0 12px 34px rgba(212,175,55,.28);
+  --rayon:           20px;
+  --font: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --transition: all .3s ease;
+}
+*{ box-sizing:border-box; margin:0; padding:0; }
+html{ scroll-behavior:smooth; }
+body{
+  font-family:var(--font);
+  background:var(--blanc-casse);
+  color:var(--texte);
+  line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+img,svg{ max-width:100%; display:block; }
+a{ text-decoration:none; color:inherit; }
+ul{ list-style:none; }
+.container{ width:100%; max-width:1280px; margin:0 auto; padding:0 1.5rem; }
+section{ scroll-margin-top:96px; }
+.text-center{ text-align:center; }
+:focus-visible{ outline:3px solid var(--or); outline-offset:2px; border-radius:6px; }
+::selection{ background:var(--or); color:var(--vert-fonce); }
+.sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+/* ══════════════════════════════════ NAVBAR ════════════════════════════════ */
+.site-nav{
+  position:fixed; inset:0 0 auto 0; z-index:1000;
+  background:linear-gradient(180deg, var(--vert-fonce) 0%, #27604E 100%);
+  box-shadow:0 10px 30px rgba(9,36,28,.35);
+  border-bottom:2px solid rgba(212,175,55,.35);
+}
+.nav-inner{
+  display:flex; align-items:center; gap:2rem;
+  height:84px;
+}
+/* Logo : blason stylisé (bouclier + arbre) */
+.brand{
+  display:flex; align-items:center; gap:.8rem;
+  flex:0 0 auto;
+}
+.brand-blason{
+  width:48px; height:52px; flex:0 0 auto;
+  filter:drop-shadow(0 3px 6px rgba(0,0,0,.35));
+}
+.brand-text{ display:flex; flex-direction:column; line-height:1.1; }
+.brand-text .wilaya{ color:#fff; font-weight:800; font-size:1.15rem; letter-spacing:.02em; }
+.brand-text .harmonia{
+  color:var(--or); font-weight:700; font-size:.72rem;
+  letter-spacing:.34em; text-transform:uppercase;
+}
+.nav-links{
+  display:flex; align-items:center; gap:.35rem;
+  margin-inline:auto;
+}
+.nav-links a{
+  color:rgba(255,255,255,.88);
+  font-weight:600; font-size:.95rem;
+  padding:.5rem .85rem;
+  position:relative;
+  transition:var(--transition);
+  white-space:nowrap;
+}
+.nav-links a::after{
+  content:''; position:absolute; left:.85rem; right:.85rem; bottom:.15rem;
+  height:2px; border-radius:2px;
+  background:linear-gradient(90deg, var(--or), var(--or-clair));
+  transform:scaleX(0); transform-origin:center;
+  transition:transform .3s ease;
+}
+.nav-links a:hover,.nav-links a.active{ color:#fff; }
+.nav-links a:hover::after,.nav-links a.active::after{ transform:scaleX(1); }
+
+.nav-actions{ display:flex; align-items:center; gap:.8rem; flex:0 0 auto; }
+
+/* Boutons navbar */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:.55rem;
+  padding:.72rem 1.55rem;
+  border-radius:999px;
+  font-weight:700; font-size:.95rem;
+  cursor:pointer; border:2px solid transparent;
+  transition:var(--transition);
+  line-height:1.2;
+}
+.btn-lg{ padding:1rem 2.2rem; font-size:1.05rem; }
+.btn-connect{
+  background:var(--blanc-casse); color:var(--vert-fonce);
+  box-shadow:0 4px 14px rgba(0,0,0,.18);
+}
+.btn-connect:hover{ background:#fff; transform:translateY(-2px); box-shadow:0 8px 22px rgba(0,0,0,.25); }
+.btn-register{
+  border-color:var(--or); color:var(--or); background:transparent;
+}
+.btn-register:hover{
+  background:var(--or); color:var(--vert-fonce); transform:translateY(-2px);
+  box-shadow:var(--ombre-or);
+}
+.btn-nav-toggle{
+  display:none; background:none; border:1px solid rgba(255,255,255,.35);
+  color:#fff; font-size:1.3rem; width:44px; height:44px; border-radius:12px; cursor:pointer;
+}
+
+/* ══════════════════════════════════ HERO ═══════════════════════════════════ */
+.hero{
+  position:relative; overflow:hidden;
+  padding:160px 0 90px;
+  background:linear-gradient(140deg, #0E3A2E 0%, var(--vert-fonce) 32%, #1F6A52 68%, var(--vert-emeraude) 100%);
+  color:#fff;
+}
+.hero::before{ /* halos lumineux décoratifs */
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background:
+    radial-gradient(600px 360px at 12% 20%, rgba(212,175,55,.14), transparent 65%),
+    radial-gradient(560px 420px at 88% 12%, rgba(127,179,150,.16), transparent 65%);
+}
+.hero-grain{ /* texture points discrets */
+  position:absolute; inset:0; opacity:.5; pointer-events:none;
+  background-image:radial-gradient(rgba(255,255,255,.07) 1px, transparent 1px);
+  background-size:26px 26px;
+}
+.hero-inner{
+  position:relative; z-index:2;
+  display:grid; grid-template-columns:1.05fr .95fr; gap:3.5rem;
+  align-items:center;
+}
+.hero-copy{ text-align:center; }
+.hero-pill{
+  display:inline-flex; align-items:center; gap:.55rem;
+  background:rgba(255,255,255,.12); border:1px solid rgba(212,175,55,.45);
+  backdrop-filter:blur(6px);
+  color:var(--or-clair); font-weight:600; font-size:.82rem;
+  padding:.4rem 1.1rem; border-radius:999px;
+  margin-bottom:1.4rem;
+}
+.hero-title{
+  font-size:48px; font-weight:900; line-height:1.12; letter-spacing:-.01em;
+  color:#fff; margin-bottom:1.1rem;
+  text-shadow:0 4px 26px rgba(0,0,0,.35);
+}
+.hero-title .acc{
+  color:var(--or);
+  text-shadow:0 2px 18px rgba(212,175,55,.4);
+}
+.hero-sub{
+  max-width:640px; margin:0 auto 1.9rem;
+  font-size:1.14rem; color:rgba(255,255,255,.9);
+  text-shadow:0 2px 14px rgba(0,0,0,.25);
+}
+.hero-actions{ display:flex; flex-wrap:wrap; gap:1rem; justify-content:center; }
+.btn-participate{
+  background:var(--or); color:var(--vert-fonce);
+  box-shadow:var(--ombre-or);
+}
+.btn-participate:hover{ background:#E3C25A; transform:translateY(-3px) scale(1.02); }
+.btn-anomalie{
+  border-color:var(--or); color:#fff; background:transparent;
+}
+.btn-anomalie:hover{ background:rgba(212,175,55,.16); border-color:var(--or-clair); transform:translateY(-3px); }
+
+/* Compteurs dynamiques de la hero */
+.hero-counters{
+  display:grid; grid-template-columns:repeat(3,1fr); gap:1.2rem;
+  margin-top:2.4rem; padding-top:2rem;
+  border-top:1px solid rgba(255,255,255,.18);
+}
+.hero-counter{ text-align:center; }
+.hero-counter .ico{
+  width:52px; height:52px; margin:0 auto .55rem;
+  display:grid; place-items:center;
+  border-radius:16px; font-size:1.35rem; color:var(--or);
+  background:rgba(255,255,255,.1); border:1px solid rgba(212,175,55,.4);
+}
+.hero-counter strong{
+  display:block; font-size:1.95rem; font-weight:800; color:#fff;
+  text-shadow:0 2px 14px rgba(0,0,0,.3);
+  font-variant-numeric:tabular-nums;
+}
+.hero-counter span{ font-size:.82rem; color:rgba(255,255,255,.78); }
+
+/* Illustration hero */
+.hero-visual{
+  position:relative;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:26px;
+  backdrop-filter:blur(6px);
+  padding:1.2rem;
+  box-shadow:0 30px 70px rgba(0,0,0,.35);
+  overflow:hidden;
+}
+.hero-visual svg{ width:100%; height:auto; border-radius:18px; }
+.hero-visual-caption{
+  display:flex; justify-content:center; gap:1.6rem;
+  padding:.8rem .5rem 0; font-size:.8rem; color:rgba(255,255,255,.75);
+}
+.hero-visual-caption span{ display:inline-flex; align-items:center; gap:.4rem; }
+.hero-visual-caption i{ color:var(--or); }
+
+/* ═══════════════════════ CARTES STATISTIQUES (glassmorphism) ═══════════════ */
+.stats{
+  position:relative; overflow:hidden;
+  padding:84px 0 96px;
+  background:
+    radial-gradient(620px 320px at 8% 12%, rgba(212,175,55,.16), transparent 62%),
+    radial-gradient(640px 340px at 92% 88%, rgba(26,77,62,.14), transparent 62%),
+    var(--blanc-casse);
+}
+.stats-grid{
+  display:grid; grid-template-columns:repeat(3,1fr); gap:1.6rem;
+}
+.stat-card{
+  position:relative;
+  background:rgba(255,255,255,.5);
+  -webkit-backdrop-filter:blur(16px); backdrop-filter:blur(16px);
+  border:1px solid rgba(212,175,55,.4);
+  border-radius:var(--rayon);
+  padding:1.9rem 1.8rem 1.6rem;
+  box-shadow:0 14px 40px rgba(26,77,62,.12);
+  transition:transform .3s ease, box-shadow .3s ease;
+  cursor:pointer;
+}
+.stat-card::after{ /* coin lumineux */
+  content:''; position:absolute; top:-1px; inset-inline-start:-1px;
+  width:64px; height:64px;
+  border-top:3px solid var(--or); border-start-start-radius:var(--rayon);
+  border-left:3px solid var(--or);
+}
+.stat-card:hover{
+  transform:translateY(-8px);
+  box-shadow:0 26px 60px rgba(26,77,62,.22), var(--ombre-or);
+}
+.stat-card a.stat-link{ position:absolute; inset:0; z-index:2; }
+.stat-head{ display:flex; align-items:center; gap:1rem; margin-bottom:.9rem; }
+.stat-ico{
+  width:58px; height:58px; flex:0 0 auto;
+  display:grid; place-items:center;
+  border-radius:16px; font-size:1.5rem;
+  color:#fff;
+  background:linear-gradient(135deg, var(--vert-fonce), var(--vert-emeraude));
+  box-shadow:0 8px 22px rgba(26,77,62,.3);
+}
+.stat-head strong{ font-size:2rem; font-weight:800; color:var(--vert-fonce); line-height:1; }
+.stat-head small{ display:block; font-size:.78rem; color:var(--texte-doux); font-weight:600; margin-top:.25rem; }
+.stat-desc{ font-size:.92rem; color:var(--texte-doux); margin-bottom:1.1rem; min-height:2.6em; }
+/* Barre de progression stylisée */
+.progress{ height:12px; border-radius:999px; background:rgba(26,77,62,.1); overflow:hidden; position:relative; }
+.progress-fill{
+  height:100%; width:0; border-radius:999px;
+  background:linear-gradient(90deg, var(--vert-fonce), var(--vert-emeraude), var(--or));
+  background-size:200% 100%;
+  transition:width 1.6s cubic-bezier(.22,.61,.36,1);
+}
+.progress-label{
+  display:flex; justify-content:space-between;
+  font-size:.78rem; font-weight:600; color:var(--texte-doux);
+  margin-top:.45rem;
+}
+.progress-label .pct{ color:var(--vert-fonce); font-weight:800; }
+.stat-arrow{
+  position:absolute; bottom:1.2rem; inset-inline-end:1.4rem;
+  color:var(--or); font-size:1.1rem; opacity:0; transform:translateX(-6px);
+  transition:var(--transition);
+}
+.stat-card:hover .stat-arrow{ opacity:1; transform:translateX(0); }
+
+/* ═════════════════════════════ SECTION TITRES ═════════════════════════════ */
+.section{ padding:96px 0; }
+.section-head{ text-align:center; max-width:720px; margin:0 auto 3.2rem; }
+.eyebrow{
+  display:inline-flex; align-items:center; gap:.5rem;
+  font-size:.78rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--vert-fonce);
+  background:var(--or-pale); border:1px solid rgba(212,175,55,.45);
+  padding:.38rem 1.1rem; border-radius:999px; margin-bottom:1rem;
+}
+.eyebrow i{ color:var(--or); }
+.section-title{ font-size:2.4rem; font-weight:900; color:var(--vert-fonce); line-height:1.18; margin-bottom:.8rem; }
+.section-lead{ font-size:1.06rem; color:var(--texte-doux); }
+
+/* ══════════════════════════ COMMENT ÇA FONCTIONNE ══════════════════════════ */
+.how{
+  background:
+    radial-gradient(560px 300px at 90% 10%, rgba(212,175,55,.1), transparent 60%),
+    #F1F6F2;
+}
+.how-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:1.6rem; position:relative; }
+/* filigrane connecteur */
+.how-grid::before{
+  content:''; position:absolute; top:64px; left:16%; right:16%;
+  height:3px; border-radius:3px;
+  background:repeating-linear-gradient(90deg, var(--or) 0 10px, transparent 10px 18px);
+  opacity:.5;
+}
+.how-card{
+  position:relative; text-align:center;
+  background:var(--blanc); border:1px solid rgba(26,77,62,.12);
+  border-radius:var(--rayon); padding:2.4rem 1.7rem 1.9rem;
+  box-shadow:var(--ombre);
+  transition:var(--transition);
+}
+.how-card:hover{ transform:translateY(-8px); box-shadow:0 22px 50px rgba(26,77,62,.18); }
+.how-num{
+  position:absolute; top:1rem; inset-inline-end:1.2rem;
+  font-weight:900; font-size:2.6rem; color:rgba(26,77,62,.08);
+  line-height:1;
+}
+.how-ico{
+  width:84px; height:84px; margin:0 auto 1.2rem;
+  display:grid; place-items:center;
+  border-radius:24px; font-size:2rem;
+}
+.how-card:nth-child(odd) .how-ico{
+  color:var(--vert-fonce);
+  background:linear-gradient(135deg, var(--vert-mousse), #D8E8DC);
+}
+.how-card:nth-child(even) .how-ico{
+  color:#8A6D12;
+  background:linear-gradient(135deg, var(--or-pale), #F3E3B6);
+}
+.how-card h3{ font-size:1.14rem; font-weight:800; color:var(--vert-fonce); margin-bottom:.55rem; }
+.how-card p{ font-size:.92rem; color:var(--texte-doux); }
+.how-tag{
+  display:inline-flex; align-items:center; gap:.4rem;
+  margin-top:1rem; font-size:.78rem; font-weight:700;
+  color:var(--vert-fonce); background:var(--vert-mousse);
+  padding:.3rem .85rem; border-radius:999px;
+}
+
+/* ══════════════════════════ TÉMOIGNAGES (carrousel) ═══════════════════════ */
+.testimonials{ background:var(--blanc-casse); }
+.carousel{
+  position:relative; max-width:820px; margin:0 auto;
+}
+.carousel-track{ position:relative; min-height:250px; }
+.t-item{
+  position:absolute; inset:0;
+  display:flex; flex-direction:column; align-items:center; text-align:center;
+  opacity:0; transform:translateY(14px) scale(.98); pointer-events:none;
+  transition:opacity .5s ease, transform .5s ease;
+}
+.t-item.active{ opacity:1; transform:none; pointer-events:auto; }
+.t-card{
+  background:var(--blanc); border:1px solid rgba(26,77,62,.12);
+  border-radius:var(--rayon); padding:2.4rem 2.6rem;
+  box-shadow:var(--ombre);
+  max-width:640px;
+}
+.t-card .quote{
+  width:44px; height:44px; margin:0 auto 1rem;
+  display:grid; place-items:center;
+  background:linear-gradient(135deg, var(--vert-fonce), var(--vert-emeraude));
+  color:var(--or); border-radius:50%; font-size:1.1rem;
+}
+.t-card blockquote{ font-size:1.08rem; font-style:italic; color:var(--texte); margin-bottom:1.2rem; }
+.t-stars{ color:var(--or); letter-spacing:.18em; margin-bottom:.9rem; font-size:.95rem; }
+.t-author{ display:flex; align-items:center; justify-content:center; gap:.7rem; }
+.t-avatar{
+  width:46px; height:46px; border-radius:50%;
+  display:grid; place-items:center; color:#fff; font-weight:800; font-size:.9rem;
+  background:linear-gradient(135deg, var(--vert-fonce), var(--vert-emeraude));
+}
+.t-author strong{ display:block; font-size:.95rem; }
+.t-author small{ color:var(--texte-doux); }
+.carousel-nav{
+  display:flex; align-items:center; justify-content:center; gap:1rem;
+  margin-top:1.6rem;
+}
+.car-btn{
+  width:44px; height:44px; border-radius:50%;
+  border:2px solid var(--vert-fonce); background:transparent; color:var(--vert-fonce);
+  font-size:1rem; cursor:pointer; transition:var(--transition);
+}
+.car-btn:hover{ background:var(--vert-fonce); color:#fff; }
+.car-dots{ display:flex; gap:.5rem; }
+.car-dot{
+  width:10px; height:10px; border-radius:50%; border:none; cursor:pointer;
+  background:rgba(26,77,62,.22); transition:var(--transition);
+}
+.car-dot.active{ width:26px; border-radius:999px; background:var(--or); }
+
+/* ═══════════════════ AVANT / APRÈS (réalisations) ════════════════════════ */
+.ba{ background:#F1F6F2; }
+.ba-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:1.6rem; }
+.ba-card{
+  background:var(--blanc); border-radius:var(--rayon); overflow:hidden;
+  border:1px solid rgba(26,77,62,.12); box-shadow:var(--ombre);
+}
+.ba-stage{ position:relative; aspect-ratio:16/10; overflow:hidden; background:#EAEFEB; }
+.ba-stage .img-before{ position:absolute; inset:0; }
+.ba-stage .img-after{
+  position:absolute; inset:0;
+  -webkit-clip-path:inset(0 50% 0 0); clip-path:inset(0 50% 0 0);
+}
+.ba-handle{
+  position:absolute; top:0; bottom:0; left:50%; width:3px;
+  background:var(--or); z-index:3; pointer-events:none;
+  box-shadow:0 0 14px rgba(0,0,0,.3);
+}
+.ba-handle::after{
+  content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:40px; height:40px; border-radius:50%;
+  background:var(--blanc-casse); border:2px solid var(--or);
+  box-shadow:0 4px 12px rgba(0,0,0,.25);
+}
+.ba-slider{
+  position:absolute; inset:0; z-index:4; width:100%; height:100%;
+  opacity:0; cursor:ew-resize; margin:0;
+}
+.ba-label{
+  position:absolute; top:.9rem; z-index:3;
+  font-size:.72rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase;
+  padding:.3rem .8rem; border-radius:999px;
+}
+.ba-label.before{ inset-inline-start:.9rem; background:rgba(26,77,62,.85); color:#fff; }
+.ba-label.after{ inset-inline-end:.9rem; background:var(--or); color:var(--vert-fonce); }
+.ba-body{ padding:1.3rem 1.5rem 1.5rem; }
+.ba-body h3{ font-size:1.05rem; font-weight:800; color:var(--vert-fonce); margin-bottom:.35rem; }
+.ba-body p{ font-size:.9rem; color:var(--texte-doux); }
+
+/* ═════════════════════════════════ FOOTER ═════════════════════════════════ */
+.site-footer{
+  background:linear-gradient(180deg, #14382D 0%, #0E2C23 100%);
+  color:rgba(255,255,255,.82);
+  padding:70px 0 0;
+  border-top:3px solid var(--or);
+}
+.footer-grid{
+  display:grid; grid-template-columns:1.3fr 1fr 1fr 1.2fr; gap:2.5rem;
+  padding-bottom:2.6rem;
+}
+.footer-brand .brand-blason{ width:44px; height:48px; }
+.footer-brand p{ margin:.9rem 0 1.1rem; font-size:.92rem; color:rgba(255,255,255,.68); max-width:300px; }
+.socials{ display:flex; gap:.7rem; }
+.social{
+  width:42px; height:42px; border-radius:12px;
+  display:grid; place-items:center;
+  background:rgba(255,255,255,.07); border:1px solid rgba(212,175,55,.35);
+  color:var(--or); font-size:1.05rem;
+  transition:var(--transition);
+}
+.social:hover{ background:var(--or); color:var(--vert-fonce); transform:translateY(-3px); }
+.footer-col h4{
+  color:#fff; font-size:.95rem; font-weight:800; text-transform:uppercase;
+  letter-spacing:.08em; margin-bottom:1.1rem; padding-bottom:.5rem;
+  border-bottom:1px solid rgba(212,175,55,.35); display:inline-block;
+}
+.footer-col ul li{ margin-bottom:.6rem; }
+.footer-col ul a{
+  color:rgba(255,255,255,.72); font-size:.92rem;
+  transition:var(--transition);
+}
+.footer-col ul a:hover{ color:var(--or); padding-inline-start:4px; }
+.footer-contact li{ display:flex; gap:.6rem; font-size:.92rem; align-items:flex-start; }
+.footer-contact i{ color:var(--or); margin-top:.25rem; }
+.footer-bottom{
+  border-top:1px solid rgba(255,255,255,.12);
+  padding:1.3rem 1.5rem;
+  display:flex; align-items:center; justify-content:space-between; gap:1rem;
+  flex-wrap:wrap; font-size:.85rem; color:rgba(255,255,255,.6);
+  max-width:1280px; margin:0 auto;
+}
+.footer-bottom .links{ display:flex; gap:1.4rem; }
+.footer-bottom a:hover{ color:var(--or); }
+.footer-bottom a.top{ display:inline-flex; align-items:center; gap:.4rem; font-weight:700; color:var(--or); }
+
+/* ═════════════════════════════ WIDGET D'ASSISTANCE ════════════════════════ */
+.chat-widget{ position:fixed; bottom:1.6rem; right:1.6rem; z-index:2000; display:flex; flex-direction:column; align-items:flex-end; }
+.chat-bubble{
+  display:inline-flex; align-items:center; gap:.6rem;
+  background:var(--vert-fonce); color:#fff;
+  border:2px solid var(--or); border-radius:999px;
+  padding:.85rem 1.35rem; font-weight:700; font-size:.95rem;
+  cursor:pointer; box-shadow:var(--ombre-or);
+  transition:var(--transition);
+  position:relative;
+}
+.chat-bubble .dot{ width:10px; height:10px; border-radius:50%; background:var(--or); flex:0 0 auto; }
+/* pulsation */
+.chat-bubble::before{
+  content:''; position:absolute; inset:-6px; border-radius:999px;
+  border:2px solid rgba(212,175,55,.55);
+  animation:pulse 2.4s ease-out infinite;
+}
+@keyframes pulse{
+  0%{ transform:scale(1); opacity:.9; }
+  70%{ transform:scale(1.28); opacity:0; }
+  100%{ transform:scale(1.28); opacity:0; }
+}
+.chat-bubble:hover{ background:var(--vert-emeraude); transform:translateY(-2px); }
+/* popup au survol */
+.chat-pop{
+  width:340px; margin-bottom:1rem;
+  background:var(--blanc); border:1px solid rgba(212,175,55,.5);
+  border-radius:22px; box-shadow:0 24px 60px rgba(9,36,28,.35);
+  overflow:hidden;
+  opacity:0; visibility:hidden; transform:translateY(12px) scale(.96);
+  transform-origin:bottom right;
+  transition:opacity .28s ease, transform .28s ease, visibility .28s;
+}
+.chat-widget.open .chat-pop, .chat-widget:hover .chat-pop{
+  opacity:1; visibility:visible; transform:none;
+}
+.chat-head{
+  display:flex; align-items:center; gap:.7rem;
+  padding:.9rem 1.1rem;
+  background:linear-gradient(120deg, var(--vert-fonce), var(--vert-emeraude));
+  color:#fff;
+}
+.chat-head .avatar{
+  width:40px; height:40px; border-radius:50%;
+  background:var(--or); color:var(--vert-fonce);
+  display:grid; place-items:center; font-size:1rem;
+}
+.chat-head strong{ display:block; font-size:.92rem; }
+.chat-head small{ color:rgba(255,255,255,.75); font-size:.75rem; }
+.chat-body{ padding:1rem; display:flex; flex-direction:column; gap:.6rem; }
+.chat-msg{
+  max-width:82%; padding:.6rem .95rem; border-radius:14px; font-size:.85rem;
+}
+.chat-msg.bot{ align-self:flex-start; background:var(--vert-mousse); color:var(--texte); border-start-start-radius:4px; }
+.chat-msg.user{ align-self:flex-end; background:var(--vert-fonce); color:#fff; border-end-end-radius:4px; }
+.chat-quick{ display:flex; gap:.5rem; flex-wrap:wrap; }
+.chat-quick button{
+  font-size:.75rem; font-weight:600;
+  border:1px solid rgba(26,77,62,.25); background:var(--blanc);
+  color:var(--vert-fonce); border-radius:999px; padding:.3rem .8rem; cursor:pointer;
+  transition:var(--transition);
+}
+.chat-quick button:hover{ background:var(--vert-fonce); color:#fff; }
+.chat-input{
+  display:flex; gap:.5rem; padding:0 1rem 1rem;
+}
+.chat-input input{
+  flex:1; padding:.65rem 1rem; border-radius:999px;
+  border:1px solid rgba(26,77,62,.22); font-family:var(--font); font-size:.85rem;
+}
+.chat-input input:focus{ outline:2px solid var(--or); border-color:transparent; }
+.chat-input button{
+  width:44px; height:44px; border-radius:50%; border:none; cursor:pointer;
+  background:var(--or); color:var(--vert-fonce); font-size:1rem;
+  transition:var(--transition);
+}
+.chat-input button:hover{ transform:scale(1.08); }
+
+/* ══════════════════════════ RÉVÉLATION AU DÉFILEMENT ══════════════════════ */
+[data-reveal]{ opacity:0; transform:translateY(28px); transition:opacity .7s ease, transform .7s ease; }
+[data-reveal].in{ opacity:1; transform:none; }
+
+/* ═══════════════════════════════ RESPONSIVE ═══════════════════════════════ */
+@media (max-width:1100px){
+  .hero-inner{ grid-template-columns:1fr; gap:2.5rem; }
+  .hero-copy{ text-align:center; }
+  .nav-links{ display:none; }
+}
+@media (max-width:991px){
+  .stats-grid,.how-grid{ grid-template-columns:1fr; }
+  .ba-grid{ grid-template-columns:1fr; }
+  .footer-grid{ grid-template-columns:1fr 1fr; }
+  .hero-title{ font-size:36px; }
+}
+@media (max-width:640px){
+  .section{ padding:64px 0; }
+  .section-title{ font-size:1.8rem; }
+  .hero{ padding:130px 0 64px; }
+  .hero-title{ font-size:30px; }
+  .hero-counters{ grid-template-columns:1fr; gap:1.4rem; }
+  .footer-grid{ grid-template-columns:1fr; }
+  .chat-pop{ width:calc(100vw - 2.4rem); }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════ NAVBAR ═══════════════════════════════ -->
+<header class="site-nav">
+  <div class="container nav-inner">
+    <a class="brand" href="#top" aria-label="Wilaya Harmonia — Accueil">
+      <svg class="brand-blason" viewBox="0 0 48 52" aria-hidden="true">
+        <!-- Bouclier vert forêt bordé d'or -->
+        <path d="M24 3 L42 9 V27 C42 39 34 46 24 49 C14 46 6 39 6 27 V9 Z"
+              fill="#1A4D3E" stroke="#D4AF37" stroke-width="2.4"/>
+        <path d="M24 3 L42 9 V27 C42 39 34 46 24 49 C14 46 6 39 6 27 V9 Z"
+              fill="none" stroke="#3C7A5F" stroke-width="1" stroke-dasharray="2 3"/>
+        <!-- Arbre stylisé -->
+        <path d="M24 12 C24 12 19 17 19 21 C19 24 21 25 21 25 L21 30 H27 V25 C27 25 29 24 29 21 C29 17 24 12 24 12 Z"
+              fill="#D4AF37"/>
+        <rect x="22.4" y="30" width="3.2" height="6" rx="1.2" fill="#7FB396"/>
+        <circle cx="24" cy="9" r="1.6" fill="#E8CD7E"/>
+      </svg>
+      <span class="brand-text">
+        <span class="wilaya">Wilaya Harmonia</span>
+        <span class="harmonia">Ensemble · Citizens</span>
+      </span>
+    </a>
+
+    <nav class="nav-links" id="navLinks" aria-label="Navigation principale">
+      <a href="#top" class="active">Accueil</a>
+      <a href="#carte">Carte des interventions</a>
+      <a href="#evenements">Événements</a>
+      <a href="#anomalies">Anomalies</a>
+      <a href="#contact">Contact</a>
+    </nav>
+
+    <div class="nav-actions">
+      <a href="#connexion" class="btn btn-connect">Se connecter</a>
+      <a href="#inscription" class="btn btn-register">S'inscrire</a>
+      <button class="btn-nav-toggle" id="navToggle" aria-label="Ouvrir le menu" aria-expanded="false"><i class="fa-solid fa-bars"></i></button>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════ HERO ════════════════════════════════ -->
+<section class="hero" id="top">
+  <div class="hero-grain" aria-hidden="true"></div>
+  <div class="container hero-inner">
+
+    <div class="hero-copy">
+      <span class="hero-pill"><i class="fa-solid fa-seedling"></i> Plateforme participative · Algérie</span>
+      <h1 class="hero-title" data-reveal>
+        ENSEMBLE pour notre Wilaya&nbsp;:<br>
+        <span class="acc">Agissons pour l'environnement.</span>
+      </h1>
+      <p class="hero-sub" data-reveal data-reveal-delay="80">
+        Rejoignez les acteurs locaux, signalez une anomalie, participez à un événement
+        et contribuez à l'embellissement de votre territoire.
+      </p>
+
+      <div class="hero-actions" data-reveal data-reveal-delay="160">
+        <a href="#inscription" class="btn btn-lg btn-participate"><i class="fa-solid fa-hand-holding-heart"></i> Je participe</a>
+        <a href="#anomalies" class="btn btn-lg btn-anomalie"><i class="fa-solid fa-triangle-exclamation"></i> Signaler une anomalie</a>
+      </div>
+
+      <!-- Compteurs dynamiques (animés à l'arrivée) -->
+      <div class="hero-counters" role="list" aria-label="Chiffres clés de la plateforme">
+        <div class="hero-counter" role="listitem" data-reveal data-reveal-delay="240">
+          <span class="ico"><i class="fa-solid fa-tree"></i></span>
+          <strong data-count="1200" data-suffix="+">0</strong>
+          <span>arbres plantés</span>
+        </div>
+        <div class="hero-counter" role="listitem" data-reveal data-reveal-delay="360">
+          <span class="ico"><i class="fa-solid fa-calendar-check"></i></span>
+          <strong data-count="55">0</strong>
+          <span>événements organisés</span>
+        </div>
+        <div class="hero-counter" role="listitem" data-reveal data-reveal-delay="480">
+          <span class="ico"><i class="fa-solid fa-people-group"></i></span>
+          <strong data-count="150" data-suffix="+">0</strong>
+          <span>volontaires mobilisés</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Illustration : volontaires diversifiés en action -->
+    <div class="hero-visual" data-reveal data-reveal-delay="120">
+      <svg viewBox="0 0 620 460" role="img" aria-label="Volontaires plantant des arbres, nettoyant un espace et réparant un trottoir">
+        <defs>
+          <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#3C7A5F"/>
+            <stop offset="1" stop-color="#1A4D3E"/>
+          </linearGradient>
+          <linearGradient id="hillBack" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#2E6B52"/>
+            <stop offset="1" stop-color="#1E5242"/>
+          </linearGradient>
+          <linearGradient id="hillFront" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#3C7A5F"/>
+            <stop offset="1" stop-color="#21564A"/>
+          </linearGradient>
+          <linearGradient id="sun" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#E8CD7E"/>
+            <stop offset="1" stop-color="#D4AF37"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Ciel -->
+        <rect width="620" height="460" fill="url(#sky)"/>
+        <!-- Soleil -->
+        <circle cx="540" cy="74" r="34" fill="url(#sun)" opacity=".92"/>
+        <g stroke="#E8CD7E" stroke-width="3" stroke-linecap="round" opacity=".7">
+          <line x1="540" y1="26" x2="540" y2="14"/><line x1="540" y1="122" x2="540" y2="134"/>
+          <line x1="492" y1="74" x2="480" y2="74"/><line x1="588" y1="74" x2="600" y2="74"/>
+          <line x1="506" y1="40" x2="497" y2="31"/><line x1="574" y1="108" x2="583" y2="117"/>
+          <line x1="574" y1="40" x2="583" y2="31"/><line x1="506" y1="108" x2="497" y2="117"/>
+        </g>
+        <!-- Collines -->
+        <path d="M0 330 Q150 268 330 312 T620 296 V460 H0 Z" fill="url(#hillBack)"/>
+        <path d="M0 400 Q220 330 430 380 T620 366 V460 H0 Z" fill="url(#hillFront)"/>
+        <!-- Allée -->
+        <path d="M250 460 Q300 420 340 460 Z" fill="#8A6D12" opacity=".5"/>
+        <!-- Arbres de fond -->
+        <g fill="#1A4D3E">
+          <path d="M96 322 l14 -34 l14 34 Z"/><rect x="109" y="322" width="4" height="12" fill="#0E2C23"/>
+          <path d="M570 340 l16 -38 l16 38 Z"/><rect x="585" y="340" width="4" height="10" fill="#0E2C23"/>
+          <path d="M72 300 l11 -28 l11 28 Z" opacity=".85"/>
+        </g>
+        <!-- Buissons -->
+        <g fill="#21564A">
+          <circle cx="470" cy="392" r="14"/><circle cx="488" cy="386" r="11"/><circle cx="486" cy="396" r="12"/>
+          <circle cx="176" cy="404" r="12"/><circle cx="192" cy="400" r="9"/>
+        </g>
+
+        <!-- Volontaire 1 : jeune femme plantant un arbre -->
+        <g>
+          <!-- trou + terre -->
+          <ellipse cx="168" cy="398" rx="20" ry="6" fill="#12382E"/>
+          <rect x="152" y="380" width="32" height="18" rx="6" fill="#0E2C23" transform="rotate(-14 168 388)"/>
+          <!-- arbre planté -->
+          <rect x="181" y="350" width="5" height="26" rx="2" fill="#7A5636"/>
+          <circle cx="183" cy="342" r="15" fill="#14745C"/><circle cx="192" cy="352" r="10" fill="#3C7A5F"/>
+          <circle cx="175" cy="354" r="9" fill="#1A4D3E"/>
+          <!-- jambes (agenouillée) -->
+          <rect x="153" y="368" width="12" height="26" rx="6" fill="#3E5C52"/>
+          <rect x="166" y="380" width="12" height="22" rx="6" fill="#3E5C52"/>
+          <!-- buste -->
+          <rect x="152" y="344" width="27" height="28" rx="11" fill="#D4AF37"/>
+          <!-- bras vers l'arbre -->
+          <path d="M176 352 q14 -6 12 8" stroke="#C98A5A" stroke-width="8" stroke-linecap="round" fill="none"/>
+          <!-- tête -->
+          <circle cx="165" cy="334" r="12" fill="#C98A5A"/>
+          <path d="M153 330 q12 -10 24 0 q2 8 -12 8 q-14 0 -12 -8 Z" fill="#3A2A20"/>
+          <!-- foulard -->
+          <path d="M150 336 q15 -8 30 0 l-3 8 q-12 -5 -24 0 Z" fill="#3C7A5F"/>
+        </g>
+
+        <!-- Volontaire 2 : homme ramassant des déchets -->
+        <g>
+          <!-- jambes -->
+          <rect x="288" y="368" width="11" height="28" rx="5" fill="#2A4A3E"/>
+          <rect x="302" y="370" width="11" height="26" rx="5" fill="#2A4A3E"/>
+          <!-- buste -->
+          <rect x="284" y="342" width="32" height="30" rx="12" fill="#14745C"/>
+          <!-- bras gauche avec sac -->
+          <path d="M316 350 q16 6 12 22" stroke="#14745C" stroke-width="9" stroke-linecap="round" fill="none"/>
+          <path d="M322 366 q4 14 -6 16 l-14 2 q-2 -12 8 -16 Z" fill="#E8CD7E"/>
+          <!-- gants -->
+          <circle cx="328" cy="370" r="5" fill="#E8CD7E"/>
+          <!-- tête -->
+          <circle cx="299" cy="330" r="13" fill="#8B5A33"/>
+          <path d="M286 326 q13 -12 26 0 q0 7 -13 7 q-13 0 -13 -7 Z" fill="#16130F"/>
+          <!-- chapeau -->
+          <path d="M283 328 q16 -14 32 0 q-3 -4 -16 -4 q-13 0 -16 4 Z" fill="#D4AF37"/>
+          <!-- bras droit -->
+          <path d="M286 352 q-14 2 -14 14" stroke="#14745C" stroke-width="8" stroke-linecap="round" fill="none"/>
+        </g>
+
+        <!-- Volontaire 3 : personne âgée arrosant -->
+        <g>
+          <!-- arrosoir -->
+          <path d="M448 376 q18 0 22 -12 l8 -2 q-2 16 -14 20 Z" fill="#D4AF37"/>
+          <rect x="470" y="362" width="10" height="5" rx="2" fill="#8A6D12"/>
+          <!-- jambes -->
+          <rect x="430" y="368" width="11" height="28" rx="5" fill="#55685F"/>
+          <rect x="444" y="370" width="11" height="26" rx="5" fill="#55685F"/>
+          <!-- buste -->
+          <rect x="426" y="344" width="32" height="28" rx="12" fill="#7FB396"/>
+          <!-- bras droit vers arrosoir -->
+          <path d="M455 352 q10 4 8 14" stroke="#7FB396" stroke-width="8" stroke-linecap="round" fill="none"/>
+          <!-- tête + cheveux gris -->
+          <circle cx="442" cy="332" r="12" fill="#C98A5A"/>
+          <path d="M429 330 q12 -14 26 0 q-3 -8 -13 -8 q-13 0 -13 8 Z" fill="#D8DCD9"/>
+          <!-- bras gauche avec canne -->
+          <path d="M428 352 q-12 6 -8 22" stroke="#7FB396" stroke-width="8" stroke-linecap="round" fill="none"/>
+          <line x1="420" y1="374" x2="424" y2="392" stroke="#8A6D12" stroke-width="4" stroke-linecap="round"/>
+        </g>
+
+        <!-- Volontaire 4 : jeune réparant le trottoir -->
+        <g>
+          <!-- trottoir -->
+          <rect x="516" y="392" width="104" height="14" rx="4" fill="#B9C4BC"/>
+          <rect x="516" y="392" width="104" height="5" rx="2" fill="#DDE3DE"/>
+          <!-- brique posée -->
+          <rect x="572" y="384" width="24" height="10" rx="2" fill="#8A6D12"/>
+          <!-- jambes -->
+          <rect x="552" y="366" width="11" height="26" rx="5" fill="#3E5C52"/>
+          <rect x="566" y="366" width="11" height="26" rx="5" fill="#3E5C52"/>
+          <!-- buste -->
+          <rect x="548" y="340" width="32" height="30" rx="12" fill="#E8CD7E"/>
+          <!-- truelle -->
+          <path d="M582 356 q8 -14 22 -16 l4 8 q-12 6 -20 12 Z" fill="#D8DCD9"/>
+          <!-- bras -->
+          <path d="M578 348 q8 2 8 8" stroke="#E8CD7E" stroke-width="8" stroke-linecap="round" fill="none"/>
+          <path d="M552 350 q-8 4 -6 12" stroke="#E8CD7E" stroke-width="8" stroke-linecap="round" fill="none"/>
+          <!-- tête -->
+          <circle cx="563" cy="328" r="12" fill="#8B5A33"/>
+          <path d="M551 325 q12 -11 24 0 q0 6 -12 6 q-12 0 -12 -6 Z" fill="#16130F"/>
+          <!-- casque -->
+          <path d="M549 324 q14 -13 28 0 q-1 -5 -14 -5 q-13 0 -14 5 Z" fill="#D4AF37"/>
+        </g>
+
+        <!-- Petites feuilles / étincelles -->
+        <g fill="#E8CD7E" opacity=".8">
+          <circle cx="212" cy="330" r="3"/><circle cx="262" cy="344" r="2.4"/>
+          <circle cx="416" cy="348" r="2.8"/><circle cx="140" cy="356" r="2.4"/>
+          <path d="M360 296 l4 10 -10 -4 10 -4 Z" opacity=".55"/>
+        </g>
+      </svg>
+      <div class="hero-visual-caption">
+        <span><i class="fa-solid fa-tree"></i> Plantation</span>
+        <span><i class="fa-solid fa-broom"></i> Nettoyage</span>
+        <span><i class="fa-solid fa-hammer"></i> Réhabilitation</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════ CARTES STATISTIQUES (glassmorphism) ═════════════ -->
+<section class="stats" id="stats">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow" data-reveal><i class="fa-solid fa-chart-simple"></i> La plateforme en chiffres</span>
+      <h2 class="section-title" data-reveal>Une dynamique mesurable et transparente</h2>
+      <p class="section-lead" data-reveal data-reveal-delay="80">Suivez l'avancement des signalements, des événements et de l'engagement associatif.</p>
+    </div>
+
+    <div class="stats-grid">
+      <!-- Carte 1 : Anomalies signalées -->
+      <article class="stat-card" data-reveal data-reveal-delay="0">
+        <a href="#anomalies" class="stat-link" aria-label="Voir les anomalies signalées"></a>
+        <div class="stat-head">
+          <span class="stat-ico"><i class="fa-solid fa-triangle-exclamation"></i></span>
+          <div>
+            <strong>312</strong>
+            <small>anomalies signalées</small>
+          </div>
+        </div>
+        <p class="stat-desc">Éclairage public, dépôts sauvages, trottoirs endommagés : chaque signalement est suivi jusqu'à résolution.</p>
+        <div class="progress" role="progressbar" aria-label="Taux de résolution des anomalies" aria-valuenow="78">
+          <span class="progress-fill" data-progress="78"></span>
+        </div>
+        <div class="progress-label"><span>Taux de résolution</span><span class="pct">78%</span></div>
+        <i class="fa-solid fa-arrow-right stat-arrow" aria-hidden="true"></i>
+      </article>
+
+      <!-- Carte 2 : Événements à venir -->
+      <article class="stat-card" data-reveal data-reveal-delay="120">
+        <a href="#evenements" class="stat-link" aria-label="Voir les événements à venir"></a>
+        <div class="stat-head">
+          <span class="stat-ico"><i class="fa-solid fa-calendar-check"></i></span>
+          <div>
+            <strong>14</strong>
+            <small>événements à venir</small>
+          </div>
+        </div>
+        <p class="stat-desc">Plantations, nettoyages de quartier et réhabilitations programmées avec la validation de la Wilaya.</p>
+        <div class="progress" role="progressbar" aria-label="Places restantes sur les événements" aria-valuenow="63">
+          <span class="progress-fill" data-progress="63"></span>
+        </div>
+        <div class="progress-label"><span>Places restantes</span><span class="pct">63%</span></div>
+        <i class="fa-solid fa-arrow-right stat-arrow" aria-hidden="true"></i>
+      </article>
+
+      <!-- Carte 3 : Associations partenaires -->
+      <article class="stat-card" data-reveal data-reveal-delay="240">
+        <a href="#partenaires" class="stat-link" aria-label="Voir les associations partenaires"></a>
+        <div class="stat-head">
+          <span class="stat-ico"><i class="fa-solid fa-handshake"></i></span>
+          <div>
+            <strong>28</strong>
+            <small>associations partenaires</small>
+          </div>
+        </div>
+        <p class="stat-desc">Associations agréées et EPIC (ADE, NETCOM, ASROUT, EDEVAL) mobilisés pour chaque opération.</p>
+        <div class="progress" role="progressbar" aria-label="Taux de participation des associations" aria-valuenow="85">
+          <span class="progress-fill" data-progress="85"></span>
+        </div>
+        <div class="progress-label"><span>Taux de participation</span><span class="pct">85%</span></div>
+        <i class="fa-solid fa-arrow-right stat-arrow" aria-hidden="true"></i>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ COMMENT ÇA FONCTIONNE ════════════════════════ -->
+<section class="section how" id="fonctionnement">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow" data-reveal><i class="fa-solid fa-route"></i> Un parcours en 3 étapes</span>
+      <h2 class="section-title" data-reveal>Comment ça fonctionne ?</h2>
+      <p class="section-lead" data-reveal data-reveal-delay="80">Du signalement à la réalisation, un circuit transparent piloté avec la Wilaya et les EPIC.</p>
+    </div>
+
+    <div class="how-grid">
+      <div class="how-card" data-reveal>
+        <span class="how-num" aria-hidden="true">01</span>
+        <span class="how-ico"><i class="fa-solid fa-pen-to-square"></i></span>
+        <h3>Je signale ou je crée</h3>
+        <p>Je signale une anomalie environnementale ou je crée un événement citoyen avec mon association.</p>
+        <span class="how-tag"><i class="fa-solid fa-circle-user"></i> Citoyen · Association</span>
+      </div>
+      <div class="how-card" data-reveal data-reveal-delay="140">
+        <span class="how-num" aria-hidden="true">02</span>
+        <span class="how-ico"><i class="fa-solid fa-shield-halved"></i></span>
+        <h3>La Wilaya valide et affecte</h3>
+        <p>La Wilaya valide la demande et affecte les EPIC compétents (ADE, NETCOM, ASROUT, EDEVAL).</p>
+        <span class="how-tag"><i class="fa-solid fa-landmark"></i> Wilaya · EPIC</span>
+      </div>
+      <div class="how-card" data-reveal data-reveal-delay="280">
+        <span class="how-num" aria-hidden="true">03</span>
+        <span class="how-ico"><i class="fa-solid fa-camera-retro"></i></span>
+        <h3>Je participe et je donne mon avis</h3>
+        <p>Je participe, je consulte l'album de réalisations et je donne mon avis sur le résultat.</p>
+        <span class="how-tag"><i class="fa-solid fa-star"></i> Suivi &amp; évaluation</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════ TÉMOIGNAGES ═════════════════════════════ -->
+<section class="section testimonials" id="temoignages">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow" data-reveal><i class="fa-solid fa-comment-dots"></i> Paroles d'engagement</span>
+      <h2 class="section-title" data-reveal>Ils ont participé, ils en parlent</h2>
+    </div>
+
+    <div class="carousel" data-reveal>
+      <div class="carousel-track">
+        <!-- Témoignage 1 -->
+        <div class="t-item active">
+          <div class="t-card">
+            <span class="quote"><i class="fa-solid fa-quote-left"></i></span>
+            <blockquote>« Avec 120 arbres plantés en un week-end dans notre cité, on a transformé un terrain vague en espace de vie. La plateforme a rendu la mobilisation simple et visible. »</blockquote>
+            <div class="t-stars" aria-label="5 étoiles">★★★★★</div>
+            <div class="t-author">
+              <span class="t-avatar">NA</span>
+              <div><strong>Nadia Amrani</strong><small>Présidente · Association El Amel</small></div>
+            </div>
+          </div>
+        </div>
+        <!-- Témoignage 2 -->
+        <div class="t-item">
+          <div class="t-card">
+            <span class="quote"><i class="fa-solid fa-quote-left"></i></span>
+            <blockquote>« J'ai signalé un éclairage défectueux depuis mon téléphone : affecté à l'ADE en 48 heures, réparé en une semaine. On voit enfin l'administration agir avec nous. »</blockquote>
+            <div class="t-stars" aria-label="5 étoiles">★★★★★</div>
+            <div class="t-author">
+              <span class="t-avatar">MB</span>
+              <div><strong>Mohamed Benali</strong><small>Citoyen participant</small></div>
+            </div>
+          </div>
+        </div>
+        <!-- Témoignage 3 -->
+        <div class="t-item">
+          <div class="t-card">
+            <span class="quote"><i class="fa-solid fa-quote-left"></i></span>
+            <blockquote>« Grâce à la coordination avec la Wilaya et les EPIC, nos équipes interviennent là où la demande est réelle. Le suivi en temps réel change tout. »</blockquote>
+            <div class="t-stars" aria-label="5 étoiles">★★★★★</div>
+            <div class="t-author">
+              <span class="t-avatar">KC</span>
+              <div><strong>Karim Cherifi</strong><small>Chef d'équipe · NETCOM</small></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="carousel-nav">
+        <button class="car-btn" id="prevSlide" aria-label="Témoignage précédent"><i class="fa-solid fa-chevron-left"></i></button>
+        <div class="car-dots" role="tablist" aria-label="Sélection du témoignage">
+          <button class="car-dot active" data-slide="0" aria-label="Témoignage 1"></button>
+          <button class="car-dot" data-slide="1" aria-label="Témoignage 2"></button>
+          <button class="car-dot" data-slide="2" aria-label="Témoignage 3"></button>
+        </div>
+        <button class="car-btn" id="nextSlide" aria-label="Témoignage suivant"><i class="fa-solid fa-chevron-right"></i></button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ AVANT / APRÈS ═══════════════════════════════ -->
+<section class="section ba" id="realisations">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow" data-reveal><i class="fa-solid fa-images"></i> Réalisations</span>
+      <h2 class="section-title" data-reveal>Avant / après : la transformation en images</h2>
+      <p class="section-lead" data-reveal data-reveal-delay="80">Déplacez le curseur doré pour comparer les espaces réhabilités par les volontaires et les EPIC.</p>
+    </div>
+
+    <div class="ba-grid">
+      <!-- Réalisation 1 : parc / espace vert -->
+      <div class="ba-card" data-reveal>
+        <div class="ba-stage" id="ba1">
+          <div class="img-before">
+            <svg viewBox="0 0 560 350" role="img" aria-label="Avant : terrain vague">
+              <rect width="560" height="350" fill="#CFD6D0"/>
+              <rect y="270" width="560" height="80" fill="#A9B4AC"/>
+              <ellipse cx="280" cy="340" rx="180" ry="24" fill="#8A8F8A"/>
+              <rect x="40" y="220" width="60" height="50" fill="#9AA49B"/>
+              <rect x="120" y="240" width="40" height="30" fill="#8A938A"/>
+              <rect x="470" y="200" width="70" height="70" fill="#9AA49B"/>
+              <circle cx="200" cy="250" r="16" fill="#7C8580"/><circle cx="360" cy="260" r="20" fill="#7C8580"/>
+              <rect x="250" y="120" width="60" height="150" fill="#7C8580" opacity=".9"/>
+              <rect x="330" y="140" width="30" height="130" fill="#8A938A" opacity=".8"/>
+            </svg>
+          </div>
+          <div class="img-after">
+            <svg viewBox="0 0 560 350" role="img" aria-label="Après : espace vert planté">
+              <rect width="560" height="350" fill="#CDE3CE"/>
+              <rect y="250" width="560" height="100" fill="#8FBF8F"/>
+              <rect x="0" y="210" width="560" height="8" fill="#6DA56D"/>
+              <g fill="#1A4D3E">
+                <rect x="70" y="150" width="10" height="80" fill="#7A5636"/>
+                <circle cx="75" cy="140" r="34"/><circle cx="52" cy="160" r="22"/><circle cx="98" cy="160" r="22"/>
+                <rect x="270" y="130" width="10" height="100" fill="#7A5636"/>
+                <circle cx="275" cy="120" r="38"/><circle cx="248" cy="145" r="24"/><circle cx="302" cy="145" r="24"/>
+                <rect x="450" y="160" width="10" height="70" fill="#7A5636"/>
+                <circle cx="455" cy="150" r="30"/><circle cx="434" cy="170" r="20"/><circle cx="476" cy="170" r="20"/>
+              </g>
+              <path d="M60 250 q20 -20 40 0 q-20 6 -40 0 Z" fill="#6DA56D"/>
+              <path d="M180 240 q24 -24 48 0 q-24 8 -48 0 Z" fill="#6DA56D"/>
+              <circle cx="200" cy="130" r="18" fill="#D4AF37"/>
+              <circle cx="380" cy="120" r="14" fill="#E8CD7E"/>
+              <path d="M140 230 l10 34 q-8 4 -16 0 Z" fill="#4E9A5F"/>
+            </svg>
+          </div>
+          <span class="ba-label before">Avant</span>
+          <span class="ba-label after">Après</span>
+          <div class="ba-handle" aria-hidden="true"></div>
+          <input class="ba-slider" type="range" min="0" max="100" value="50" aria-label="Comparer avant et après">
+        </div>
+        <div class="ba-body">
+          <h3>Espace vert « Jardin de la Concorde »</h3>
+          <p>Plantation de 120 arbres et aménagement d'une aire de jeux par l'association El Amel et les EPIC.</p>
+        </div>
+      </div>
+
+      <!-- Réalisation 2 : place nettoyée -->
+      <div class="ba-card" data-reveal data-reveal-delay="140">
+        <div class="ba-stage" id="ba2">
+          <div class="img-before">
+            <svg viewBox="0 0 560 350" role="img" aria-label="Avant : place encombrée">
+              <rect width="560" height="350" fill="#C9C1B4"/>
+              <rect y="260" width="560" height="90" fill="#9C9485"/>
+              <g fill="#6E6A60">
+                <rect x="70" y="230" width="40" height="30"/><rect x="150" y="240" width="55" height="22"/>
+                <rect x="300" y="220" width="45" height="40"/><rect x="400" y="235" width="35" height="26"/>
+                <circle cx="240" cy="252" r="14"/><circle cx="460" cy="250" r="12"/><circle cx="130" cy="250" r="10"/>
+              </g>
+              <rect x="490" y="200" width="30" height="60" fill="#8A8070"/>
+            </svg>
+          </div>
+          <div class="img-after">
+            <svg viewBox="0 0 560 350" role="img" aria-label="Après : place propre et fleurie">
+              <rect width="560" height="350" fill="#F0E9DA"/>
+              <rect y="260" width="560" height="90" fill="#C9BCA2"/>
+              <rect y="258" width="560" height="5" fill="#A99A7C"/>
+              <g fill="#D4AF37">
+                <circle cx="120" cy="220" r="7"/><circle cx="180" cy="240" r="6"/>
+                <circle cx="320" cy="225" r="7"/><circle cx="400" cy="245" r="6"/>
+              </g>
+              <g fill="#3C7A5F">
+                <rect x="240" y="180" width="7" height="55" fill="#7A5636"/>
+                <circle cx="243" cy="172" r="18"/>
+                <rect x="430" y="190" width="7" height="50" fill="#7A5636"/>
+                <circle cx="433" cy="183" r="16"/>
+              </g>
+              <rect x="60" y="235" width="150" height="14" rx="7" fill="#6E6A60"/>
+              <rect x="470" y="240" width="60" height="14" rx="7" fill="#6E6A60"/>
+            </svg>
+          </div>
+          <span class="ba-label before">Avant</span>
+          <span class="ba-label after">Après</span>
+          <div class="ba-handle" aria-hidden="true"></div>
+          <input class="ba-slider" type="range" min="0" max="100" value="50" aria-label="Comparer avant et après">
+        </div>
+        <div class="ba-body">
+          <h3>Place du 1er Novembre</h3>
+          <p>Opération de nettoyage, fleurissement et réfection du mobilier urbain avec 45 volontaires.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════════════ FOOTER ════════════════════════════════ -->
+<footer class="site-footer" id="contact">
+  <div class="container footer-grid">
+    <div class="footer-col footer-brand">
+      <a class="brand" href="#top" aria-label="Wilaya Harmonia">
+        <svg class="brand-blason" viewBox="0 0 48 52" aria-hidden="true">
+          <path d="M24 3 L42 9 V27 C42 39 34 46 24 49 C14 46 6 39 6 27 V9 Z"
+                fill="#1A4D3E" stroke="#D4AF37" stroke-width="2.4"/>
+          <path d="M24 12 C24 12 19 17 19 21 C19 24 21 25 21 25 L21 30 H27 V25 C27 25 29 24 29 21 C29 17 24 12 24 12 Z"
+                fill="#D4AF37"/>
+          <rect x="22.4" y="30" width="3.2" height="6" rx="1.2" fill="#7FB396"/>
+        </svg>
+        <span class="brand-text">
+          <span class="wilaya">Wilaya Harmonia</span>
+          <span class="harmonia">Ensemble · Citizens</span>
+        </span>
+      </a>
+      <p>Plateforme participative des événements citoyens et des anomalies environnementales. Agissons ensemble pour l'embellissement de notre territoire.</p>
+      <div class="socials">
+        <a href="#" class="social" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+        <a href="#" class="social" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+        <a href="#" class="social" aria-label="X (Twitter)"><i class="fa-brands fa-x-twitter"></i></a>
+        <a href="#" class="social" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a>
+      </div>
+    </div>
+
+    <div class="footer-col">
+      <h4>Navigation</h4>
+      <ul>
+        <li><a href="#top">Accueil</a></li>
+        <li><a href="#stats">Chiffres clés</a></li>
+        <li><a href="#fonctionnement">Comment ça fonctionne</a></li>
+        <li><a href="#temoignages">Témoignages</a></li>
+        <li><a href="#realisations">Réalisations</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-col">
+      <h4>Liens utiles</h4>
+      <ul>
+        <li><a href="#mentions-legales">Mentions légales</a></li>
+        <li><a href="#cgu">Conditions générales d'utilisation</a></li>
+        <li><a href="#confidentialite">Politique de confidentialité</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-col">
+      <h4>Contact</h4>
+      <ul class="footer-contact">
+        <li><i class="fa-solid fa-location-dot"></i> Siège de la Wilaya — 46, boulevard de la Révolution, Algérie</li>
+        <li><i class="fa-solid fa-envelope"></i><a href="mailto:contact@wilaya-harmonia.dz">contact@wilaya-harmonia.dz</a></li>
+        <li><i class="fa-solid fa-phone"></i><a href="tel:+213000000000">+213 (0) 00 00 00 00</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <span>© 2026 Wilaya Harmonia — Tous droits réservés.</span>
+    <div class="links">
+      <a href="#mentions-legales">Mentions légales</a>
+      <a href="#cgu">CGU</a>
+      <a href="#faq">FAQ</a>
+      <a href="#contact">Contact</a>
+    </div>
+    <a class="top" href="#top"><i class="fa-solid fa-arrow-up"></i> Haut de page</a>
+  </div>
+</footer>
+
+<!-- ══════════════════════════ WIDGET D'ASSISTANCE (chat) ════════════════════ -->
+<div class="chat-widget" id="chatWidget" aria-label="Assistance">
+  <div class="chat-pop" role="dialog" aria-label="Assistant Wilaya Harmonia">
+    <div class="chat-head">
+      <span class="avatar"><i class="fa-solid fa-robot"></i></span>
+      <div>
+        <strong>Assistant Wilaya Harmonia</strong>
+        <small>Réponse en quelques secondes</small>
+      </div>
+    </div>
+    <div class="chat-body">
+      <div class="chat-msg bot">Bonjour ! Je peux vous aider à signaler une anomalie, trouver un événement ou rejoindre un collectif. 😊</div>
+      <div class="chat-quick">
+        <button type="button" data-q="Comment signaler une anomalie ?">Signaler une anomalie</button>
+        <button type="button" data-q="Quels événements sont à venir ?">Événements à venir</button>
+        <button type="button" data-q="Comment rejoindre une association ?">Rejoindre une association</button>
+      </div>
+    </div>
+    <form class="chat-input" id="chatForm" aria-label="Envoyer un message">
+      <label class="sr-only" for="chatField">Votre message</label>
+      <input type="text" id="chatField" placeholder="Écrivez votre message…" autocomplete="off">
+      <button type="submit" aria-label="Envoyer"><i class="fa-solid fa-paper-plane"></i></button>
+    </form>
+  </div>
+  <button class="chat-bubble" id="chatBubble" aria-expanded="false" aria-controls="chatWidget">
+    <span class="dot" aria-hidden="true"></span>
+    <i class="fa-solid fa-message"></i> Comment puis-je vous aider ?
+  </button>
+</div>
+
+<script>
+/* Mode rendu (capture statique) : force l'état final — activable via ?render=1 */
+const RENDER = new URLSearchParams(location.search).get('render') === '1';
+if (RENDER) {
+  document.addEventListener('DOMContentLoaded', () => {
+    const css = document.createElement('style');
+    css.textContent = `
+      [data-reveal]{ opacity:1 !important; transform:none !important; transition:none !important; }
+      .chat-bubble::before{ animation:none !important; }
+    `;
+    document.head.appendChild(css);
+    document.querySelectorAll('[data-reveal]').forEach((el) => el.classList.add('in'));
+    document.querySelectorAll('[data-count]').forEach((el) => {
+      el.textContent = Number(el.dataset.count || 0).toLocaleString('fr-FR') + (el.dataset.suffix || '');
+    });
+    document.querySelectorAll('.progress-fill').forEach((el) => {
+      el.style.transition = 'none';
+      el.style.width = el.dataset.progress + '%';
+    });
+  });
+}
+
+/* ══════════════════════════ RÉVÉLATION AU DÉFILEMENT ═══════════════════════ */
+const revealEls = document.querySelectorAll('[data-reveal]');
+const revealIO = new IntersectionObserver((entries) => {
+  entries.forEach((en) => {
+    if (en.isIntersecting) {
+      const d = RENDER ? 0 : Number(en.target.dataset.revealDelay || 0);
+      setTimeout(() => en.target.classList.add('in'), d);
+      revealIO.unobserve(en.target);
+    }
+  });
+}, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+if (!RENDER) revealEls.forEach((el) => revealIO.observe(el));
+
+/* ═══════════════════ COMPTEURS ANIMÉS (héro) — Intersection Observer ═══════ */
+function animateCounter(el) {
+  const target = Number(el.dataset.count || 0);
+  const suffix = el.dataset.suffix || '';
+  const duration = 2200;
+  const t0 = Date.now();
+  function frame() {
+    const p = Math.min((Date.now() - t0) / duration, 1);
+    const eased = 1 - Math.pow(1 - p, 3); /* easeOutCubic */
+    el.textContent = Math.round(target * eased).toLocaleString('fr-FR') + suffix;
+    if (p < 1) requestAnimationFrame(frame);
+    else el.textContent = target.toLocaleString('fr-FR') + suffix;
+  }
+  frame();
+}
+const counterIO = new IntersectionObserver((entries) => {
+  entries.forEach((en) => {
+    if (en.isIntersecting) {
+      animateCounter(en.target);
+      counterIO.unobserve(en.target);
+    }
+  });
+}, { threshold: 0.5 });
+if (!RENDER) document.querySelectorAll('[data-count]').forEach((el) => counterIO.observe(el));
+
+/* ═══════════════════════ BARRES DE PROGRESSION (stat cards) ═══════════════ */
+const progIO = new IntersectionObserver((entries) => {
+  entries.forEach((en) => {
+    if (en.isIntersecting) {
+      en.target.style.width = en.target.dataset.progress + '%';
+      progIO.unobserve(en.target);
+    }
+  });
+}, { threshold: 0.5 });
+if (!RENDER) document.querySelectorAll('.progress-fill').forEach((el) => progIO.observe(el));
+
+/* ═══════════════════════ CARROUSEL DE TÉMOIGNAGES ═════════════════════════ */
+(function () {
+  const items = Array.from(document.querySelectorAll('.t-item'));
+  const dots = Array.from(document.querySelectorAll('.car-dot'));
+  let current = 0;
+  let timer = null;
+
+  function show(i) {
+    current = (i + items.length) % items.length;
+    items.forEach((it, idx) => it.classList.toggle('active', idx === current));
+    dots.forEach((d, idx) => d.classList.toggle('active', idx === current));
+    restart();
+  }
+  function next() { show(current + 1); }
+  function prev() { show(current - 1); }
+  function restart() {
+    clearInterval(timer);
+    timer = setInterval(next, 6000);
+  }
+  document.getElementById('nextSlide').addEventListener('click', next);
+  document.getElementById('prevSlide').addEventListener('click', prev);
+  dots.forEach((d) => d.addEventListener('click', () => show(Number(d.dataset.slide))));
+  /* pause au survol */
+  const carousel = document.querySelector('.carousel');
+  carousel.addEventListener('mouseenter', () => clearInterval(timer));
+  carousel.addEventListener('mouseleave', restart);
+  restart();
+})();
+
+/* ═══════════════════════════ AVANT / APRÈS (slider) ═══════════════════════ */
+document.querySelectorAll('.ba-slider').forEach((slider) => {
+  const stage = slider.closest('.ba-stage');
+  const after = stage.querySelector('.img-after');
+  const handle = stage.querySelector('.ba-handle');
+  function update() {
+    const v = slider.value;
+    after.style.clipPath = `inset(0 ${100 - v}% 0 0)`;
+    handle.style.left = v + '%';
+  }
+  slider.addEventListener('input', update);
+  update();
+});
+
+/* ══════════════════════════════ WIDGET DE CHAT ════════════════════════════ */
+(function () {
+  const widget = document.getElementById('chatWidget');
+  const bubble = document.getElementById('chatBubble');
+  const form = document.getElementById('chatForm');
+  const field = document.getElementById('chatField');
+  const body = widget.querySelector('.chat-body');
+
+  function open() {
+    widget.classList.add('open');
+    bubble.setAttribute('aria-expanded', 'true');
+  }
+  bubble.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (widget.classList.contains('open')) {
+      widget.classList.remove('open');
+      bubble.setAttribute('aria-expanded', 'false');
+    } else {
+      open();
+    }
+  });
+  /* libellés rapides -> champ */
+  widget.querySelectorAll('.chat-quick button').forEach((b) => {
+    b.addEventListener('click', () => {
+      field.value = b.dataset.q;
+      field.focus();
+      open();
+    });
+  });
+  /* envoi (démo : réponse automatique) */
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const msg = field.value.trim();
+    if (!msg) return;
+    const user = document.createElement('div');
+    user.className = 'chat-msg user';
+    user.textContent = msg;
+    body.appendChild(user);
+    field.value = '';
+    setTimeout(() => {
+      const bot = document.createElement('div');
+      bot.className = 'chat-msg bot';
+      bot.textContent = 'Merci ! Votre demande est enregistrée. Un conseiller de la Wilaya vous répondra très vite.';
+      body.appendChild(bot);
+      body.scrollTop = body.scrollHeight;
+    }, 700);
+    body.scrollTop = body.scrollHeight;
+  });
+})();
+
+/* ═══════════════════ MENU MOBILE (responsive desktop-first) ═══════════════ */
+document.getElementById('navToggle').addEventListener('click', () => {
+  const nav = document.getElementById('navLinks');
+  const open = nav.classList.toggle('open');
+  document.getElementById('navToggle').setAttribute('aria-expanded', open);
+  nav.style.display = open ? 'flex' : '';
+});
+</script>
+</body>
+</html>

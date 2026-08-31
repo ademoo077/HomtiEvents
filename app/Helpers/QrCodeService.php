@@ -76,7 +76,7 @@ final class QrCodeService
     {
         $token = QrCodeGenerator::tokenForEvent($eventId);
 
-        return $token === null ? null : url('checkin/' . $token);
+        return $token === null ? null : network_url('checkin/' . $token);
     }
 
     /**

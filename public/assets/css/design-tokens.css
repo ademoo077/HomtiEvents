@@ -1,0 +1,91 @@
+/* ═══════════════════════════════════════════════════════════════════
+   WILAYA HARMONIA — Design Tokens v2 (IA-Native)
+   Single source of truth — importé avant admin.css + control-center.css
+   ═══════════════════════════════════════════════════════════════════ */
+:root {
+  /* ── Couleurs ── */
+  --wh-blue: #0B5ED7;
+  --wh-blue-dark: #084298;
+  --wh-blue-soft: #e7f1ff;
+  --wh-blue-30: rgba(11,94,215,.30);
+  --wh-green: #198754;
+  --wh-green-soft: #d1e7dd;
+  --wh-red: #dc3545;
+  --wh-red-soft: #f8d7da;
+  --wh-amber: #f59e0b;
+  --wh-amber-soft: #fff3cd;
+  --wh-cyan: #22d3ee;
+  --wh-cyan-soft: #cff4fc;
+  --wh-purple: #7c3aed;
+  --wh-purple-soft: #ede9fe;
+  --wh-gray: #5B6472;
+  --wh-gray-soft: #f4f6f9;
+  --wh-gray-light: #e9ecef;
+  --wh-border: #dee2e6;
+  --wh-border-strong: #cbd5e1;
+  --wh-text: #212b36;
+  --wh-text-muted: #697586;
+  --wh-white: #ffffff;
+  --wh-card-bg: #ffffff;
+  --wh-bg-soft: #f4f6f9;
+
+  /* ── Typo ── */
+  --wh-font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --wh-font-heading: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --wh-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --wh-text-xs: clamp(.68rem, .62rem + .2vw, .75rem);
+  --wh-text-sm: clamp(.78rem, .74rem + .2vw, .85rem);
+  --wh-text-base: clamp(.88rem, .84rem + .2vw, .95rem);
+
+  /* ── Rayons & ombres ── */
+  --wh-radius-sm: .5rem;
+  --wh-radius: .75rem;
+  --wh-radius-lg: 1rem;
+  --wh-radius-xl: 1.25rem;
+  --wh-shadow: 0 1px 3px rgba(16,24,40,.08), 0 1px 2px rgba(16,24,40,.04);
+  --wh-shadow-lg: 0 10px 24px -6px rgba(16,24,40,.16);
+  --wh-shadow-xl: 0 18px 40px -12px rgba(16,24,40,.22);
+  --wh-shadow-float: 0 20px 40px -18px rgba(11,94,215,.35);
+
+  /* ── Sidebar ── */
+  --wh-sidebar-w: 268px;
+  --wh-sidebar-w-collapsed: 64px;
+  --wh-sidebar-bg: #0b2545;
+  --wh-sidebar-text: #c9d6e8;
+  --wh-sidebar-active: #0B5ED7;
+
+  /* ── Motion ── */
+  --wh-ease: cubic-bezier(.16,1,.3,1);
+  --wh-ease-out: cubic-bezier(.4,0,.2,1);
+  --wh-duration: 180ms;
+
+  /* ── Z-index ── */
+  --wh-z-header: 1030;
+  --wh-z-sidebar: 1040;
+  --wh-z-palette: 1080;
+}
+
+/* Dark */
+[data-bs-theme="dark"] {
+  --wh-gray-soft: #141b26;
+  --wh-gray-light: #1f2937;
+  --wh-border: #2b3648;
+  --wh-border-strong: #3a4a63;
+  --wh-text: #e6ebf2;
+  --wh-text-muted: #9aa7b9;
+  --wh-card-bg: #131b29;
+  --wh-bg-soft: #0f1622;
+  --wh-sidebar-bg: #0b1e33;
+  --wh-sidebar-text: #b8c7dc;
+  --wh-shadow: 0 1px 3px rgba(0,0,0,.4);
+  --wh-shadow-lg: 0 10px 24px -6px rgba(0,0,0,.5);
+  --wh-shadow-xl: 0 18px 40px -12px rgba(0,0,0,.6);
+}
+
+/* ── Utilities IA ── */
+.wh-glass { backdrop-filter: blur(12px) saturate(1.2); -webkit-backdrop-filter: blur(12px) saturate(1.2); }
+.wh-shimmer { background: linear-gradient(90deg, var(--wh-gray-light) 25%, var(--wh-gray-soft) 50%, var(--wh-gray-light) 75%); background-size: 200% 100%; animation: wh-shimmer 1.4s infinite; }
+@keyframes wh-shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+.wh-fade-up { animation: wh-fade-up .4s var(--wh-ease) both; }
+@keyframes wh-fade-up { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+.wh-focus-ring:focus-visible { outline: 2px solid var(--wh-blue); outline-offset: 2px; }

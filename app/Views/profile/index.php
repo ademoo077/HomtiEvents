@@ -27,16 +27,26 @@ $orgName = $org['nom'] ?? ($org['nom_epic'] ?? ($org['nom'] ?? ''));
 ?>
 
 <div class="wh-page">
-    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-        <div>
-            <h1 class="h3 mb-0"><?= $isAr ? 'ملفي الشخصي' : 'Mon profil' ?></h1>
-            <div class="text-muted small"><?= $isAr ? 'إدارة معلوماتك وأمانك وتفضيلاتك' : 'Gérez vos informations, votre sécurité et vos préférences' ?></div>
+    <div class="wh-hero" style="background: linear-gradient(135deg, #7C3AED 0%, #0B5ED7 100%)">
+        <div class="wh-hero-inner">
+            <div class="wh-hero-row">
+                <div class="wh-hero-text">
+                    <h1 class="wh-hero-title"><i class="mdi mdi-account-circle-outline me-2"></i><?= $isAr ? 'ملفي الشخصي' : 'Mon profil' ?></h1>
+                    <p class="wh-hero-sub"><?= $isAr ? 'إدارة معلوماتك وأمانك وتفضيلاتك' : 'Gérez vos informations, votre sécurité et vos préférences' ?></p>
+                </div>
+                <div class="wh-hero-actions">
+<?php if ($role === 'association' || $role === 'epic'): ?>
+                    <a class="btn btn-light" target="_blank" rel="noopener" href="<?= e((string) $publicUrl) ?>">
+                        <i class="mdi mdi-eye-outline me-1"></i><?= $isAr ? 'عرض الصفحة العامة' : 'Voir la fiche publique' ?>
+                    </a>
+<?php elseif ($role === 'membre' && $association): ?>
+                    <span class="badge bg-secondary text-white px-3 py-2">
+                        <i class="mdi mdi-account-group-outline me-1"></i><?= $isAr ? 'عضو في' : 'Membre de' ?> <?= e($association['nom']) ?>
+                    </span>
+<?php endif; ?>
+                </div>
+            </div>
         </div>
-        <?php if ($role === 'association' || $role === 'epic'): ?>
-            <a class="btn btn-outline-primary" target="_blank" rel="noopener" href="<?= e((string) $publicUrl) ?>">
-                <i class="mdi mdi-eye-outline me-1"></i><?= $isAr ? 'عرض الصفحة العامة' : 'Voir la fiche publique' ?>
-            </a>
-        <?php endif; ?>
     </div>
 
     <?php if ($success !== null): ?>
@@ -56,7 +66,7 @@ $orgName = $org['nom'] ?? ($org['nom_epic'] ?? ($org['nom'] ?? ''));
                 </form>
                 <button type="button" class="btn btn-link p-0 border-0" onclick="document.getElementById('avatarInput').click()" title="<?= $isAr ? 'تغيير الصورة' : 'Changer la photo' ?>">
                     <?php if ($avatarUrl): ?>
-                        <img src="<?= e($avatarAlt ?? $avatarUrl) ?>" alt="<?= e($fullName) ?>" class="wh-avatar-lg rounded-circle object-fit-cover" style="width:96px;height:96px;">
+                        <img src="<?= e($avatarAlt ?? $avatarUrl) ?>" alt="<?= e($fullName) ?>" loading="lazy" class="wh-avatar-lg rounded-circle object-fit-cover" style="width:96px;height:96px;">
                     <?php else: ?>
                         <span class="wh-avatar-lg rounded-circle d-inline-flex align-items-center justify-content-center bg-primary text-white fw-bold" style="width:96px;height:96px;font-size:2rem;"><?= e($initials ?: '?') ?></span>
                     <?php endif; ?>
@@ -79,7 +89,7 @@ $orgName = $org['nom'] ?? ($org['nom_epic'] ?? ($org['nom'] ?? ''));
             <div class="text-end">
                 <div class="text-muted small mb-1"><?= $isAr ? 'مؤشر رمز الاستجابة السريعة' : 'QR code de la fiche' ?></div>
                 <?php if ($qrDataUri): ?>
-                    <img src="<?= $qrDataUri ?>" alt="QR" width="96" height="96" class="img-thumbnail">
+                    <img src="<?= $qrDataUri ?>" alt="QR" width="96" height="96" loading="lazy" class="img-thumbnail">
                 <?php else: ?>
                     <span class="text-muted small">—</span>
                 <?php endif; ?>
@@ -104,6 +114,90 @@ $orgName = $org['nom'] ?? ($org['nom_epic'] ?? ($org['nom'] ?? ''));
         </div>
         <?php endif; ?>
     </div>
+
+    <!-- Association card for membre -->
+    <?php if ($role === 'membre' && $association): ?>
+        <div class="card border-0 shadow-sm wh-card-hover mb-4">
+            <div class="card-header bg-light d-flex align-items-center gap-2">
+                <i class="mdi mdi-account-group-outline text-primary"></i>
+                <h3 class="h6 mb-0"><?= $isAr ? 'جمعية الأعضاء' : 'Votre association' ?></h3>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted"><?= $isAr ? 'الاسم' : 'Nom' ?></label>
+                        <div class="fw-semibold"><?= e($association['nom'] ?? '') ?></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted"><?= $isAr ? 'رقم الاعتماد' : 'Numéro agrément' ?></label>
+                        <div class="fw-semibold"><?= e($association['numero_agrement'] ?? '—') ?></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted"><?= $isAr ? 'البلدية' : 'Commune' ?></label>
+                        <div class="fw-semibold">
+                            <?php 
+                                $comm = $association['commune_id'] ?? null;
+                                if ($comm) {
+                                    $c = Database::one('SELECT nom FROM commune WHERE id = ?', [(int)$comm]);
+                                    echo e($c['nom'] ?? '—');
+                                } else { echo '—'; }
+                            ?>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted"><?= $isAr ? 'الحالة' : 'Statut' ?></label>
+                        <div>
+                            <span class="badge <?= $association['valide'] ? 'bg-success' : 'bg-warning text-dark' ?>">
+                                <?= $association['valide'] ? ($isAr ? 'مصدقة' : 'Validée') : ($isAr ? 'قيد المراجعة' : 'En attente') ?>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small text-muted"><?= $isAr ? 'الوصف' : 'Description' ?></label>
+                        <div class="text-muted small"><?= e(mb_substr((string) ($association['description'] ?? ''), 0, 200)) ?></div>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <a class="btn btn-sm btn-outline-primary" href="<?= url('dashboard') ?>" target="_blank">
+                        <i class="mdi mdi-view-dashboard me-1"></i><?= $isAr ? 'العودة للوحة التحكم' : 'Retour au tableau de bord' ?>
+                    </a>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <!-- Idées & conseils pour membre -->
+    <?php if ($role === 'membre' && ! empty($suggestions)): ?>
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-light d-flex align-items-center gap-2">
+                <i class="mdi mdi-lightbulb-on-outline text-warning"></i>
+                <h3 class="h6 mb-0"><?= $isAr ? 'أفكار وتوصيات' : 'Idées & conseils' ?></h3>
+            </div>
+            <div class="card-body">
+                <div class="wh-ideas">
+                    <?php foreach (array_slice($suggestions, 0, 4) as $s): ?>
+                        <div class="wh-idea">
+                            <span class="wh-idea-icon <?= e($s['color'] ?? 'primary') ?>">
+                                <i class="mdi <?= e($s['icon']) ?>"></i>
+                            </span>
+                            <div class="wh-idea-body">
+                                <?php if (! empty($s['titre'])): ?>
+                                    <div class="wh-idea-title"><?= e($s['titre']) ?></div>
+                                <?php endif; ?>
+                                <div class="wh-idea-text"><?= e($s['texte']) ?></div>
+                                <?php if (! empty($s['lien'])): ?>
+                                    <a class="wh-idea-link" href="<?= e($s['lien']) ?>">
+                                        <?= e($s['cta'] ?? ($isAr ? 'عرض التفاصيل' : 'Voir les détails')) ?>
+                                        <i class="mdi <?= $isAr ? 'mdi-arrow-left' : 'mdi-arrow-right' ?>"></i>
+                                    </a>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <ul class="nav nav-tabs mb-3" role="tablist">
         <li class="nav-item"><button class="nav-link <?= $tab === 'info' ? 'active' : '' ?>" data-bs-toggle="tab" data-bs-target="#tabInfo" type="button" role="tab"><i class="mdi mdi-account-edit me-1"></i><?= $isAr ? 'المعلومات' : 'Informations' ?></button></li>
@@ -130,9 +224,15 @@ $orgName = $org['nom'] ?? ($org['nom_epic'] ?? ($org['nom'] ?? ''));
                                 <?php if (isset($errors['nom'])): ?><div class="text-danger small mt-1"><?= e($errors['nom']) ?></div><?php endif; ?>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label"><?= e(__('common.email')) ?></label>
-                                <input class="form-control" type="email" value="<?= e((string) $user['email']) ?>" disabled readonly>
-                                <div class="form-text"><?= $isAr ? 'البريد الإلكتروني للاتصال، لا يمكن تعديله' : 'Email de connexion — non modifiable' ?></div>
+                                <label class="form-label"><?= e(__('common.email')) ?> *</label>
+                                <input class="form-control" type="email" name="email" value="<?= e(old('email', $user['email'] ?? '')) ?>" disabled readonly>
+                                <div class="form-text">
+                                    <?= e((string) $user['email']) ?> —
+                                    <a href="#" onclick="document.getElementById('emailEditSection').style.display='block';this.style.display='none';return false;" class="text-primary">
+                                        <?= $isAr ? 'تعديل' : 'Modifier' ?>
+                                    </a>
+                                </div>
+                                <?php if (isset($errors['email'])): ?><div class="text-danger small mt-1"><?= e($errors['email']) ?></div><?php endif; ?>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label"><?= e(__('common.telephone')) ?></label>
@@ -152,6 +252,36 @@ $orgName = $org['nom'] ?? ($org['nom_epic'] ?? ($org['nom'] ?? ''));
                             <?php endif; ?>
                         </div>
                         <button class="btn btn-primary mt-4" type="submit"><i class="mdi mdi-content-save me-1"></i><?= e(__('profil.save')) ?></button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Email edit (hidden by default) -->
+            <div class="card border-0 shadow-sm mt-4" id="emailEditSection" style="display:<?= !empty($errors['email']) ? 'block' : 'none' ?>;">
+                <div class="card-header bg-light d-flex align-items-center gap-2">
+                    <i class="mdi mdi-email-edit-outline text-primary"></i>
+                    <h3 class="h6 mb-0"><?= $isAr ? 'تغيير البريد الإلكتروني' : 'Changer l\'adresse email' ?></h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info small mb-3">
+                        <i class="mdi mdi-information-outline me-1"></i>
+                        <?= $isAr ? 'سيتم إرسال رسالة تأكيد إلى البريد الحالي لتأكيد التغيير.' : 'Un message de confirmation sera envoyé à votre adresse actuelle pour valider le changement.' ?>
+                    </div>
+                    <form method="post" action="<?= url('profile/update-email') ?>" novalidate>
+                        <?= csrf_field() ?>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label"><?= $isAr ? 'البريد الإلكتروني الجديد' : 'Nouvelle adresse email' ?> *</label>
+                                <input class="form-control" type="email" name="email" value="<?= e(old('email', $user['email'] ?? '')) ?>" required>
+                                <?php if (isset($errors['email'])): ?><div class="text-danger small mt-1"><?= e($errors['email']) ?></div><?php endif; ?>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label"><?= $isAr ? 'كلمة المرور للتأكيد' : 'Mot de passe pour confirmer' ?> *</label>
+                                <input class="form-control" type="password" name="current_password" required autocomplete="current-password">
+                                <?php if (isset($errors['current_password'])): ?><div class="text-danger small mt-1"><?= e($errors['current_password']) ?></div><?php endif; ?>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary mt-3" type="submit"><i class="mdi mdi-email-check me-1"></i><?= $isAr ? 'تحديث البريد' : 'Mettre à jour l\'email' ?></button>
                     </form>
                 </div>
             </div>
@@ -183,6 +313,45 @@ $orgName = $org['nom'] ?? ($org['nom_epic'] ?? ($org['nom'] ?? ''));
                         <div class="form-text mt-2"><i class="mdi mdi-information-outline me-1"></i><?= $isAr ? '8 أحرف على الأقل' : '8 caractères minimum' ?></div>
                         <button class="btn btn-primary mt-3" type="submit"><i class="mdi mdi-shield-lock me-1"></i><?= $isAr ? 'تغيير كلمة المرور' : 'Changer le mot de passe' ?></button>
                     </form>
+                </div>
+            </div>
+
+            <!-- 2FA Toggle -->
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-header bg-light d-flex align-items-center gap-2">
+                    <i class="mdi mdi-shield-lock-outline text-primary"></i>
+                    <h3 class="h6 mb-0"><?= $isAr ? 'المصادقة الثنائية' : 'Double authentification (2FA)' ?></h3>
+                </div>
+                <div class="card-body">
+                    <?php
+                    $twoFactor = \App\Helpers\Database::one('SELECT * FROM two_factor WHERE user_id = ?', [(int) $user['id']]);
+                    $is2faEnabled = !empty($twoFactor['enabled']) && !empty($twoFactor['confirmed']);
+                    $method2fa = $twoFactor['method'] ?? 'email';
+                    ?>
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge <?= $is2faEnabled ? 'bg-success' : 'bg-secondary' ?>">
+                                    <i class="mdi <?= $is2faEnabled ? 'mdi-shield-check' : 'mdi-shield-off' ?> me-1"></i>
+                                    <?= $is2faEnabled ? ($isAr ? 'مفعّلة' : 'Activée') : ($isAr ? 'معطّلة' : 'Désactivée') ?>
+                                </span>
+                                <?php if ($is2faEnabled): ?>
+                                    <span class="text-muted small">
+                                        <?= $method2fa === 'authenticator' ? ($isAr ? 'تطبيق مصادقة' : 'Authenticator') : 'Email' ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+                            <div class="text-muted small mt-1">
+                                <?= $isAr ? 'حماية حسابك بمصادقة إضافية عند تسجيل الدخول' : 'Protégez votre compte avec une étape supplémentaire à la connexion' ?>
+                            </div>
+                        </div>
+                        <div>
+                            <a href="<?= url('profile/2fa') ?>" class="btn <?= $is2faEnabled ? 'btn-outline-warning' : 'btn-primary' ?>">
+                                <i class="mdi <?= $is2faEnabled ? 'mdi-cog-outline' : 'mdi-shield-plus' ?> me-1"></i>
+                                <?= $is2faEnabled ? ($isAr ? 'إدارة' : 'Gérer') : ($isAr ? 'تفعيل' : 'Activer') ?>
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -249,3 +418,5 @@ $orgName = $org['nom'] ?? ($org['nom_epic'] ?? ($org['nom'] ?? ''));
         </div>
     </div>
 </div>
+
+<style>.wh-hero{border-radius:0 0 1.5rem 1.5rem;padding:1.5rem;margin-bottom:1.5rem}.wh-hero-inner{max-width:1200px;margin:0 auto}.wh-hero-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}.wh-hero-title{color:#fff;font-size:1.35rem;font-weight:700;margin:0}.wh-hero-sub{color:rgba(255,255,255,.8);font-size:.85rem;margin:.25rem 0 0}.wh-hero-actions{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}</style>

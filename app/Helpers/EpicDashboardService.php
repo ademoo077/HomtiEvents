@@ -228,6 +228,24 @@ final class EpicDashboardService
     }
 
     /**
+     * Nombre d'événements programmés sans QR généré (à générer).
+     */
+    public static function aGenererQr(int $epicId): int
+    {
+        [$where, $params] = self::scope($epicId);
+
+        return (int) Database::value(
+            'SELECT COUNT(*)
+             FROM evenements e
+             LEFT JOIN qr_event q ON q.evenement_id = e.id
+             WHERE ' . $where . '
+               AND e.statut = ?
+               AND (q.token_qr IS NULL OR q.token_qr = \'\')',
+            array_merge($params, ['PROGRAMME'])
+        );
+    }
+
+    /**
      * Liste des communes (pour le filtre de la vue).
      *
      * @return array<int, array<string, mixed>>

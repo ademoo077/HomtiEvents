@@ -15,6 +15,7 @@ declare(strict_types=1);
  *   php artisan sla:run           Exécute les alertes SLA dues
  *   php artisan backup            Sauvegarde la base de données
  *   php artisan key:generate      Génère une clé APP_KEY
+ *   php artisan gallery:thumbs    Génère les vignettes 400px manquantes des photos
  */
 
 define('BASE_PATH', __DIR__);
@@ -23,6 +24,7 @@ require BASE_PATH . '/vendor/autoload.php';
 require BASE_PATH . '/app/Bootstrap.php';
 
 use App\Bootstrap;
+use App\Helpers\EvenementService;
 use App\Helpers\Queue;
 use App\Helpers\SlaHelper;
 
@@ -230,7 +232,29 @@ switch ($command) {
     case 'sla:run':
         $rappels = SlaHelper::runDue();
         $retards = SlaHelper::checkAlbumDelai();
-        echo "SLA exécuté : {$rappels} rappel(s) envoyé(s), {$retards} alerte(s) retard créée(s).\n";
+        $clotures = EvenementService::autoCloturer();
+        $rappelDemain = EvenementService::envoyerRappels();
+        echo "SLA exécuté : {$rappels} rappel(s) envoyé(s), {$retards} alerte(s) retard créée(s), {$clotures} événement(s) clôturé(s) automatiquement, {$rappelDemain} rappel(s) événement(s) demain envoyé(s).\n";
+        break;
+
+    case 'gallery:thumbs':
+        $photos = \App\Helpers\Database::all('SELECT id, image, thumbnail FROM photos WHERE image IS NOT NULL AND image <> ?', ['']);
+        $done = 0;
+        $skipped = 0;
+        foreach ($photos as $photo) {
+            if (! empty($photo['thumbnail'])) {
+                $skipped++;
+                continue;
+            }
+            $thumb = \App\Helpers\UploadHelper::makeThumbnail((string) $photo['image'], 400);
+            if ($thumb !== null) {
+                \App\Helpers\Database::run('UPDATE photos SET thumbnail = ? WHERE id = ?', [$thumb, (int) $photo['id']]);
+                $done++;
+            } else {
+                $skipped++;
+            }
+        }
+        echo "Vignettes générées : {$done} (déjà présentes ou échec : {$skipped})\n";
         break;
 
     case 'backup':
@@ -241,7 +265,9 @@ switch ($command) {
         $count = processQueueJobs();
         SlaHelper::runDue();
         SlaHelper::checkAlbumDelai();
-        echo "Queue traitée : {$count} job(s).\n";
+        $clotures = EvenementService::autoCloturer();
+        $rappelDemain = EvenementService::envoyerRappels();
+        echo "Queue traitée : {$count} job(s), {$clotures} événement(s) clôturé(s), {$rappelDemain} rappel(s) demain.\n";
         break;
 
     case 'queue:watch':
@@ -256,6 +282,8 @@ switch ($command) {
             if ($tick % 30 === 0) {
                 SlaHelper::runDue();
                 SlaHelper::checkAlbumDelai();
+                EvenementService::autoCloturer();
+                EvenementService::envoyerRappels();
             }
 
             $tick++;

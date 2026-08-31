@@ -128,6 +128,7 @@ final class AssociationGalleryController extends Controller
             Database::insert('photos', [
                 'album_id'    => (int) $album['id'],
                 'image'       => $path,
+                'thumbnail'   => UploadHelper::makeThumbnail($path, 400),
                 'legende'     => null,
                 'status'      => 'pending',
                 'uploaded_by' => (int) $this->user()['id'],
@@ -160,7 +161,7 @@ final class AssociationGalleryController extends Controller
     }
 
     /**
-     * Supprime une photo soumise par l'association (en attente ou rejetée).
+     * Supprime une photo de l'association (tout statut).
      */
     public function deletePhoto(string $photoId): never
     {
@@ -171,8 +172,8 @@ final class AssociationGalleryController extends Controller
             'SELECT p.*, e.id AS evenement_id FROM photos p
              JOIN albums a ON a.id = p.album_id
              JOIN evenements e ON e.id = a.evenement_id
-             WHERE p.id = ? AND e.association_id = ? AND p.status IN (?, ?)',
-            [(int) $photoId, $associationId, 'pending', 'rejected']
+             WHERE p.id = ? AND e.association_id = ?',
+            [(int) $photoId, $associationId]
         );
 
         if ($photo === null) {
@@ -182,12 +183,51 @@ final class AssociationGalleryController extends Controller
         if (! empty($photo['image'])) {
             UploadHelper::delete($photo['image']);
         }
+        if (! empty($photo['thumbnail'])) {
+            UploadHelper::delete($photo['thumbnail']);
+        }
 
         Database::delete('photos', 'id = ?', [(int) $photoId]);
 
         AuditLog::log('photo_deleted_association', 'photos', (int) $photoId, ['image' => $photo['image']], null);
 
         flash('success', 'Photo supprimée.');
+        $this->redirect('association/evenements/' . (int) $photo['evenement_id'] . '/photos');
+    }
+
+    /**
+     * Met à jour la légende d'une photo de l'association (avant validation ou après).
+     */
+    public function updatePhoto(string $photoId): never
+    {
+        $associationId = $this->associationId();
+        $this->csrfCheck();
+
+        $photo = Database::one(
+            'SELECT p.*, e.id AS evenement_id FROM photos p
+             JOIN albums a ON a.id = p.album_id
+             JOIN evenements e ON e.id = a.evenement_id
+             WHERE p.id = ? AND e.association_id = ?',
+            [(int) $photoId, $associationId]
+        );
+
+        if ($photo === null) {
+            abort(404, 'Photo introuvable.');
+        }
+
+        $legende = trim((string) ($_POST['legende'] ?? ''));
+        if (mb_strlen($legende) > 255) {
+            $legende = mb_substr($legende, 0, 255);
+        }
+
+        Database::run(
+            'UPDATE photos SET legende = ?, updated_at = NOW() WHERE id = ?',
+            [$legende !== '' ? $legende : null, (int) $photoId]
+        );
+
+        AuditLog::log('photo_legende_updated', 'photos', (int) $photoId, ['legende' => $legende], null);
+
+        flash('success', 'Légende mise à jour.');
         $this->redirect('association/evenements/' . (int) $photo['evenement_id'] . '/photos');
     }
 

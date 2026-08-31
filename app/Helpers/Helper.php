@@ -106,30 +106,134 @@ if (! function_exists('url')) {
         if (PHP_SAPI !== 'cli') {
             $host = $_SERVER['HTTP_HOST'] ?? null;
             if ($host !== null && $host !== '') {
-                $scheme = (! empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                $httpsHeaders = ['HTTP_X_FORWARDED_PROTO', 'HTTP_CF_VISITOR', 'HTTP_X_FORWARDED_SCHEME'];
+                $isHttps = (! empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+                if (! $isHttps) {
+                    foreach ($httpsHeaders as $h) {
+                        $val = $_SERVER[$h] ?? '';
+                        if (stripos($val, 'https') !== false) {
+                            $isHttps = true;
+                            break;
+                        }
+                    }
+                }
+                $scheme = $isHttps ? 'https' : 'http';
                 $base   = $scheme . '://' . $host;
             }
         }
 
         $full = $base . '/' . ltrim($path, '/');
 
-        return normalizePath($full);
+        $normalized = normalizePath($full);
+
+        // Return relative path to avoid mixed-content when behind HTTPS proxy (Cloudflare).
+        // Converts "http://127.0.0.1/foo" → "/foo" and "https://host/foo" → "/foo".
+        $parsed = parse_url($normalized);
+        if (isset($parsed['path'])) {
+            return $parsed['path'];
+        }
+
+        return $normalized;
+    }
+}
+
+if (! function_exists('public_url')) {
+    /**
+     * URL « canonique » du site : détecte l'hôte courant de la requête
+     * (via HTTP_HOST, X-Forwarded-Proto, etc.) pour générer des URLs
+     * joignables depuis le réseau courant. Fallback sur APP_URL si CLI.
+     *
+     * Utilisée pour les QR codes, notifications, partage, etc.
+     */
+    function public_url(string $path = ''): string
+    {
+        $scheme = 'http';
+        $host   = '';
+
+        if (PHP_SAPI !== 'cli') {
+            $rawHost = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? '');
+            $rawHost = trim((string) $rawHost);
+
+            if ($rawHost !== '' && $rawHost !== 'localhost') {
+                $host = $rawHost;
+            } elseif ($rawHost !== '') {
+                // localhost — try to get the real IP for LAN access
+                $host = $rawHost;
+            }
+
+            $httpsHeaders = ['HTTP_X_FORWARDED_PROTO', 'HTTP_CF_VISITOR', 'HTTP_X_FORWARDED_SCHEME', 'HTTP_X_PROTO'];
+            $isHttps = (! empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+            if (! $isHttps) {
+                foreach ($httpsHeaders as $h) {
+                    $val = $_SERVER[$h] ?? '';
+                    if (stripos($val, 'https') !== false) {
+                        $isHttps = true;
+                        break;
+                    }
+                }
+            }
+            $scheme = $isHttps ? 'https' : 'http';
+        }
+
+        // Fallback: use APP_URL config if no host detected
+        if ($host === '') {
+            $appUrl = rtrim((string) config('app.url'), '/');
+            if ($appUrl !== '') {
+                return normalizePath($appUrl . '/' . ltrim($path, '/'));
+            }
+            // Last resort: use the server IP
+            $host = $_SERVER['SERVER_ADDR'] ?? 'localhost';
+        }
+
+        $base = $scheme . '://' . $host;
+
+        return normalizePath($base . '/' . ltrim($path, '/'));
+    }
+}
+
+if (! function_exists('network_url')) {
+    /**
+     * URL dynamique basée sur le réseau de connexion courant.
+     *
+     * Détecte l'hôte réel de la requête (via HTTP_HOST, X-Forwarded-Proto, etc.)
+     * et construit une URL joignable depuis le même réseau. Utile pour les
+     * QR codes affichés sur écran, les liens de partage en temps réel, etc.
+     *
+     * Fallback sur public_url() si appelé depuis CLI.
+     */
+    function network_url(string $path = ''): string
+    {
+        return public_url($path);
     }
 }
 
 if (! function_exists('asset')) {
     function asset(string $path): string
     {
-        $full = url($path);
+        $rel = '/' . ltrim($path, '/');
         $file = public_path($path);
         if (is_file($file)) {
             $mtime = @filemtime($file);
             if ($mtime !== false) {
-                $sep = str_contains($full, '?') ? '&' : '?';
-                $full .= $sep . 'v=' . $mtime;
+                $rel .= '?v=' . $mtime;
             }
         }
-        return $full;
+        return $rel;
+    }
+}
+
+if (! function_exists('photo_src')) {
+    /**
+     * Résout la source d'affichage d'une photo (vignette 400px si dispo, sinon l'originale).
+     *
+     * @param array<string, mixed> $photo Ligne de la table `photos` (image, thumbnail)
+     * @param bool                 $asset Ajouter le cache-busting via asset()
+     */
+    function photo_src(array $photo, bool $asset = true): string
+    {
+        $src = $photo['thumbnail'] ?? $photo['image'] ?? '';
+
+        return $asset ? asset((string) $src) : (string) $src;
     }
 }
 
@@ -349,7 +453,19 @@ if (! function_exists('json_response')) {
 if (! function_exists('client_ip')) {
     function client_ip(): string
     {
-        return $_SERVER['HTTP_X_FORWARDED_FOR'] ?? ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+        // RNSI §8 + OWASP — ne jamais faire confiance à X-Forwarded-For sans reverse proxy de confiance
+        // Seul REMOTE_ADDR est fiable derrière Modem/Routeur → Firewall → Reverse Proxy. Si proxy de confiance, lister IPs.
+        $trustedProxies = (array) config('security.trusted_proxies', []);
+        $remote = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        if (!empty($trustedProxies) && in_array($remote, $trustedProxies, true) && !empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            // Prendre la première IP de la liste XFF (client réel)
+            $xff = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0] ?? '';
+            $xff = trim($xff);
+            if (filter_var($xff, FILTER_VALIDATE_IP)) {
+                return $xff;
+            }
+        }
+        return $remote;
     }
 }
 
@@ -385,6 +501,16 @@ if (! function_exists('statut_label')) {
     function statut_label(string $statut): string
     {
         return __('evenements.statut_' . statut_key($statut));
+    }
+}
+
+if (! function_exists('statut_badge_class')) {
+    /**
+     * Classe CSS stable d'un badge de statut (tirets, pas d'accents).
+     */
+    function statut_badge_class(string $statut): string
+    {
+        return str_replace('_', '-', statut_key($statut));
     }
 }
 
@@ -476,5 +602,57 @@ if (! function_exists('association_badge')) {
         $html .= '</span>';
 
         return $html;
+    }
+}
+
+if (! function_exists('time_ago')) {
+    /**
+     * Date relative lisible (« il y a 3 h » / « قبل ٣ س ») à partir d'une datetime SQL.
+     * Retourne la valeur brute si non parsable, « — » si vide.
+     */
+    function time_ago(?string $datetime, ?string $locale = null): string
+    {
+        if ($datetime === null || trim($datetime) === '') {
+            return '—';
+        }
+
+        try {
+            $date = new DateTimeImmutable($datetime);
+        } catch (Throwable) {
+            return $datetime;
+        }
+
+        $locale ??= App\Helpers\I18n::locale();
+        $diff   = time() - $date->getTimestamp();
+        $future = $diff < 0;
+        $diff   = abs($diff);
+
+        if ($diff < 60) {
+            return $locale === 'ar' ? 'الآن' : "à l'instant";
+        }
+
+        if ($diff < 3600) {
+            $m = (int) floor($diff / 60);
+            return $locale === 'ar' ? "قبل {$m} د" : "il y a {$m} min";
+        }
+
+        if ($diff < 86400) {
+            $h = (int) floor($diff / 3600);
+            return $locale === 'ar' ? "قبل {$h} سا" : "il y a {$h} h";
+        }
+
+        if ($diff < 172800) {
+            return match ($locale) {
+                'ar'    => $future ? 'غداً' : 'أمس',
+                default => $future ? 'demain' : 'hier',
+            };
+        }
+
+        if ($future || $diff < 2592000) {
+            $d = (int) floor($diff / 86400);
+            return $locale === 'ar' ? "قبل {$d} يوم" : "il y a {$d} j";
+        }
+
+        return $date->format('d/m/Y H:i');
     }
 }

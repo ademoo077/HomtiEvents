@@ -17,6 +17,7 @@ require BASE_PATH . '/app/Bootstrap.php';
 
 Bootstrap::boot();
 
+use App\Helpers\EvenementService;
 use App\Helpers\Queue;
 use App\Helpers\SlaHelper;
 
@@ -63,6 +64,8 @@ while (true) {
     if ($tick % 30 === 0) {
         SlaHelper::runDue();
         SlaHelper::checkAlbumDelai();
+        EvenementService::autoCloturer();
+        EvenementService::envoyerRappels();
     }
 
     if (! $watch) {

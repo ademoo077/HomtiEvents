@@ -4,14 +4,19 @@ $title = __('common.epic');
 $page  = 'admin.epics.index';
 ?>
 <div class="wh-page">
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-        <div>
-            <h1 class="wh-page-title"><?= e(__('common.epic')) ?></h1>
-            <p class="wh-page-sub"><?= e($total) ?> <?= e(__('common.epic')) ?></p>
+    <div class="wh-hero-panel mb-4" style="--hero-a:#0891b2;--hero-b:#0B5ED7">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div>
+                <h1 class="d-flex align-items-center gap-2" style="font-size:1.5rem">
+                    <i class="mdi mdi-satellite-variant"></i>
+                    <?= e(__('common.epic')) ?>
+                </h1>
+                <p class="mt-1 mb-0"><?= e($total) ?> <?= e(__('common.epic')) ?></p>
+            </div>
+            <a class="btn btn-light" href="<?= url('admin/epics/create') ?>">
+                <i class="mdi mdi-plus me-1"></i><?= e(__('common.create')) ?>
+            </a>
         </div>
-        <a class="btn btn-primary" href="<?= url('admin/epics/create') ?>">
-            <i class="mdi mdi-plus me-1"></i><?= e(__('common.create')) ?>
-        </a>
     </div>
 
     <form method="get" action="<?= url('admin/epics') ?>" class="wh-filters mb-3">
@@ -27,6 +32,7 @@ $page  = 'admin.epics.index';
     </form>
 
     <div class="card border-0 shadow-sm">
+        <div class="card-header" style="background:var(--wh-cyan-soft);border-bottom:2px solid #0891b2"><h6 class="mb-0 fw-bold" style="color:#0891b2"><i class="mdi mdi-satellite-variant me-2"></i><?= e(__('common.epic')) ?></h6></div>
         <div class="table-responsive">
             <table class="table align-middle mb-0">
                 <thead class="table-light">

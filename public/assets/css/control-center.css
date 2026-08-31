@@ -1,0 +1,363 @@
+/* ═══════════════════════════════════════════════════════════════════
+   WILAYA HARMONIA — Control Center
+   Fondation UI du panneau d'administration
+   MINI DESIGN SYSTEM : --wh-* tokens, 4/8/12/16/24/32px spacing,
+   .5/.75/1rem radius, 150ms transitions, RTL logical properties
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Layout ──────────────────────────────────────────────────── */
+.futur-control { width: 100%; min-width: 0; }
+.futur-control-header { margin-bottom: 1.25rem; }
+.futur-control-title { font-size: 1.35rem; font-weight: 700; line-height: 1.25; margin: 0; color: var(--wh-text); }
+.futur-control-title .mdi { color: var(--wh-blue); margin-inline-end: .35rem; }
+.futur-control-sub { color: var(--wh-text-muted); font-size: .85rem; line-height: 1.4; }
+
+/* ── Onglets ─────────────────────────────────────────────────── */
+.futur-tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 2px solid var(--wh-border); padding-bottom: 0; margin-top: .75rem; }
+.futur-tab {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: var(--wh-radius) var(--wh-radius) 0 0;
+    text-decoration: none; color: var(--wh-text-muted);
+    font-weight: 500; font-size: .85rem;
+    transition: color .15s ease, background .15s ease, border-color .15s ease;
+    background: transparent; border: 1px solid transparent; border-bottom: none;
+    white-space: nowrap; user-select: none;
+}
+.futur-tab .mdi { font-size: 1rem; }
+.futur-tab:hover { color: var(--wh-blue); background: var(--wh-blue-soft); }
+.futur-tab.active { color: var(--wh-blue); background: var(--wh-gray-soft); border-color: var(--wh-border); border-bottom-color: var(--wh-gray-soft); margin-bottom: -2px; font-weight: 600; }
+.futur-tab:focus-visible { outline: 2px solid var(--wh-blue); outline-offset: -2px; }
+
+/* Overflow menu (Phase 6 responsive) */
+.futur-tabs-overflow { position: relative; }
+.futur-overflow-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border-radius: var(--wh-radius);
+    border: 1px solid var(--wh-border); background: var(--wh-white);
+    color: var(--wh-text-muted); cursor: pointer; padding: 0;
+    transition: background .1s ease;
+}
+.futur-overflow-btn:hover { background: var(--wh-gray-soft); color: var(--wh-text); }
+.futur-tabs-overflow-menu {
+    position: absolute; top: 100%; inset-inline-end: 0; z-index: 100;
+    background: var(--wh-white); border: 1px solid var(--wh-border);
+    border-radius: var(--wh-radius); box-shadow: var(--wh-shadow-lg);
+    padding: .35rem 0; min-width: 180px; display: none;
+}
+.futur-tabs-overflow-menu.is-open { display: block; }
+.futur-tabs-overflow-menu a {
+    display: flex; align-items: center; gap: 8px;
+    padding: .5rem .85rem; font-size: .84rem; font-weight: 500;
+    text-decoration: none; color: var(--wh-text); transition: background .1s ease;
+}
+.futur-tabs-overflow-menu a:hover { background: var(--wh-gray-soft); }
+.futur-tabs-overflow-menu a .mdi { font-size: 1rem; color: var(--wh-text-muted); }
+
+/* ── Grille ──────────────────────────────────────────────────── */
+.futur-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: .75rem; }
+.futur-grid--4 { grid-template-columns: repeat(4, 1fr); }
+
+/* ── KPI ─────────────────────────────────────────────────────── */
+.futur-kpi {
+    display: flex; flex-direction: column; gap: .35rem;
+    padding: 1.1rem 1.25rem; background: var(--wh-white);
+    border: 1px solid var(--wh-border); border-radius: var(--wh-radius);
+    box-shadow: var(--wh-shadow); min-width: 0;
+    transition: box-shadow .15s ease, transform .15s ease;
+}
+.futur-kpi:hover { box-shadow: var(--wh-shadow-lg); }
+.futur-kpi-value { font-size: 1.55rem; font-weight: 800; line-height: 1.1; color: var(--wh-text); }
+.futur-kpi-label { font-size: .8rem; color: var(--wh-text-muted); font-weight: 500; }
+.futur-kpi-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .25rem; }
+.futur-kpi-icon { width: 40px; height: 40px; border-radius: .65rem; display: grid; place-items: center; font-size: 1.2rem; flex-shrink: 0; }
+.futur-kpi-icon.blue   { background: var(--wh-blue-soft); color: var(--wh-blue); }
+.futur-kpi-icon.green  { background: var(--wh-green-soft); color: var(--wh-green); }
+.futur-kpi-icon.gray   { background: var(--wh-gray-soft); color: var(--wh-gray); }
+.futur-kpi-icon.amber  { background: #fff3cd; color: var(--wh-amber); }
+.futur-kpi-icon.red    { background: #f8d7da; color: var(--wh-red); }
+.futur-kpi-icon.purple { background: #ede9fe; color: #7c3aed; }
+.futur-kpi-trend { display: inline-flex; align-items: center; gap: 2px; font-size: .72rem; font-weight: 700; white-space: nowrap; padding: 2px 6px; border-radius: 999px; }
+.futur-kpi-trend .mdi { font-size: .85rem; }
+.trend-up   { color: var(--wh-green); background: var(--wh-green-soft); }
+.trend-down { color: var(--wh-red); background: #f8d7da; }
+.trend-flat { color: var(--wh-text-muted); background: var(--wh-gray-soft); }
+a.futur-kpi--linked { text-decoration: none; color: inherit; cursor: pointer; }
+a.futur-kpi--linked:hover { border-color: var(--wh-blue); box-shadow: var(--wh-shadow-lg); transform: translateY(-2px); }
+
+/* ── Carte ───────────────────────────────────────────────────── */
+.futur-card { background: var(--wh-white); border: 1px solid var(--wh-border); border-radius: var(--wh-radius); box-shadow: var(--wh-shadow); overflow: hidden; }
+.futur-card-header { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--wh-border); font-weight: 600; font-size: .92rem; color: var(--wh-text); background: transparent; }
+.futur-card-header .mdi { color: var(--wh-blue); margin-inline-end: .35rem; }
+.futur-card-body { padding: 1.25rem; }
+.futur-card-body.p-0 { padding: 0; }
+.futur-card-link { display: block; text-decoration: none; color: inherit; border-radius: var(--wh-radius); transition: box-shadow .15s ease, transform .15s ease, border-color .15s ease; }
+.futur-card-link:hover { box-shadow: var(--wh-shadow-lg); transform: translateY(-2px); }
+.futur-card-link .futur-card { border-color: transparent; box-shadow: none; height: 100%; }
+.futur-card-link:hover .futur-card { border-color: var(--wh-blue); }
+
+/* ── Tableau ─────────────────────────────────────────────────── */
+.futur-table { width: 100%; border-collapse: collapse; font-size: .88rem; color: var(--wh-text); }
+.futur-table thead th { background: var(--wh-gray-soft); color: var(--wh-text-muted); font-weight: 600; font-size: .78rem; text-transform: uppercase; letter-spacing: .4px; padding: .7rem 1rem; border-bottom: 1px solid var(--wh-border); white-space: nowrap; }
+.futur-table thead th.futur-th-sort { cursor: pointer; user-select: none; }
+.futur-table thead th.futur-th-sort:hover { color: var(--wh-blue); }
+.futur-table thead th .futur-sort-icon { font-size: .75rem; opacity: .35; margin-inline-start: 3px; }
+.futur-table thead th.futur-sorted-asc .futur-sort-icon,
+.futur-table thead th.futur-sorted-desc .futur-sort-icon { opacity: 1; color: var(--wh-blue); }
+.futur-table tbody tr { transition: background .1s ease; }
+.futur-table tbody tr:hover { background: var(--wh-gray-soft); }
+.futur-table tbody tr.futur-row-hidden { display: none; }
+.futur-table tbody td { padding: .7rem 1rem; border-bottom: 1px solid var(--wh-gray-light); vertical-align: middle; }
+.futur-table tbody tr:last-child td { border-bottom: none; }
+
+/* ── Avatar & User cell ───────────────────────────────────────── */
+.futur-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--wh-blue-soft); color: var(--wh-blue);
+    display: inline-grid; place-items: center; font-weight: 700; font-size: .8rem;
+    flex-shrink: 0; overflow: hidden;
+}
+.futur-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.futur-user-cell { display: flex; align-items: center; gap: .65rem; min-width: 180px; }
+.futur-user-name { font-weight: 600; font-size: .88rem; color: var(--wh-text); line-height: 1.2; }
+.futur-user-meta { font-size: .78rem; color: var(--wh-text-muted); line-height: 1.3; }
+.futur-user-meta .mdi { font-size: .85rem; margin-inline-end: 2px; }
+
+/* ── Badge roles ───────────────────────────────────────────────── */
+.futur-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: .2rem .55rem; border-radius: 999px;
+    font-size: .72rem; font-weight: 600; white-space: nowrap;
+}
+.futur-badge-admin     { background: var(--wh-red-soft); color: var(--wh-red); }
+.futur-badge-epic      { background: var(--wh-purple-soft); color: var(--wh-purple); }
+.futur-badge-commune   { background: var(--wh-cyan-soft); color: var(--wh-cyan); }
+.futur-badge-wilaya    { background: var(--wh-blue-soft); color: var(--wh-blue); }
+.futur-badge-assoc     { background: var(--wh-amber-soft); color: var(--wh-amber); }
+.futur-badge.active    { background: var(--wh-green-soft); color: var(--wh-green); }
+.futur-badge.inactive  { background: var(--wh-gray-soft); color: var(--wh-gray); }
+.futur-badge.pending   { background: var(--wh-amber-soft); color: var(--wh-amber); }
+
+/* ── Kebab menu ────────────────────────────────────────────────── */
+.futur-kebab { position: relative; display: inline-flex; }
+.futur-kebab-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: var(--wh-radius);
+    border: 1px solid var(--wh-border); background: var(--wh-white);
+    color: var(--wh-text-muted); cursor: pointer; padding: 0;
+    transition: background .1s ease, color .1s ease, border-color .1s ease;
+}
+.futur-kebab-btn:hover { background: var(--wh-gray-soft); color: var(--wh-text); border-color: var(--wh-border-strong); }
+.futur-kebab-btn:focus-visible { outline: 2px solid var(--wh-blue); outline-offset: 2px; }
+.futur-kebab-menu {
+    position: absolute; top: calc(100% + 4px); inset-inline-end: 0; z-index: 200;
+    background: var(--wh-white); border: 1px solid var(--wh-border);
+    border-radius: var(--wh-radius); box-shadow: var(--wh-shadow-lg);
+    padding: .35rem 0; min-width: 170px; display: none;
+}
+.futur-kebab-menu.is-open { display: block; animation: futur-fade-in .12s ease; }
+@keyframes futur-fade-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+.futur-kebab-menu a,
+.futur-kebab-menu button {
+    display: flex; align-items: center; gap: 8px; width: 100%;
+    padding: .5rem .85rem; font-size: .84rem; font-weight: 500;
+    text-decoration: none; color: var(--wh-text); background: none; border: none;
+    text-align: start; cursor: pointer; transition: background .1s ease;
+}
+.futur-kebab-menu a:hover,
+.futur-kebab-menu button:hover { background: var(--wh-gray-soft); }
+.futur-kebab-menu a.text-danger:hover,
+.futur-kebab-menu button.text-danger:hover { background: var(--wh-red-soft); color: var(--wh-red); }
+.futur-kebab-menu hr { margin: .35rem .5rem; border-color: var(--wh-border); }
+.futur-kebab-menu .mdi { font-size: 1rem; color: var(--wh-text-muted); width: 20px; text-align: center; }
+
+/* ── Search input ──────────────────────────────────────────────── */
+.futur-search {
+    position: relative; max-width: 360px; width: 100%;
+}
+.futur-search .mdi {
+    position: absolute; inset-inline-start: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--wh-text-muted); font-size: 1.1rem; pointer-events: none;
+}
+.futur-search input {
+    width: 100%; padding: .55rem .75rem .55rem 40px;
+    border: 1px solid var(--wh-border); border-radius: var(--wh-radius);
+    background: var(--wh-white); color: var(--wh-text); font-size: .88rem;
+    transition: border-color .1s ease, box-shadow .1s ease, background .1s ease;
+}
+.futur-search input::placeholder { color: var(--wh-text-muted); }
+.futur-search input:hover { border-color: var(--wh-border-strong); }
+.futur-search input:focus {
+    outline: none; border-color: var(--wh-blue); box-shadow: 0 0 0 3px var(--wh-blue-soft);
+}
+
+/* ── Empty state ───────────────────────────────────────────────── */
+.futur-empty {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: .75rem; padding: 3rem 1.5rem; text-align: center;
+    background: var(--wh-white); border: 1px dashed var(--wh-border);
+    border-radius: var(--wh-radius); color: var(--wh-text-muted);
+}
+.futur-empty .mdi { font-size: 2.8rem; opacity: .55; color: var(--wh-text-muted); }
+.futur-empty-title { font-size: 1.05rem; font-weight: 600; color: var(--wh-text); margin: 0; }
+.futur-empty-text { font-size: .88rem; max-width: 280px; margin: 0; line-height: 1.5; }
+.futur-empty-action { margin-top: .5rem; }
+
+/* ── Form & validation (Phase 5) ───────────────────────────────── */
+.futur-form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+.futur-form-group { display: flex; flex-direction: column; gap: .35rem; }
+.futur-form-label { font-size: .8rem; font-weight: 600; color: var(--wh-text); }
+.futur-form-label .required { color: var(--wh-red); margin-inline-start: 2px; }
+.futur-form-control {
+    width: 100%; padding: .6rem .85rem;
+    border: 1px solid var(--wh-border); border-radius: var(--wh-radius);
+    background: var(--wh-white); color: var(--wh-text); font-size: .9rem;
+    transition: border-color .1s ease, box-shadow .1s ease, background .1s ease;
+}
+.futur-form-control::placeholder { color: var(--wh-text-muted); }
+.futur-form-control:hover { border-color: var(--wh-border-strong); }
+.futur-form-control:focus {
+    outline: none; border-color: var(--wh-blue); box-shadow: 0 0 0 3px var(--wh-blue-soft);
+}
+.futur-form-control.is-invalid { border-color: var(--wh-red); }
+.futur-form-control.is-invalid:focus { box-shadow: 0 0 0 3px var(--wh-red-soft); }
+.futur-form-error { font-size: .78rem; color: var(--wh-red); display: none; }
+.futur-form-control.is-invalid + .futur-form-error { display: block; }
+.futur-form-hint { font-size: .78rem; color: var(--wh-text-muted); }
+.futur-form-check { display: flex; align-items: center; gap: .5rem; }
+.futur-form-check input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--wh-blue); cursor: pointer; }
+.futur-form-check label { font-size: .88rem; color: var(--wh-text); cursor: pointer; }
+.futur-select-multi { min-height: 140px; }
+
+/* Password strength meter */
+.futur-pw-strength { display: flex; gap: 4px; margin-top: .35rem; height: 4px; }
+.futur-pw-strength__bar { flex: 1; height: 100%; border-radius: 2px; background: var(--wh-gray-light); transition: background .15s ease; }
+.futur-pw-strength__bar.active { background: var(--wh-gray); }
+.futur-pw-strength[data-level="1"] .futur-pw-strength__bar:nth-child(-n+1) { background: var(--wh-red); }
+.futur-pw-strength[data-level="2"] .futur-pw-strength__bar:nth-child(-n+2) { background: var(--wh-amber); }
+.futur-pw-strength[data-level="3"] .futur-pw-strength__bar:nth-child(-n+3) { background: var(--wh-blue); }
+.futur-pw-strength[data-level="4"] .futur-pw-strength__bar { background: var(--wh-green); }
+.futur-pw-label { font-size: .72rem; color: var(--wh-text-muted); margin-top: .25rem; }
+
+/* Form actions sticky */
+.futur-form-actions {
+    display: flex; justify-content: flex-end; gap: .5rem; padding-top: 1rem;
+    border-top: 1px solid var(--wh-border); margin-top: .5rem;
+}
+
+/* ── Responsive table → cards (≤768px) ─────────────────────────── */
+@media (max-width: 768px) {
+    .futur-table-responsive .futur-table thead { display: none; }
+    .futur-table-responsive .futur-table,
+    .futur-table-responsive .futur-table tbody,
+    .futur-table-responsive .futur-table tr,
+    .futur-table-responsive .futur-table td { display: block; width: 100%; }
+    .futur-table-responsive .futur-table tr {
+        background: var(--wh-white); border: 1px solid var(--wh-border);
+        border-radius: var(--wh-radius); margin-bottom: .75rem; padding: .75rem;
+        box-shadow: var(--wh-shadow);
+    }
+    .futur-table-responsive .futur-table td {
+        padding: .35rem 0; border: none; display: flex; justify-content: space-between; align-items: center; gap: .5rem;
+    }
+    .futur-table-responsive .futur-table td::before {
+        content: attr(data-label); font-weight: 600; font-size: .75rem; color: var(--wh-text-muted);
+        text-transform: uppercase; letter-spacing: .3px; flex-shrink: 0;
+    }
+    .futur-table-responsive .futur-table td:last-child { padding-top: .75rem; border-top: 1px solid var(--wh-gray-light); }
+    .futur-table-responsive .futur-table td .futur-kebab { margin-inline-start: auto; }
+    .futur-table-responsive .futur-table td .futur-badge { margin-inline-start: auto; }
+    .futur-grid--4 { grid-template-columns: repeat(2, 1fr); }
+    .futur-control-header { margin-bottom: 1rem; }
+    .futur-control-title { font-size: 1.15rem; }
+    .futur-card-header { padding: .75rem 1rem; font-size: .88rem; }
+    .futur-card-body { padding: 1rem; }
+    .futur-kpi { padding: .9rem 1rem; }
+    .futur-kpi-value { font-size: 1.3rem; }
+}
+@media (max-width: 575.98px) {
+    .futur-grid { grid-template-columns: 1fr 1fr; }
+    .futur-grid--4 { grid-template-columns: 1fr 1fr; }
+    .futur-form-row { grid-template-columns: 1fr; }
+    .futur-tabs { gap: 2px; }
+    .futur-tab { padding: 6px 10px; font-size: .8rem; }
+}
+
+/* ── Tab overflow scroll & keyboard shortcuts ──────────────────── */
+.futur-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: var(--wh-border) transparent; }
+.futur-tabs::-webkit-scrollbar { height: 6px; }
+.futur-tabs::-webkit-scrollbar-thumb { background: var(--wh-border); border-radius: 3px; }
+.futur-tabs::-webkit-scrollbar-track { background: transparent; }
+.futur-tabs:focus-within .futur-tab:focus-visible { outline: 2px solid var(--wh-blue); outline-offset: -2px; z-index: 1; }
+
+/* Keyboard shortcut hints */
+.futur-shortcuts { display: none; padding: .5rem 0; font-size: .75rem; color: var(--wh-text-muted); }
+.futur-shortcuts kbd {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 22px; height: 20px; padding: 0 6px;
+    background: var(--wh-gray-soft); border: 1px solid var(--wh-border);
+    border-radius: 4px; font-family: inherit; font-size: .7rem; font-weight: 600;
+    color: var(--wh-text); box-shadow: 0 1px 0 var(--wh-border-strong);
+}
+
+/* ── Transitions & polish ──────────────────────────────────────── */
+.futur-fade-in { animation: futur-fade-in .18s ease; }
+.futur-slide-up { animation: futur-slide-up .22s ease; }
+@keyframes futur-slide-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Skeleton loader */
+.futur-skeleton { background: linear-gradient(90deg, var(--wh-gray-light) 25%, var(--wh-gray-soft) 50%, var(--wh-gray-light) 75%); background-size: 200% 100%; animation: futur-shimmer 1.4s infinite; border-radius: var(--wh-radius); }
+@keyframes futur-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.futur-skeleton-text { height: 1rem; margin-bottom: .5rem; }
+.futur-skeleton-text:last-child { width: 65%; }
+.futur-skeleton-avatar { width: 36px; height: 36px; border-radius: 50%; }
+.futur-skeleton-kpi { height: 2.5rem; border-radius: var(--wh-radius); }
+.futur-skeleton-row { height: 48px; }
+
+/* ── Toast notifications ───────────────────────────────────────── */
+.futur-toast-wrap {
+    position: fixed; top: 1rem; inset-inline-end: 1rem; z-index: 9999;
+    display: flex; flex-direction: column; gap: .5rem; pointer-events: none;
+    max-width: 380px;
+}
+@media (max-width: 575.98px) {
+    .futur-toast-wrap {
+        inset-inline-end: .5rem;
+        inset-inline-start: .5rem;
+        max-width: none;
+    }
+}
+.futur-toast {
+    display: flex; align-items: flex-start; gap: .75rem;
+    padding: 1rem 1.25rem; background: var(--wh-white);
+    border: 1px solid var(--wh-border); border-radius: var(--wh-radius);
+    box-shadow: var(--wh-shadow-lg); pointer-events: auto;
+    animation: futur-slide-in .25s ease; min-width: 280px;
+}
+@keyframes futur-slide-in { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+.futur-toast.removing { animation: futur-slide-out .2s ease forwards; }
+@keyframes futur-slide-out { to { opacity: 0; transform: translateX(100%); } }
+.futur-toast-icon { flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 1.1rem; }
+.futur-toast.success .futur-toast-icon { background: var(--wh-green-soft); color: var(--wh-green); }
+.futur-toast.error .futur-toast-icon { background: var(--wh-red-soft); color: var(--wh-red); }
+.futur-toast.warning .futur-toast-icon { background: var(--wh-amber-soft); color: var(--wh-amber); }
+.futur-toast.info .futur-toast-icon { background: var(--wh-blue-soft); color: var(--wh-blue); }
+.futur-toast-content { flex: 1; min-width: 0; }
+.futur-toast-title { font-weight: 600; font-size: .9rem; color: var(--wh-text); margin-bottom: .15rem; }
+.futur-toast-message { font-size: .8rem; color: var(--wh-text-muted); line-height: 1.4; }
+.futur-toast-close { flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
+    display: grid; place-items: center; color: var(--wh-text-muted); background: transparent; border: none;
+    cursor: pointer; padding: 0; font-size: 1rem; line-height: 1; }
+.futur-toast-close:hover { background: var(--wh-gray-soft); color: var(--wh-text); }
+.futur-toast-progress { position: absolute; bottom: 0; inset-inline-start: 0; height: 3px; border-radius: 0 0 var(--wh-radius) var(--wh-radius); background: currentColor; animation: futur-progress linear forwards; }
+.futur-toast.success .futur-toast-progress { color: var(--wh-green); }
+.futur-toast.error .futur-toast-progress { color: var(--wh-red); }
+.futur-toast.warning .futur-toast-progress { color: var(--wh-amber); }
+.futur-toast.info .futur-toast-progress { color: var(--wh-blue); }
+@keyframes futur-progress { from { width: 100%; } to { width: 0%; } }
+
+/* Print */
+@media print {
+    .futur-tabs, .futur-kebab, .futur-search, .futur-form-actions, .cc-tab-spinner, .futur-toast-wrap { display: none !important; }
+    .futur-card, .futur-kpi { break-inside: avoid; box-shadow: none; border-color: #ccc; }
+    .futur-table { font-size: .75rem; }
+}

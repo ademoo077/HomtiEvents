@@ -73,15 +73,15 @@ $dateOptions = [
     </div>
 
     <div class="explorer-view-toggle" data-reveal>
-        <button class="view-btn active" data-view="list" id="viewList" type="button" aria-label="<?= $isAr ? 'قائمة' : 'Liste' ?>">
+        <button class="view-btn active" data-view="list" id="viewList" type="button" aria-label="<?= $isAr ? 'قائمة' : 'Liste' ?>" aria-pressed="true">
             <i class="mdi mdi-view-list"></i> <?= $isAr ? 'قائمة' : 'Liste' ?>
         </button>
-        <button class="view-btn" data-view="map" id="viewMap" type="button" aria-label="<?= $isAr ? 'خريطة' : 'Carte' ?>">
+        <button class="view-btn" data-view="map" id="viewMap" type="button" aria-label="<?= $isAr ? 'خريطة' : 'Carte' ?>" aria-pressed="false">
             <i class="mdi mdi-map-variant"></i> <?= $isAr ? 'خريطة' : 'Carte' ?>
         </button>
         <span class="explorer-results" id="explorerResults">
             <i class="mdi mdi-tag-outline" aria-hidden="true"></i>
-            <strong id="explorerCount"><?= (int) count($events ?? []) ?></strong>
+            <strong id="explorerCount" aria-live="polite"><?= (int) count($events ?? []) ?></strong>
         </span>
     </div>
 
@@ -95,7 +95,7 @@ $dateOptions = [
         </div>
 
         <div class="explorer-list" id="explorerList"></div>
-        <div class="explorer-empty" id="explorerEmpty" style="display:none;">
+        <div class="explorer-empty" id="explorerEmpty" style="display:none;" role="status">
             <i class="mdi mdi-calendar-remove-outline"></i>
             <p><?= $isAr ? 'لا توجد أحداث مطابقة' : 'Aucun événement ne correspond à vos critères' ?></p>
         </div>
@@ -105,6 +105,16 @@ $dateOptions = [
         </div>
     </div>
 </div>
+
+<style>
+.citoyen-card-wrap{position:relative;display:flex;align-items:center;margin-bottom:.6rem;background:var(--cit-card-bg,#fff);border-radius:var(--cit-radius-sm,12px);box-shadow:var(--cit-shadow,0 1px 3px rgba(0,0,0,.08));border:1px solid transparent;transition:transform .15s,box-shadow .15s}
+.citoyen-card-wrap:hover{transform:translateY(-1px);box-shadow:var(--cit-shadow-lg,0 6px 20px rgba(0,0,0,.1));border-color:var(--cit-primary-light,#1A4D3E)}
+.citoyen-card-wrap .citoyen-card{flex:1;min-width:0;display:flex;gap:.85rem;align-items:center;border:none;box-shadow:none;background:transparent;border-radius:0;transform:none}
+.citoyen-card-wrap .citoyen-card:hover{transform:none;box-shadow:none}
+.citoyen-fav-btn{flex:0 0 auto;align-self:center;width:38px;height:38px;margin-inline-end:1rem;border-radius:50%;border:1px solid #EDE7DA;background:#fff;color:#9CA3AF;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:.2s;font-size:1.1rem}
+.citoyen-fav-btn:hover{border-color:#D4AF37;color:#D4AF37}
+.citoyen-fav-btn.active{background:#D4AF37;color:#fff;border-color:#D4AF37}
+</style>
 
 <script>
 (function () {
@@ -130,6 +140,7 @@ $dateOptions = [
     var explorerMap = null;
     var markerLayer = null;
     var nearbyActive = false;
+    var currentView = 'list';
 
     var i18n = {
         participants: isAr ? 'مشارك' : 'participants',
@@ -137,24 +148,47 @@ $dateOptions = [
         participants_count: isAr ? 'مشارك' : 'participants',
         see_event: isAr ? 'عرض الحدث' : "Voir l'événement",
         scan: isAr ? 'امسح' : 'Scanner',
-        geolocating: isAr ? 'جارٍ التحديد…' : 'Localisation…'
+        geolocating: isAr ? 'جارٍ التحديد…' : 'Localisation…',
+        location_denied: isAr ? 'تم رفض الوصول إلى الموقع.' : 'Accès à la localisation refusé.',
+        load_error: isAr ? 'حدث خطأ أثناء التحميل.' : 'Erreur lors du chargement.',
+        near_me: isAr ? 'القريب مني' : 'À proximité',
+        statut: {
+            'EN_ATTENTE': isAr ? 'قيد الانتظار' : 'En attente',
+            'VALIDÉ': isAr ? 'مقبول' : 'Validé',
+            'PROGRAMME': isAr ? 'مبرمج' : 'Programmé',
+            'QR_GENERE': isAr ? 'تم توليد الرمز' : 'QR généré',
+            'EN_COURS': isAr ? 'جاري' : 'En cours',
+            'TERMINE': isAr ? 'منتهي' : 'Terminé',
+            'REFUSE': isAr ? 'مرفوض' : 'Refusé',
+            'ANNULE': isAr ? 'ملغى' : 'Annulé'
+        }
     };
 
     function badgeClass(statut) {
-        var s = String(statut || '').toLowerCase();
+        /* Sans accents, cohérent avec statut_badge_class() côté PHP */
+        var s = String(statut || '')
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase().replace(/_/g, '-');
         return 'badge badge-' + s;
     }
 
     function renderCard(ev) {
         var d = new Date(ev.date_evenement);
         var day = String(d.getDate()).padStart(2, '0');
-        var month = d.toLocaleDateString('fr-FR', { month: 'short' });
+        var month = d.toLocaleDateString(isAr ? 'ar' : 'fr-FR', { month: 'short' });
 
         var anomalie = ev.anomalies
             ? '<span class="badge badge-anomalie">' + esc(ev.anomalies.split(',')[0]) + '</span> '
             : '';
 
-        var html = '<a class="citoyen-card" href="/citoyen/evenement/' + ev.id + '">' +
+        var favActive = ev.is_favori ? ' active' : '';
+        var favIcon = ev.is_favori ? 'mdi-heart' : 'mdi-heart-outline';
+        var favBtn = '<button type="button" class="citoyen-fav-btn' + favActive + '" data-fav-id="' + ev.id + '" ' +
+            'data-active="' + (ev.is_favori ? 'true' : 'false') + '" aria-pressed="' + (ev.is_favori ? 'true' : 'false') + '" ' +
+            'title="' + (isAr ? 'المفضلة' : 'Favori') + '">' +
+            '<i class="mdi ' + favIcon + '"></i></button>';
+
+        var link = '<a class="citoyen-card" href="/citoyen/evenement/' + ev.id + '">' +
             '<div class="citoyen-card-date">' +
                 '<span class="citoyen-card-day">' + day + '</span>' +
                 '<span class="citoyen-card-month">' + esc(month) + '</span>' +
@@ -167,11 +201,12 @@ $dateOptions = [
                 '</p>' +
                 '<div class="citoyen-card-badges">' +
                     anomalie +
-                    '<span class="' + badgeClass(ev.statut) + '">' + esc(ev.statut) + '</span>' +
+                    '<span class="' + badgeClass(ev.statut) + '">' + esc(i18n.statut[ev.statut] || ev.statut) + '</span>' +
                 '</div>' +
             '</div>' +
         '</a>';
-        return html;
+
+        return '<div class="citoyen-card-wrap">' + link + favBtn + '</div>';
     }
 
     function esc(str) {
@@ -190,7 +225,8 @@ $dateOptions = [
             return;
         }
         emptyEl.style.display = 'none';
-        listEl.style.display = '';
+        /* Respecter le mode d'affichage courant (liste ou carte) */
+        listEl.style.display = currentView === 'list' ? '' : 'none';
         data.forEach(function (ev) {
             var wrap = document.createElement('div');
             wrap.innerHTML = renderCard(ev);
@@ -224,8 +260,10 @@ $dateOptions = [
             })
             .catch(function () {
                 shimmerEl.style.display = 'none';
-                listEl.style.display = '';
+                listEl.style.display = 'none';
+                mapContainer.style.display = 'none';
                 emptyEl.style.display = 'block';
+                emptyEl.innerHTML = '<i class="mdi mdi-wifi-off"></i><p>' + esc(i18n.load_error) + '</p>';
             });
     }
 
@@ -260,17 +298,25 @@ $dateOptions = [
 
     var viewToggle = {
         list: function () {
+            currentView = 'list';
             listEl.style.display = '';
+            emptyEl.style.display = listEl.children.length === 0 ? 'block' : 'none';
             mapContainer.style.display = 'none';
             viewListBtn.classList.add('active');
+            viewListBtn.setAttribute('aria-pressed', 'true');
             viewMapBtn.classList.remove('active');
+            viewMapBtn.setAttribute('aria-pressed', 'false');
             if (explorerMap) { explorerMap.remove(); explorerMap = null; markerLayer = null; }
         },
         map: function () {
+            currentView = 'map';
             listEl.style.display = 'none';
+            emptyEl.style.display = 'none';
             mapContainer.style.display = '';
             viewMapBtn.classList.add('active');
+            viewMapBtn.setAttribute('aria-pressed', 'true');
             viewListBtn.classList.remove('active');
+            viewListBtn.setAttribute('aria-pressed', 'false');
             if (!explorerMap) { initMap(); }
         }
     };
@@ -312,7 +358,11 @@ $dateOptions = [
 
     /* ── Géolocalisation ── */
     document.getElementById('btnNearbyExplore').addEventListener('click', function () {
-        if (!navigator.geolocation) { return; }
+        if (!navigator.geolocation) {
+            emptyEl.innerHTML = '<i class="mdi mdi-map-marker-off-outline"></i><p>' + esc(isAr ? 'الموقع غير متاح على جهازك.' : 'Géolocalisation non disponible sur votre appareil.') + '</p>';
+            emptyEl.style.display = 'block';
+            return;
+        }
         var btn = this;
         btn.disabled = true;
         btn.innerHTML = '<i class="mdi mdi-loading mdi-spin"></i> ' + i18n.geolocating;
@@ -321,13 +371,49 @@ $dateOptions = [
             currentFilters.lon = pos.coords.longitude.toFixed(5);
             nearbyActive = true;
             btn.disabled = false;
-            btn.innerHTML = '<i class="mdi mdi-crosshairs-gps"></i> ' + (isAr ? 'القريب مني' : 'À proximité');
+            btn.innerHTML = '<i class="mdi mdi-crosshairs-gps"></i> ' + i18n.near_me;
             viewToggle.list();
             fetchEvents();
-        }, function () {
+        }, function (err) {
             btn.disabled = false;
-            btn.innerHTML = '<i class="mdi mdi-crosshairs-gps"></i> ' + (isAr ? 'القريب مني' : 'À proximité');
+            btn.innerHTML = '<i class="mdi mdi-crosshairs-gps"></i> ' + i18n.near_me;
+            var msg = err && err.code === err.PERMISSION_DENIED ? i18n.location_denied : i18n.load_error;
+            emptyEl.innerHTML = '<i class="mdi mdi-map-marker-off-outline"></i><p>' + esc(msg) + '</p>';
+            emptyEl.style.display = 'block';
         });
+    });
+
+    /* ── Favoris (délégation sur la liste) ── */
+    listEl.addEventListener('click', function (e) {
+        var btn = e.target.closest('.citoyen-fav-btn');
+        if (!btn || !window.WH_CSRF) return;
+        e.preventDefault();
+        e.stopPropagation();
+        var id = btn.getAttribute('data-fav-id');
+        if (!id) return;
+        btn.disabled = true;
+        fetch('/citoyen/favoris/' + id + '/toggle?ajax=1', {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': window.WH_CSRF, 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        }).then(function (r) { return r.json(); })
+          .then(function (res) {
+            if (res && res.success) {
+                var icon = btn.querySelector('.mdi');
+                if (res.saved) {
+                    btn.classList.add('active');
+                    btn.setAttribute('data-active', 'true');
+                    btn.setAttribute('aria-pressed', 'true');
+                    if (icon) { icon.classList.add('mdi-heart'); icon.classList.remove('mdi-heart-outline'); }
+                } else {
+                    btn.classList.remove('active');
+                    btn.setAttribute('data-active', 'false');
+                    btn.setAttribute('aria-pressed', 'false');
+                    if (icon) { icon.classList.remove('mdi-heart'); icon.classList.add('mdi-heart-outline'); }
+                }
+            }
+          })
+          .catch(function () {})
+          .finally(function () { btn.disabled = false; });
     });
 
     renderList(events);

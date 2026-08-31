@@ -19,31 +19,32 @@ $st = match($request['status'] ?? 'pending') {
 $isPending = ($request['status'] ?? '') === 'pending';
 ?>
 <div class="wh-page">
-    <!-- Header -->
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-        <div>
-            <h1 class="wh-page-title">
-                <i class="mdi mdi-file-document-outline me-2"></i>Demande #<?= (int) $request['id'] ?>
-            </h1>
-            <p class="wh-page-sub">
-                <?= e($request['association_name']) ?>
-                <span class="wh-badge <?= e($st[0]) ?> ms-2"><?= e($st[1]) ?></span>
-            </p>
-        </div>
-        <div class="d-flex gap-2">
-            <a class="btn btn-outline-secondary" href="<?= url('admin/association-requests') ?>">
-                <i class="mdi mdi-arrow-left me-1"></i>Retour à la liste
-            </a>
-            <a class="btn btn-outline-primary" href="<?= url('admin/association-requests/' . (int) $request['id'] . '/edit') ?>">
-                <i class="mdi mdi-pencil-outline me-1"></i>Modifier
-            </a>
-            <form method="post" action="<?= url('admin/association-requests/' . (int) $request['id'] . '/delete') ?>"
-                  onsubmit="return confirm('Supprimer définitivement la demande de « <?= e($request['association_name']) ?> » ? Cette action est irréversible.')">
-                <?= csrf_field() ?>
-                <button type="submit" class="btn btn-outline-danger">
-                    <i class="mdi mdi-trash-can-outline me-1"></i>Supprimer
-                </button>
-            </form>
+    <div class="wh-hero" style="background:linear-gradient(135deg,#0B5ED7 0%,#6C63FF 100%)">
+        <div class="wh-hero-inner">
+            <div class="wh-hero-row">
+                <div class="wh-hero-text">
+                    <h1 class="wh-hero-title"><i class="mdi mdi-file-document-outline me-2"></i>Demande #<?= (int) $request['id'] ?></h1>
+                    <p class="wh-hero-sub">
+                        <?= e($request['association_name']) ?>
+                        <span class="badge bg-light text-dark ms-2"><?= e($st[1]) ?></span>
+                    </p>
+                </div>
+                <div class="wh-hero-actions">
+                    <a class="btn btn-sm btn-outline-light" href="<?= url('admin/association-requests') ?>">
+                        <i class="mdi mdi-arrow-left me-1"></i>Retour à la liste
+                    </a>
+                    <a class="btn btn-sm btn-light" href="<?= url('admin/association-requests/' . (int) $request['id'] . '/edit') ?>">
+                        <i class="mdi mdi-pencil-outline me-1"></i>Modifier
+                    </a>
+                    <form method="post" action="<?= url('admin/association-requests/' . (int) $request['id'] . '/delete') ?>"
+                          onsubmit="return confirm('Supprimer définitivement la demande de « <?= e($request['association_name']) ?> » ? Cette action est irréversible.')" class="d-inline">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="mdi mdi-trash-can-outline me-1"></i>Supprimer
+                        </button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -171,6 +172,12 @@ $isPending = ($request['status'] ?? '') === 'pending';
                                     <td class="text-danger"><?= nl2br(e($request['rejection_reason'])) ?></td>
                                 </tr>
                             <?php endif; ?>
+                            <?php if (! empty($request['modification_reason'])): ?>
+                                <tr>
+                                    <td class="text-muted">Demande de modification</td>
+                                    <td class="text-warning"><?= nl2br(e($request['modification_reason'])) ?></td>
+                                </tr>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </table>
                 </div>
@@ -181,6 +188,9 @@ $isPending = ($request['status'] ?? '') === 'pending';
     <!-- Actions -->
     <?php if ($isPending): ?>
         <div class="d-flex justify-content-end gap-2 mt-4">
+            <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modificationModal">
+                <i class="mdi mdi-file-document-edit me-1"></i>Demander modification
+            </button>
             <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">
                 <i class="mdi mdi-close-circle me-1"></i>Refuser
             </button>
@@ -191,6 +201,39 @@ $isPending = ($request['status'] ?? '') === 'pending';
                     <i class="mdi mdi-check-circle me-1"></i>Valider
                 </button>
             </form>
+        </div>
+
+        <!-- Modal demande de modification -->
+        <div class="modal fade" id="modificationModal" tabindex="-1" aria-labelledby="modificationModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <form method="post" action="<?= url('admin/association-requests/' . (int) $request['id'] . '/request-modification') ?>">
+                    <?= csrf_field() ?>
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="modificationModalLabel">
+                                <i class="mdi mdi-file-document-edit text-warning me-2"></i>Demander des modifications
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="text-muted mb-3">
+                                L'association <strong><?= e($request['association_name']) ?></strong> sera notifiée et pourra corriger sa demande.
+                            </p>
+                            <div class="mb-3">
+                                <label for="modification_reason" class="form-label fw-medium">Motif de la demande <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="modification_reason" name="modification_reason" rows="4"
+                                          required placeholder="Décrivez les corrections à apporter..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="mdi mdi-send me-1"></i>Envoyer
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
         </div>
 
         <!-- Modal refus -->
@@ -227,3 +270,4 @@ $isPending = ($request['status'] ?? '') === 'pending';
         </div>
     <?php endif; ?>
 </div>
+<style>.wh-hero{border-radius:0 0 1.5rem 1.5rem;padding:1.5rem;margin-bottom:1.5rem}.wh-hero-inner{max-width:1200px;margin:0 auto}.wh-hero-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}.wh-hero-title{color:#fff;font-size:1.35rem;font-weight:700;margin:0}.wh-hero-sub{color:rgba(255,255,255,.8);font-size:.85rem;margin:.25rem 0 0}.wh-hero-actions{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}</style>

@@ -55,7 +55,7 @@ final class QrCodeGenerator
 
         return [
             'token'      => $token,
-            'url'        => url('checkin/' . $token),
+            'url'        => public_url('checkin/' . $token),
             'expiration' => $expiration,
         ];
     }
@@ -65,7 +65,7 @@ final class QrCodeGenerator
         return Database::one(
             'SELECT q.*, e.statut, e.date_evenement, e.heure, e.adresse, e.description
              FROM qr_event q
-             JOIN evenements e ON e.id = q.evenement_id
+             JOIN evenements e ON e.id = q.evenement_id AND e.deleted_at IS NULL
              WHERE q.token_qr = ?',
             [$token]
         );
@@ -87,7 +87,7 @@ final class QrCodeGenerator
             return false;
         }
 
-        if (($qr['statut'] ?? '') !== 'PROGRAMME') {
+        if (! in_array(($qr['statut'] ?? ''), ['PROGRAMME', 'QR_GENERE', 'EN_COURS'], true)) {
             return false;
         }
 
@@ -104,6 +104,38 @@ final class QrCodeGenerator
             'SELECT 1 FROM evenement_participant WHERE evenement_id = ? AND user_id = ?',
             [$evenementId, $userId]
         );
+    }
+
+    /**
+     * Capacité restante (quota de passages) : null si aucune capacité fixée.
+     *
+     * @return int|null Nombre de places encore disponibles, null = illimité.
+     */
+    public static function placesRestantes(int $evenementId): ?int
+    {
+        $capacite = Database::value(
+            'SELECT capacite FROM evenements WHERE id = ? AND deleted_at IS NULL',
+            [$evenementId]
+        );
+
+        if ($capacite === null) {
+            return null;
+        }
+
+        $inscrits = (int) Database::value(
+            'SELECT COUNT(*) FROM evenement_participant WHERE evenement_id = ?',
+            [$evenementId]
+        );
+
+        return max(0, (int) $capacite - $inscrits);
+    }
+
+    /**
+     * L'événement a-t-il atteint sa capacité maximale ?
+     */
+    public static function estComplet(int $evenementId): bool
+    {
+        return self::placesRestantes($evenementId) === 0;
     }
 
     public static function registerParticipation(int $evenementId, int $userId, bool $already = false): bool
@@ -136,8 +168,63 @@ final class QrCodeGenerator
     }
 
     /**
-     * Génère une image PNG en base64 ou sauvegarde sur disque.
+     * Un invité (même numéro de téléphone) est-il déjà inscrit à l'événement ?
      */
+    public static function inviteeDejaInscrit(int $evenementId, string $telephone): bool
+    {
+        return Database::exists(
+            'SELECT 1 FROM participations_invitees WHERE evenement_id = ? AND telephone = ?',
+            [$evenementId, trim($telephone)]
+        );
+    }
+
+    /**
+     * Enregistre une participation « invité » (sans compte) à un événement.
+     */
+    public static function registerInvitee(int $evenementId, array $data, string $qrToken): bool
+    {
+        try {
+            Database::insert('participations_invitees', [
+                'evenement_id' => $evenementId,
+                'qr_token'     => $qrToken,
+                'nom'          => mb_substr(trim((string) ($data['nom'] ?? '')), 0, 100),
+                'prenom'       => mb_substr(trim((string) ($data['prenom'] ?? '')), 0, 100),
+                'telephone'    => mb_substr(trim((string) ($data['telephone'] ?? '')), 0, 30),
+                'ip_address'   => client_ip(),
+                'user_agent'   => mb_substr(client_user_agent(), 0, 255),
+            ]);
+        } catch (\PDOException $e) {
+            if ($e->getCode() === '23000') {
+                return false;
+            }
+
+            throw $e;
+        }
+
+        AuditLog::log(
+            'participation_invite',
+            'evenement',
+            $evenementId,
+            null,
+            ['telephone' => (string) ($data['telephone'] ?? ''), 'qr' => $qrToken]
+        );
+
+        return true;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public static function inviteesPourEvenement(int $evenementId): array
+    {
+        return Database::all(
+            'SELECT id, nom, prenom, telephone, ip_address, created_at
+             FROM participations_invitees
+             WHERE evenement_id = ?
+             ORDER BY created_at DESC',
+            [$evenementId]
+        );
+    }
     public static function pngDataUri(string $content, int $size = 300, ?string $label = null): string
     {
         $builder = Builder::create()

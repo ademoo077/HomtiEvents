@@ -11,13 +11,24 @@ define('BASE_PATH', dirname(__DIR__));
 require BASE_PATH . '/vendor/autoload.php';
 require BASE_PATH . '/app/Bootstrap.php';
 
-// Headers de sécurité
+// Headers de sécurité — OWASP ASVS 14.4, RNSI §6 (défense en profondeur)
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: SAMEORIGIN');
 header('Referrer-Policy: strict-origin-when-cross-origin');
+header('Permissions-Policy: camera=(self), microphone=(), geolocation=(self), payment=()');
+header('X-Permitted-Cross-Domain-Policies: none');
+// HSTS pour https://homtievents.work.gd — HTTPS forcé
+header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
 
 if ((bool) config('security.csp_enabled', true)) {
-    header("Content-Security-Policy: default-src 'self'; img-src 'self' data: blob: https://unpkg.com https://cdn.jsdelivr.net https://*.basemaps.cartocdn.com; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; font-src 'self' data:; connect-src 'self';");
+    // CSP sans unsafe-eval (OWASP A05) — unsafe-inline conservé pour compat inline scripts existants, à migrer vers nonce/hash P1
+    $csp = "default-src 'self'; "
+         . "img-src 'self' data: blob: https://unpkg.com https://cdn.jsdelivr.net https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org https://api.qrserver.com; "
+         . "script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; "
+         . "style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; "
+         . "font-src 'self' data: https://unpkg.com https://cdn.jsdelivr.net; "
+         . "connect-src 'self' https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org https://api.qrserver.com;";
+    header("Content-Security-Policy: {$csp}");
 }
 
 // Serveur de dev (php -S) : servir les fichiers statiques directement

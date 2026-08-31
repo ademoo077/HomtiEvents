@@ -7,6 +7,7 @@ use App\Controllers\AdministrationController;
 use App\Controllers\AssociationController;
 use App\Controllers\AssociationDashboardController;
 use App\Controllers\AssociationGalleryController;
+use App\Controllers\AssociationPresenceController;
 use App\Controllers\RoutingController;
 use App\Controllers\AssociationRequestController;
 use App\Controllers\AuthController;
@@ -20,6 +21,7 @@ use App\Controllers\NotificationController;
 use App\Controllers\ParticipationController;
 use App\Controllers\EventGalleryController;
 use App\Controllers\ProfileController;
+use App\Controllers\PublicProfileController;
 use App\Controllers\QrCodeController;
 use App\Controllers\ActualiteController;
 use App\Middleware\AuthMiddleware;
@@ -35,12 +37,21 @@ $router->get('lang/{locale}', function (string $locale) {
 
 // ── Page publique (Landing Page) ──────────────────────────────
 $router->get('/', 'LandingController@index')->name('landing');
+$router->get('privacy', 'LandingController@privacy')->name('privacy');
+$router->get('confidentialite', 'LandingController@privacy')->name('confidentialite');
 
 // ── Page publique « Actualités & événements à venir » ──────────
 $router->get('actualites', 'ActualiteController@index')->name('actualites.index');
 
+// ── Fiches publiques association / EPIC (sans auth, plateforme citoyen) ──
+$router->get('citoyen/association/{id}', 'PublicProfileController@association')->name('citoyen.public.association');
+$router->get('citoyen/epic/{id}', 'PublicProfileController@epic')->name('citoyen.public.epic');
+
 // ── Manifest PWA dynamique (lang/dir selon locale) ────────────
 $router->get('manifest.json', 'LandingController@manifest')->name('pwa.manifest');
+
+// ── Web Share Target ────────────────────────────────────────
+$router->get('share', 'LandingController@shareTarget')->name('pwa.share');
 
 // ── Acceptation d'une invitation membre (Phase 7, lien public) ─
 $router->get('invitations/{token}', 'MemberController@acceptShow')->name('members.accept');
@@ -48,6 +59,8 @@ $router->post('invitations/{token}', 'MemberController@accept');
 
 // ── Tableau de bord membre d'association ──────────────────────
 $router->middleware([AuthMiddleware::class])->get('dashboard', 'MemberController@dashboard')->name('member.dashboard');
+$router->middleware([AuthMiddleware::class])->get('dashboard/participations', 'MemberController@participations')->name('member.participations');
+$router->middleware([AuthMiddleware::class])->get('notifications', 'MemberController@notifications')->name('member.notifications');
 
 // ── API Polling Galerie ────────────────────────────────────────
 $router->get('api/gallery/updates', 'LandingController@galleryUpdates')->name('api.gallery.updates');
@@ -57,10 +70,17 @@ $router->middleware([AuthMiddleware::class])->get('citoyen', 'CitoyenController@
 $router->middleware([AuthMiddleware::class])->get('citoyen/albums/{id}', 'CitoyenController@album')->name('citoyen.album');
 $router->middleware([AuthMiddleware::class])->get('citoyen/profile', 'ProfilController@show')->name('citoyen.profile');
 $router->middleware([AuthMiddleware::class])->post('citoyen/profile', 'ProfilController@update')->name('citoyen.profile.update');
+$router->middleware([AuthMiddleware::class])->post('citoyen/profile/preferences', 'ProfilController@updatePreferences')->name('citoyen.profile.preferences');
+$router->middleware([AuthMiddleware::class])->get('citoyen/notifications', 'CitoyenController@notifications')->name('citoyen.notifications');
+$router->middleware([AuthMiddleware::class])->post('citoyen/notifications/read-all', 'CitoyenController@markAllRead')->name('citoyen.notifications.read-all');
+$router->middleware([AuthMiddleware::class])->get('citoyen/favoris', 'CitoyenController@favoris')->name('citoyen.favoris');
+$router->middleware([AuthMiddleware::class])->post('citoyen/favoris/{id}/toggle', 'CitoyenController@toggleFavori')->name('citoyen.favoris.toggle');
 
 // ── Check-in public (QR Code) ──────────────────────────────────
 $router->get('checkin/{token}', 'ParticipationController@checkin')->name('checkin');
 $router->post('checkin/{token}', 'ParticipationController@register')->name('checkin.register');
+// Participation sans compte (invité) après scan QR
+$router->post('checkin/{token}/invitee', 'ParticipationController@invitee')->name('checkin.invitee');
 
 // ── Authentification ───────────────────────────────────────────
 $router->get('auth/login', 'AuthController@showLogin')->name('auth.login');
@@ -70,10 +90,13 @@ $router->post('auth/register', 'AuthController@register');
 $router->get('auth/register-association', 'AuthController@showAssociationRegister')->name('auth.register-association');
 $router->post('auth/register-association', 'AuthController@associationRegister');
 $router->get('auth/logout', 'AuthController@logout')->name('auth.logout');
+$router->post('auth/logout', 'AuthController@logout')->name('auth.logout.post');
 $router->get('auth/forgot', 'AuthController@showForgot')->name('auth.forgot');
 $router->post('auth/forgot', 'AuthController@forgot');
 $router->get('auth/reset/{token}', 'AuthController@showReset')->name('auth.reset');
 $router->post('auth/reset/{token}', 'AuthController@reset');
+$router->get('auth/verify-2fa', 'AuthController@showVerify2fa')->name('auth.verify-2fa');
+$router->post('auth/verify-2fa', 'AuthController@verify2fa')->name('auth.verify-2fa.post');
 
 // ── Notifications in-app ────────────────────────────────────────
 $router->middleware([AuthMiddleware::class])->post('notifications/{id}/read', 'NotificationController@read')->name('notifications.read');
@@ -87,9 +110,12 @@ $router->middleware([AuthMiddleware::class])->post('api/qrcode/validate', 'Enhan
 $router->middleware([AuthMiddleware::class])->get('citoyen/participations', 'EnhancedQrCodeController@participations')->name('citoyen.participations');
 $router->middleware([AuthMiddleware::class])->get('citoyen/explorer', 'EnhancedQrCodeController@listEvents')->name('citoyen.explorer');
 $router->middleware([AuthMiddleware::class])->get('citoyen/evenement/{id}', 'EnhancedQrCodeController@eventDetail')->name('citoyen.evenement');
+// Page publique de détail d'événement (indexable / partageable, sans auth).
+$router->get('evenement/{id}', 'EvenementPublicController@show')->name('evenement.show');
 // Téléchargement public du QR code (route globale, sans prefixe).
 $router->get('event/qr/download/{id}', 'QrCodeController@download')->name('qrcode.download');
 $router->get('event/qr/stream/{id}', 'QrCodeController@stream')->name('qrcode.stream');
+$router->get('api/network-info', 'QrCodeController@networkInfo')->name('api.network.info');
 
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('wilaya')
     ->get('evenements/{id}/qrcode', 'QrCodeController@show')->name('qrcode.show');
@@ -115,6 +141,15 @@ $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])-
     ->post('evenements/{id}/epics', 'AdminEvenementController@epics')->name('wilaya.evenements.epics');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('wilaya')
     ->post('evenements/{id}/reaffecter', 'AdminEvenementController@reaffecter')->name('wilaya.evenements.reaffecter');
+// Pièces jointes du dossier événement (Wilaya)
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('wilaya')
+    ->get('evenements/{id}/documents', 'EventDocumentController@index')->name('wilaya.evenements.documents');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('wilaya')
+    ->post('evenements/{id}/documents', 'EventDocumentController@store')->name('wilaya.evenements.documents.store');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('wilaya')
+    ->delete('evenements/documents/{id}', 'EventDocumentController@destroy')->name('wilaya.evenements.documents.delete');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('wilaya')
+    ->get('evenements/documents/{id}/download', 'EventDocumentController@download')->name('wilaya.evenements.documents.download');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('wilaya')
     ->post('evenements/{id}/regen-qr', 'AdminEvenementController@regenQr')->name('wilaya.evenements.regenqr');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('wilaya')
@@ -128,9 +163,39 @@ $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])-
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('wilaya')
     ->get('dashboard', 'AdminEvenementController@dashboard')->name('wilaya.dashboard');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('wilaya')
+    ->get('dashboard/export-pdf', 'AdminEvenementController@dashboardPdf')->name('wilaya.dashboard.pdf');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('wilaya')
+    ->get('suivi', 'AdminEvenementController@suivi')->name('wilaya.suivi');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('wilaya')
     ->get('notifications', 'AdminEvenementController@notifications')->name('wilaya.notifications');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('wilaya')
     ->get('evenements/{id}', 'AdminEvenementController@show')->name('wilaya.evenements.show');
+
+// ── API routing preview + anomaly management (Wilaya) ──
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('wilaya')
+    ->get('api/routing-preview', 'AdminEvenementController@routingPreview')->name('wilaya.api.routing-preview');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('wilaya')
+    ->post('api/override-assignment', 'AdminEvenementController@overrideAssignment')->name('wilaya.api.override-assignment');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('wilaya')
+    ->post('api/anomaly-status', 'AdminEvenementController@anomalyStatus')->name('wilaya.api.anomaly-status');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('wilaya')
+    ->get('api/anomaly-categories', 'AdminEvenementController@anomalyCategories')->name('wilaya.api.anomaly-categories');
+
+// ── Event messaging (wilaya + association) ──
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya,association'])->prefix('api')
+    ->get('events/{id}/messages', 'EventMessageController@index')->name('api.events.messages.index');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya,association'])->prefix('api')
+    ->post('events/{id}/messages', 'EventMessageController@store')->name('api.events.messages.store');
+
+// ── Event checklist (wilaya + association) ──
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya,association'])->prefix('api')
+    ->get('events/{id}/checklist', 'EventChecklistController@index')->name('api.events.checklist.index');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya,association'])->prefix('api')
+    ->post('events/{id}/checklist/toggle', 'EventChecklistController@toggle')->name('api.events.checklist.toggle');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya,association'])->prefix('api')
+    ->post('events/{id}/checklist/add', 'EventChecklistController@add')->name('api.events.checklist.add');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya,association'])->prefix('api')
+    ->delete('events/checklist/{itemId}', 'EventChecklistController@delete')->name('api.events.checklist.delete');
 
 // ═══════════════════════════════════════════════════════════════
 //  DEMANDES D'INSCRIPTION ASSOCIATIONS
@@ -143,6 +208,8 @@ $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])-
     ->post('association-requests/{id}/approve', 'AssociationRequestController@approve')->name('admin.association-requests.approve');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
     ->post('association-requests/{id}/reject', 'AssociationRequestController@reject')->name('admin.association-requests.reject');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
+    ->post('association-requests/{id}/request-modification', 'AssociationRequestController@requestModification')->name('admin.association-requests.request-modification');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
     ->get('association-requests/{id}/edit', 'AssociationRequestController@edit')->name('admin.association-requests.edit');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
@@ -202,13 +269,19 @@ $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])-
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
     ->post('landing/faq/{id}/delete', 'LandingAdminController@deleteFaq');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
+    ->post('landing/faq/{id}/update', 'LandingAdminController@updateFaq');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
     ->post('landing/temoignages', 'LandingAdminController@saveTestimonial');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
     ->post('landing/temoignages/{id}/delete', 'LandingAdminController@deleteTestimonial');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
+    ->post('landing/temoignages/{id}/update', 'LandingAdminController@updateTestimonial');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
     ->post('landing/partenaires', 'LandingAdminController@savePartner');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
     ->post('landing/partenaires/{id}/delete', 'LandingAdminController@deletePartner');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
+    ->post('landing/partenaires/{id}/update', 'LandingAdminController@updatePartner');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
     ->post('landing/ordre', 'LandingAdminController@saveOrdre');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
@@ -258,6 +331,8 @@ $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])-
     ->post('landing/news/{id}/update', 'LandingAdminController@newsUpdate')->name('admin.landing.news.update');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
     ->post('landing/news/{id}/delete', 'LandingAdminController@newsDelete')->name('admin.landing.news.delete');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
+    ->post('landing/news/{id}/toggle', 'LandingAdminController@newsToggle')->name('admin.landing.news.toggle');
 
 // Référentiel (EPIC / anomalies / citoyens)
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
@@ -309,6 +384,10 @@ $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])-
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
     ->get('users', 'AdministrationController@users')->name('admin.users');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
+    ->get('users/create', 'AdministrationController@userCreate')->name('admin.users.create');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
+    ->post('users/store', 'AdministrationController@userStore')->name('admin.users.store');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
     ->get('users/{id}', 'AdministrationController@userShow')->name('admin.users.show');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('admin')
     ->post('users/{id}/toggle', 'AdministrationController@userToggle')->name('admin.users.toggle');
@@ -333,6 +412,8 @@ $router->middleware([AuthMiddleware::class])->prefix('profile')
 $router->middleware([AuthMiddleware::class])->prefix('profile')
     ->post('update', 'ProfileController@updateInfo')->name('profile.update');
 $router->middleware([AuthMiddleware::class])->prefix('profile')
+    ->post('update-email', 'ProfileController@updateEmail')->name('profile.update-email');
+$router->middleware([AuthMiddleware::class])->prefix('profile')
     ->post('password', 'ProfileController@updatePassword')->name('profile.password');
 $router->middleware([AuthMiddleware::class])->prefix('profile')
     ->post('avatar', 'ProfileController@uploadAvatar')->name('profile.avatar');
@@ -345,6 +426,26 @@ $router->middleware([AuthMiddleware::class])->prefix('profile')
 $router->middleware([AuthMiddleware::class])->prefix('profile')
     ->post('deactivate', 'ProfileController@deactivateRequest')->name('profile.deactivate');
 
+// ── 2FA (Double authentification) ───────────────────────
+$router->middleware([AuthMiddleware::class])->prefix('profile')
+    ->get('2fa', 'ProfileController@show2fa')->name('profile.2fa');
+$router->middleware([AuthMiddleware::class])->prefix('profile')
+    ->post('2fa/enable', 'ProfileController@enable2fa')->name('profile.2fa.enable');
+$router->middleware([AuthMiddleware::class])->prefix('profile')
+    ->post('2fa/confirm', 'ProfileController@confirm2fa')->name('profile.2fa.confirm');
+$router->middleware([AuthMiddleware::class])->prefix('profile')
+    ->post('2fa/disable', 'ProfileController@disable2fa')->name('profile.2fa.disable');
+$router->middleware([AuthMiddleware::class])->prefix('profile')
+    ->post('2fa/recovery/regenerate', 'ProfileController@regenerateRecoveryCodes')->name('profile.2fa.recovery');
+
+// ── 2FA TOTP (Authenticator) ───────────────────────────────
+$router->middleware([AuthMiddleware::class])->prefix('profile')
+    ->get('2fa/totp/setup', 'ProfileController@totpSetup')->name('profile.2fa.totp.setup');
+$router->middleware([AuthMiddleware::class])->prefix('profile')
+    ->post('2fa/totp/enable', 'ProfileController@totpEnable')->name('profile.2fa.totp.enable');
+$router->middleware([AuthMiddleware::class])->prefix('profile')
+    ->post('2fa/totp/confirm', 'ProfileController@totpConfirm')->name('profile.2fa.totp.confirm');
+
 // ═══════════════════════════════════════════════════════════════
 //  CONTROL CENTER — Couche de contrôle centralisée (SaaS)
 //  Prefix : /control (jamais doublé par /wilaya)
@@ -352,6 +453,7 @@ $router->middleware([AuthMiddleware::class])->prefix('profile')
 $g = fn () => $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->prefix('control');
 
 $g()->get('/', 'ControlCenterController@index')->name('control.index');
+$g()->get('tab/{tab}', 'ControlCenterController@tabFragment')->name('control.tab');
 $g()->post('modules/toggle', 'ControlCenterController@toggleModule')->name('control.modules.toggle');
 
 $g()->get('utilisateurs', 'ControlCenterController@utilisateurs')->name('control.utilisateurs');
@@ -379,6 +481,11 @@ $g()->get('supervision', 'ControlCenterController@supervision')->name('control.s
 
 // ── Security ──────────────────────────────────────────────────
 $g()->post('security/revoke', 'ControlCenterController@securityRevoke')->name('control.security.revoke');
+
+// ── IP Blocking ──────────────────────────────────────────────
+$g()->get('security/blocked-ips', 'ControlCenterController@blockedIps')->name('control.security.blocked-ips');
+$g()->post('security/block-ip', 'ControlCenterController@blockIp')->name('control.security.block-ip');
+$g()->post('security/unblock-ip', 'ControlCenterController@unblockIp')->name('control.security.unblock-ip');
 
 // ── Content Validation Workflow ──────────────────────────
 $g()->get('content', 'ControlCenterController@contentList')->name('control.content');
@@ -434,7 +541,17 @@ $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':associatio
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':association'])->prefix('association')
     ->get('demande', 'AssociationController@demande')->name('association.demande');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':association'])->prefix('association')
+    ->get('demande/edit', 'AssociationController@editDemande')->name('association.demande.edit');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':association'])->prefix('association')
+    ->post('demande/update', 'AssociationController@updateDemande')->name('association.demande.update');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':association'])->prefix('association')
     ->post('routing-preview', 'AssociationController@routingPreview')->name('association.routing-preview');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':association'])->prefix('association')
+    ->get('modeles', 'AssociationTemplateController@index')->name('association.modeles.index');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':association'])->prefix('association')
+    ->post('modeles', 'AssociationTemplateController@store')->name('association.modeles.store');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':association'])->prefix('association')
+    ->post('modeles/{id}/delete', 'AssociationTemplateController@destroy')->name('association.modeles.delete');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':association'])->prefix('association')
     ->get('gallery', 'AssociationGalleryController@index')->name('association.gallery');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':association'])->prefix('association')
@@ -443,12 +560,21 @@ $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':associatio
     ->post('evenements/{id}/photos', 'AssociationGalleryController@submit')->name('association.gallery.submit');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':association'])->prefix('association')
     ->post('photos/{id}/delete', 'AssociationGalleryController@deletePhoto')->name('association.gallery.delete');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':association'])->prefix('association')
+    ->post('photos/{id}/update', 'AssociationGalleryController@updatePhoto')->name('association.gallery.update');
+// Présence en direct (liste des inscrits pendant l'événement) + API polling
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':association'])->prefix('association')
+    ->get('evenements/{id}/presence', 'AssociationPresenceController@presence')->name('association.presence');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':association'])
+    ->get('api/association/evenements/{id}/presence', 'AssociationPresenceController@presenceJson')->name('api.association.presence');
 $router->middleware([AuthMiddleware::class])->prefix('association')
     ->get('create', 'AssociationController@create')->name('association.create');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':association'])->prefix('association')
     ->get('membres', 'MemberController@index')->name('association.members');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':association'])->prefix('association')
     ->post('membres/invite', 'MemberController@invite')->name('association.members.invite');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':association'])->prefix('association')
+    ->post('membres/create', 'MemberController@createMember')->name('association.members.create');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':association'])->prefix('association')
     ->post('membres/invitations/{id}/revoke', 'MemberController@revoke')->name('association.members.revoke');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':association'])->prefix('association')
@@ -463,6 +589,22 @@ $router->middleware([AuthMiddleware::class])->prefix('association')
     ->post('{id}/update', 'AssociationController@update')->name('association.update');
 $router->middleware([AuthMiddleware::class])->prefix('association')
     ->post('{id}/evaluate', 'AssociationController@evaluate')->name('association.evaluate');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':association'])->prefix('association')
+    ->get('{id}/clone', 'AssociationController@clone')->name('association.clone');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':association'])->prefix('association')
+    ->get('{id}/ical', 'AssociationController@ical')->name('association.ical');
+$router->middleware([])->prefix('evenement')
+    ->get('{id}/ical', 'AssociationController@icalPublic')->name('evenement.ical');
+
+// ═══════════════════════════════════════════════════════════════
+//  WILAYA CALENDAR — FullCalendar view
+// ═══════════════════════════════════════════════════════════════
+$router->middleware([AuthMiddleware::class])->prefix('wilaya')
+    ->get('calendrier', 'WilayaCalendarController@index')->name('wilaya.calendar');
+$router->middleware([AuthMiddleware::class])->prefix('api')
+    ->get('wilaya/calendrier', 'WilayaCalendarController@events')->name('api.wilaya.calendar');
+$router->middleware([AuthMiddleware::class])->prefix('wilaya')
+    ->get('associations/{id}', 'WilayaAssociationController@show')->name('wilaya.associations.show');
 
 // ═══════════════════════════════════════════════════════════════
 //  EPIC SPACE — Suivi des interventions EPIC
@@ -475,6 +617,43 @@ $router->middleware([AuthMiddleware::class])->prefix('epic')
 $router->middleware([AuthMiddleware::class])->prefix('epic')
     ->get('', 'EpicController@index')->name('epic.index');
 $router->middleware([AuthMiddleware::class])->prefix('epic')
+    ->get('agenda', 'EpicController@agenda')->name('epic.agenda');
+$router->middleware([AuthMiddleware::class])->prefix('epic')
     ->get('{id}', 'EpicController@show')->name('epic.show');
 $router->middleware([AuthMiddleware::class])->prefix('epic')
     ->post('{id}/statut', 'EpicController@updateStatut')->name('epic.statut');
+$router->middleware([AuthMiddleware::class])->prefix('epic')
+    ->post('{id}/accepter', 'EpicController@accept')->name('epic.accept');
+$router->middleware([AuthMiddleware::class])->prefix('epic')
+    ->post('{id}/refuser', 'EpicController@refuser')->name('epic.refuser');
+$router->middleware([AuthMiddleware::class])->prefix('epic')
+    ->post('{id}/preuves', 'EpicController@uploadPreuves')->name('epic.preuves.store');
+$router->middleware([AuthMiddleware::class])->prefix('epic')
+    ->post('{id}/preuves/{pid}/delete', 'EpicController@deletePreuve')->name('epic.preuves.delete');
+$router->middleware([AuthMiddleware::class])->prefix('epic')
+    ->post('{id}/cloturer', 'EpicController@cloturer')->name('epic.cloturer');
+
+// ═══════════════════════════════════════════════════════════════
+//  CRON ENDPOINT — tâches périodiques (SLA, rappels, auto-clôture, emails)
+//  Protégé par un token secret défini dans .env (CRON_TOKEN).
+//  Usage: GET /cron/tick?token=xxx
+// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+//  COMMENTAIRES & NOTES — Discussion sur les événements
+// ═══════════════════════════════════════════════════════════════
+$router->middleware([AuthMiddleware::class])->get('api/events/{id}/comments', 'CommentController@index')->name('api.comments.index');
+$router->middleware([AuthMiddleware::class])->post('api/events/{id}/comments', 'CommentController@store')->name('api.comments.store');
+$router->middleware([AuthMiddleware::class])->post('api/comments/{id}/update', 'CommentController@update')->name('api.comments.update');
+$router->middleware([AuthMiddleware::class])->post('api/comments/{id}/delete', 'CommentController@destroy')->name('api.comments.delete');
+
+// Notes internes Wilaya
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->get('api/events/{id}/notes', 'CommentController@notes')->name('api.notes.index');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->post('api/events/{id}/notes', 'CommentController@storeNote')->name('api.notes.store');
+$router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->post('api/notes/{id}/delete', 'CommentController@destroyNote')->name('api.notes.delete');
+
+// ═══════════════════════════════════════════════════════════════
+//  CRON ENDPOINT — tâches périodiques (SLA, rappels, auto-clôture, emails)
+//  Protégé par un token secret défini dans .env (CRON_TOKEN).
+//  Usage: GET /cron/tick?token=xxx
+// ═══════════════════════════════════════════════════════════════
+$router->get('cron/tick', 'CronController@tick')->name('cron.tick');

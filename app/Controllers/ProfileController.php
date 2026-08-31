@@ -7,9 +7,12 @@ namespace App\Controllers;
 use App\Helpers\AuditLog;
 use App\Helpers\Database;
 use App\Helpers\EvenementService;
+use App\Helpers\I18n;
 use App\Helpers\QrCodeGenerator;
 use App\Helpers\Rbac;
+use App\Helpers\Security;
 use App\Helpers\Session;
+use App\Helpers\Totp;
 use App\Helpers\UploadHelper;
 use App\Helpers\Validator;
 
@@ -27,12 +30,100 @@ final class ProfileController extends Controller
         $userId  = (int) $user['id'];
         $layout  = $this->layoutForRole($role);
 
-        if (! in_array($role, ['wilaya', 'association', 'epic'], true)) {
+        if (! in_array($role, ['wilaya', 'association', 'epic', 'membre'], true)) {
             redirect(dashboard_path());
         }
 
         $preferences = Database::one('SELECT * FROM user_preferences WHERE user_id = ?', [$userId])
             ?? ['notif_email' => 1, 'notif_inapp' => 1, 'langue' => null];
+
+        $association = $this->association($user);
+
+        // Suggestions contextuelles pour membre
+        $suggestions = [];
+        if ($role === 'membre' && $association) {
+            $isAr = \App\Helpers\I18n::direction() === 'rtl';
+            $today = date('Y-m-d');
+            $events = Database::all(
+                'SELECT e.*, c.nom AS commune_nom, a.nom AS association_nom,
+                        (SELECT COUNT(*) FROM evenement_participant ep WHERE ep.evenement_id = e.id) AS participants
+                 FROM evenements e
+                 LEFT JOIN commune c ON c.id = e.commune_id
+                 LEFT JOIN associations a ON a.id = e.association_id
+                 WHERE e.association_id = ? AND e.deleted_at IS NULL
+                 ORDER BY e.date_evenement ASC',
+                [(int) $association['id']]
+            );
+            $prochains = array_values(array_filter($events, fn($e) => (string)($e['date_evenement'] ?? '') >= $today));
+            $participantsTotal = array_sum(array_map(fn($e) => (int)($e['participants'] ?? 0), $events));
+            $mesParticipations = (int) Database::value('SELECT COUNT(*) FROM evenement_participant WHERE user_id = ?', [$userId]);
+
+            // Prochain événement
+            if ($prochains !== []) {
+                $ev = $prochains[0];
+                $j = (int) floor((strtotime((string)$ev['date_evenement']) - time()) / 86400);
+                $suggestions[] = [
+                    'icon'  => 'mdi-calendar-clock-outline',
+                    'color' => 'primary',
+                    'titre' => $isAr ? 'حدث قادم' : 'Événement à venir',
+                    'texte' => $isAr
+                        ? 'في ' . date('d/m/Y', strtotime((string)$ev['date_evenement']))
+                          . (empty($ev['heure']) ? '' : ' على الساعة ' . substr((string)$ev['heure'], 0, 5))
+                        : 'Le ' . date('d/m/Y', strtotime((string)$ev['date_evenement']))
+                          . (empty($ev['heure']) ? '' : ' à ' . substr((string)$ev['heure'], 0, 5)),
+                    'lien' => url('dashboard') . '#evenements',
+                    'cta'  => $isAr ? 'عرض الفعالية' : 'Voir l\'événement',
+                ];
+                if ($j <= 1) {
+                    $suggestions[] = [
+                        'icon'  => 'mdi-alarm',
+                        'color' => 'amber',
+                        'titre' => $isAr ? 'تنبيه' : 'Rappel',
+                        'texte' => $isAr
+                            ? 'الحدث قريب جداً، لا تنسوا الترويج والمشاركة!'
+                            : 'L\'événement approche, pensez à le relayer et à y participer !',
+                    ];
+                }
+            }
+
+            // Participations
+            if ($mesParticipations === 0) {
+                $suggestions[] = [
+                    'icon'  => 'mdi-qrcode-scan',
+                    'color' => 'blue',
+                    'titre' => $isAr ? 'مشاركتكم الأولى' : 'Votre première participation',
+                    'texte' => $isAr
+                        ? 'احضروا الفعالية القادمة وسجّلوا حضوركم.'
+                        : 'Présentez-vous au prochain événement pour comptabiliser votre participation.',
+                ];
+            }
+
+            // Profil
+            if (empty($user['telephone']) || empty($user['avatar'])) {
+                $suggestions[] = [
+                    'icon'  => 'mdi-account-edit-outline',
+                    'color' => 'amber',
+                    'titre' => $isAr ? 'أكملوا ملفكم' : 'Complétez votre profil',
+                    'texte' => $isAr
+                        ? 'أضيفوا رقم الهاتف أو صورة.'
+                        : 'Ajoutez votre téléphone ou une photo.',
+                    'lien' => url('profile'),
+                    'cta'  => $isAr ? 'تعديل الملف' : 'Modifier mon profil',
+                ];
+            }
+
+            // Association status
+            if (! $association['valide']) {
+                $suggestions[] = [
+                    'icon'  => 'mdi-shield-alert-outline',
+                    'color' => 'amber',
+                    'titre' => $isAr ? 'جمعية قيد المراجعة' : 'Association en attente de validation',
+                    'texte' => $isAr
+                        ? 'بعض الخدمات قد تكون محدودة لحين المصادقة.'
+                        : 'Certaines fonctions peuvent être limitées jusqu\'à la validation.',
+                ];
+            }
+        }
 
         $data = [
             'user'        => $user,
@@ -42,11 +133,12 @@ final class ProfileController extends Controller
             'errors'      => $this->errors(),
             'success'     => flash('success'),
             'widgets'     => $this->widgets($role, $user),
-            'association' => $this->association($user),
+            'association' => $association,
             'epic'        => $this->epic($user),
             'qrDataUri'   => $this->qrDataUri($role, $user),
             'publicUrl'   => $this->publicUrl($role, $user),
             'page'        => request_path(),
+            'suggestions' => $suggestions,
         ];
 
         $this->view('profile.index', $data, $layout);
@@ -55,10 +147,11 @@ final class ProfileController extends Controller
     public function updateInfo(): never
     {
         $this->requireAuth();
+        $this->csrfCheck();
         $user = Session::user();
         $role = Rbac::role($user);
 
-        if (! in_array($role, ['wilaya', 'association', 'epic'], true)) {
+        if (! in_array($role, ['wilaya', 'association', 'epic', 'membre'], true)) {
             redirect(dashboard_path());
         }
 
@@ -92,10 +185,63 @@ final class ProfileController extends Controller
         redirect($this->profilePath());
     }
 
+    public function updateEmail(): never
+    {
+        $this->requireAuth();
+        $this->csrfCheck();
+        $user = Session::user();
+        $role = Rbac::role($user);
+
+        if (! in_array($role, ['wilaya', 'association', 'epic', 'membre'], true)) {
+            redirect(dashboard_path());
+        }
+
+        $data = all_input();
+        $newEmail = trim((string) ($data['email'] ?? ''));
+        $password = (string) ($data['current_password'] ?? '');
+
+        if ($newEmail === '' || ! filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
+            $this->backWithErrors(['email' => 'Adresse email invalide.']);
+        }
+
+        if ($password === '') {
+            $this->backWithErrors(['current_password' => 'Mot de passe requis pour changer l\'email.']);
+        }
+
+        $userId = (int) $user['id'];
+        $dbUser = Database::one('SELECT password FROM users WHERE id = ?', [$userId]);
+
+        if ($dbUser === null || ! password_verify($password, $dbUser['password'])) {
+            $this->backWithErrors(['current_password' => 'Mot de passe incorrect.']);
+        }
+
+        $existing = Database::one('SELECT id FROM users WHERE email = ? AND id != ?', [$newEmail, $userId]);
+        if ($existing !== null) {
+            $this->backWithErrors(['email' => 'Cet email est déjà utilisé par un autre compte.']);
+        }
+
+        $oldEmail = (string) $user['email'];
+        Database::run('UPDATE users SET email = ? WHERE id = ?', [$newEmail, $userId]);
+
+        Session::refreshUser();
+
+        AuditLog::log('profile.email_change', 'user', $userId, ['email' => $oldEmail], ['email' => $newEmail]);
+        Security::evenement('email_change', 'Email changé de ' . $oldEmail . ' à ' . $newEmail, 1, ['user_id' => $userId]);
+
+        flash('success', 'Email modifié avec succès.');
+        redirect($this->profilePath());
+    }
+
     public function updatePassword(): never
     {
         $this->requireAuth();
+        $this->csrfCheck();
         $user = Session::user();
+        $role = Rbac::role($user);
+
+        if (! in_array($role, ['wilaya', 'association', 'epic', 'membre'], true)) {
+            redirect(dashboard_path());
+        }
 
         $data = all_input();
         $validator = Validator::make($data, [
@@ -137,6 +283,11 @@ final class ProfileController extends Controller
     {
         $this->requireAuth();
         $user = Session::user();
+        $role = Rbac::role($user);
+
+        if (! in_array($role, ['wilaya', 'association', 'epic', 'membre'], true)) {
+            redirect(dashboard_path());
+        }
 
         if (empty($_FILES['avatar']) || $_FILES['avatar']['error'] === UPLOAD_ERR_NO_FILE) {
             $this->backWithErrors(['avatar' => 'Aucun fichier reçu.']);
@@ -166,6 +317,12 @@ final class ProfileController extends Controller
     {
         $this->requireAuth();
         $user = Session::user();
+        $role = Rbac::role($user);
+
+        if (! in_array($role, ['wilaya', 'association', 'epic', 'membre'], true)) {
+            redirect(dashboard_path());
+        }
+
         $old  = $user['avatar'] ?? null;
 
         Database::update('users', ['avatar' => null], 'id = ?', [(int) $user['id']]);
@@ -185,6 +342,12 @@ final class ProfileController extends Controller
     {
         $this->requireAuth();
         $user = Session::user();
+        $role = Rbac::role($user);
+
+        if (! in_array($role, ['wilaya', 'association', 'epic', 'membre'], true)) {
+            redirect(dashboard_path());
+        }
+
         $userId = (int) $user['id'];
 
         $data = all_input();
@@ -295,7 +458,11 @@ final class ProfileController extends Controller
 
     private function layoutForRole(?string $role): string
     {
-        return $role === 'association' ? 'association' : 'main';
+        return match ($role) {
+            'association' => 'association',
+            'membre'      => 'member',
+            default       => 'main',
+        };
     }
 
     private function widgets(string $role, array $user): array
@@ -322,6 +489,12 @@ final class ProfileController extends Controller
                     [(int) ($user['association_id'] ?? 0)]
                 )],
                 ['label' => 'Participants', 'icon' => 'mdi-account-group', 'value' => (int) Database::value('SELECT COUNT(*) FROM evenement_participant ep JOIN evenements e ON e.id = ep.evenement_id WHERE e.association_id = ?', [(int) ($user['association_id'] ?? 0)])],
+            ],
+            'membre' => [
+                ['label' => 'Événements de l\'association', 'icon' => 'mdi-calendar-star', 'value' => (int) Database::value('SELECT COUNT(*) FROM evenements WHERE association_id = ? AND deleted_at IS NULL', [(int) ($user['association_id'] ?? 0)])],
+                ['label' => 'Prochains événements', 'icon' => 'mdi-calendar-clock', 'value' => (int) Database::value('SELECT COUNT(*) FROM evenements WHERE association_id = ? AND date_evenement >= CURDATE() AND deleted_at IS NULL', [(int) ($user['association_id'] ?? 0)])],
+                ['label' => 'Participants cumulés', 'icon' => 'mdi-account-group', 'value' => (int) Database::value('SELECT COUNT(*) FROM evenement_participant ep JOIN evenements e ON e.id = ep.evenement_id WHERE e.association_id = ?', [(int) ($user['association_id'] ?? 0)])],
+                ['label' => 'Mes participations', 'icon' => 'mdi-account-check', 'value' => (int) Database::value('SELECT COUNT(*) FROM evenement_participant WHERE user_id = ?', [$userId])],
             ],
             'epic' => [
                 ['label' => 'Événements attribués', 'icon' => 'mdi-calendar-check', 'value' => (int) Database::value('SELECT COUNT(*) FROM evenements WHERE assigned_org_id = ?', [(int) ($user['epic_id'] ?? 0)])],
@@ -353,8 +526,8 @@ final class ProfileController extends Controller
     private function publicUrl(string $role, array $user): ?string
     {
         return match ($role) {
-            'association' => ! empty($user['association_id']) ? url('association/' . (int) $user['association_id']) : null,
-            'epic'        => ! empty($user['epic_id']) ? url('epic/' . (int) $user['epic_id']) : null,
+            'association' => ! empty($user['association_id']) ? public_url('citoyen/association/' . (int) $user['association_id']) : null,
+            'epic'        => ! empty($user['epic_id']) ? public_url('citoyen/epic/' . (int) $user['epic_id']) : null,
             default       => null,
         };
     }
@@ -368,5 +541,248 @@ final class ProfileController extends Controller
         }
 
         return QrCodeGenerator::pngDataUri($publicUrl, 160);
+    }
+
+    // ── 2FA (Double authentification) ─────────────────────────
+
+    public function show2fa(): never
+    {
+        $userId = Session::userId();
+        $twoFactor = Database::one('SELECT * FROM two_factor WHERE user_id = ?', [$userId]);
+        $recoveryCount = (int) Database::value(
+            'SELECT COUNT(*) FROM two_factor_recovery_codes WHERE user_id = ? AND used_at IS NULL',
+            [$userId]
+        );
+
+        $this->view('profile.2fa', [
+            'twoFactor'     => $twoFactor,
+            'recoveryCount' => $recoveryCount,
+            'codeRequested' => Session::get('2fa_enable_pending'),
+            'flashSuccess'  => Session::get('flash_success'),
+            'errors'        => $this->errors(),
+        ], $this->layoutForRole(Session::user()['role_user'] ?? 'wilaya'));
+    }
+
+    public function enable2fa(): never
+    {
+        $userId = Session::userId();
+        $method = (string) input('method', 'email');
+
+        $code = Security::genererCode2fa($userId);
+        $this->envoyerCode2fa($userId, $code);
+
+        Session::set('2fa_enable_pending', true);
+
+        flash('success', __('auth.2fa_sent'));
+        redirect('profile/2fa');
+    }
+
+    public function confirm2fa(): never
+    {
+        $userId = Session::userId();
+        $code = trim((string) input('code', ''));
+
+        if (! preg_match('/^\d{6}$/', $code)) {
+            $this->backWithErrors(['code' => __('auth.2fa_invalid')]);
+        }
+
+        if (! Security::validerCode2fa($userId, $code)) {
+            $this->backWithErrors(['code' => __('auth.2fa_invalid')]);
+        }
+
+        // Activer la 2FA
+        Database::run(
+            'UPDATE two_factor SET enabled = 1, confirmed = 1 WHERE user_id = ?',
+            [$userId]
+        );
+
+        // Générer les codes de secours
+        $recoveryCodes = [];
+        for ($i = 0; $i < 8; $i++) {
+            $plain = strtoupper(bin2hex(random_bytes(4)));
+            $recoveryCodes[] = $plain;
+            Database::run(
+                'INSERT INTO two_factor_recovery_codes (user_id, code_hash) VALUES (?, ?)',
+                [$userId, password_hash($plain, PASSWORD_BCRYPT)]
+            );
+        }
+
+        Security::evenement('tfa_enabled', '2FA activée (email)', 1, ['user_id' => $userId]);
+
+        Session::forget('2fa_enable_pending');
+
+        // Afficher les codes de secours une seule fois
+        $this->view('profile.2fa-recovery', [
+            'recoveryCodes' => $recoveryCodes,
+        ], $this->layoutForRole(Session::user()['role_user'] ?? 'wilaya'));
+        exit;
+    }
+
+    public function disable2fa(): never
+    {
+        $userId = Session::userId();
+        $password = (string) input('password', '');
+
+        if ($password === '') {
+            $this->backWithErrors(['password' => 'Mot de passe requis.']);
+        }
+
+        $user = Database::one('SELECT password FROM users WHERE id = ?', [$userId]);
+        if ($user === null || ! password_verify($password, $user['password'])) {
+            $this->backWithErrors(['password' => 'Mot de passe incorrect.']);
+        }
+
+        Database::run('UPDATE two_factor SET enabled = 0, confirmed = 0 WHERE user_id = ?', [$userId]);
+        Database::run('DELETE FROM two_factor_recovery_codes WHERE user_id = ?', [$userId]);
+
+        Security::evenement('tfa_disabled', '2FA désactivée', 2, ['user_id' => $userId]);
+
+        flash('success', 'Double authentification désactivée.');
+        redirect('profile/2fa');
+    }
+
+    public function regenerateRecoveryCodes(): never
+    {
+        $userId = Session::userId();
+
+        Database::run('DELETE FROM two_factor_recovery_codes WHERE user_id = ?', [$userId]);
+
+        $recoveryCodes = [];
+        for ($i = 0; $i < 8; $i++) {
+            $plain = strtoupper(bin2hex(random_bytes(4)));
+            $recoveryCodes[] = $plain;
+            Database::run(
+                'INSERT INTO two_factor_recovery_codes (user_id, code_hash) VALUES (?, ?)',
+                [$userId, password_hash($plain, PASSWORD_BCRYPT)]
+            );
+        }
+
+        Security::evenement('tfa_recovery_regenerated', 'Codes de secours régénérés', 1, ['user_id' => $userId]);
+
+        $this->view('profile.2fa-recovery', [
+            'recoveryCodes' => $recoveryCodes,
+            'regenerated'   => true,
+        ], $this->layoutForRole(Session::user()['role_user'] ?? 'wilaya'));
+        exit;
+    }
+
+    private function envoyerCode2fa(int $userId, string $code): void
+    {
+        $user = Database::one('SELECT email, prenom FROM users WHERE id = ?', [$userId]);
+        if ($user === null || empty($user['email'])) {
+            return;
+        }
+
+        \App\Helpers\Mailer::send2faCode((string) $user['email'], (string) ($user['prenom'] ?? ''), $code);
+    }
+
+    // ── 2FA TOTP (Authenticator) ─────────────────────────────
+
+    public function totpSetup(): never
+    {
+        $userId = Session::userId();
+        $user   = Database::one('SELECT email FROM users WHERE id = ?', [$userId]);
+
+        $twoFactor = Database::one('SELECT * FROM two_factor WHERE user_id = ?', [$userId]);
+        $isTotp = ($twoFactor['method'] ?? '') === 'authenticator' && !empty($twoFactor['confirmed']);
+
+        if ($isTotp) {
+            redirect('profile/2fa');
+        }
+
+        // Reuse existing secret if user refreshed the page (avoids invalidating scanned QR)
+        $secret = Session::get('totp_pending_secret');
+        if ($secret === null || ! is_string($secret) || strlen($secret) < 16) {
+            $secret = Totp::generateSecret();
+            Session::set('totp_pending_secret', $secret);
+        }
+
+        $email   = (string) ($user['email'] ?? '');
+        $uri     = Totp::provisioningUri($secret, $email);
+        $qrCode  = QrCodeGenerator::pngDataUri($uri, 200);
+
+        $this->view('profile.2fa-totp-setup', [
+            'secret'  => $secret,
+            'qrCode'  => $qrCode,
+            'errors'  => $this->errors(),
+        ], $this->layoutForRole(Session::user()['role_user'] ?? 'wilaya'));
+        exit;
+    }
+
+    public function totpEnable(): never
+    {
+        $userId = Session::userId();
+
+        $secret = Session::get('totp_pending_secret');
+        if ($secret === null) {
+            flash('error', 'Session expirée. Réessayez.');
+            redirect('profile/2fa');
+        }
+
+        $code = trim((string) input('code', ''));
+
+        if (! preg_match('/^\d{6}$/', $code)) {
+            $this->backWithErrors(['code' => 'Code invalide (6 chiffres requis).']);
+        }
+
+        if (! Totp::verify($secret, $code)) {
+            $this->backWithErrors(['code' => 'Code incorrect. Vérifiez l\'heure de votre appareil.']);
+        }
+
+        // Activer
+        Database::run(
+            'INSERT INTO two_factor (user_id, method, enabled, confirmed, secret)
+             VALUES (?, "authenticator", 1, 1, ?)
+             ON DUPLICATE KEY UPDATE method = VALUES(method), enabled = 1, confirmed = 1, secret = VALUES(secret)',
+            [$userId, $secret]
+        );
+
+        // Générer codes de secours
+        $recoveryCodes = [];
+        for ($i = 0; $i < 8; $i++) {
+            $plain = strtoupper(bin2hex(random_bytes(4)));
+            $recoveryCodes[] = $plain;
+            Database::run(
+                'INSERT INTO two_factor_recovery_codes (user_id, code_hash) VALUES (?, ?)',
+                [$userId, password_hash($plain, PASSWORD_BCRYPT)]
+            );
+        }
+
+        Session::forget('totp_pending_secret');
+        Security::evenement('tfa_totp_enabled', '2FA Authenticator activée', 1, ['user_id' => $userId]);
+
+        $this->view('profile.2fa-recovery', [
+            'recoveryCodes' => $recoveryCodes,
+        ], $this->layoutForRole(Session::user()['role_user'] ?? 'wilaya'));
+        exit;
+    }
+
+    public function totpConfirm(): never
+    {
+        $userId = Session::userId();
+
+        $twoFactor = Database::one('SELECT secret, method FROM two_factor WHERE user_id = ? AND method = "authenticator"', [$userId]);
+        if ($twoFactor === null) {
+            $this->backWithErrors(['code' => 'Authenticator non configuré.']);
+        }
+
+        $code = trim((string) input('code', ''));
+
+        if (! Totp::verify((string) $twoFactor['secret'], $code)) {
+            $this->backWithErrors(['code' => 'Code incorrect.']);
+        }
+
+        Session::forget('auth_totp');
+        Session::set('user_id', $userId);
+        Session::set('logged_in', true);
+        Session::set('role_user', Database::one('SELECT role_user FROM users WHERE id = ?', [$userId])['role_user'] ?? 'wilaya');
+        Session::persistToDatabase();
+
+        Security::evenement('tfa_success', '2FA Authenticator validé', 1, ['user_id' => $userId]);
+        AuditLog::log('login', 'user', $userId, null, ['2fa' => 'authenticator']);
+
+        $next = Session::get('login_next', '/');
+        Session::forget('login_next');
+        redirect($next);
     }
 }

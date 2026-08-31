@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Helpers\AuditLog;
 use App\Helpers\Database;
+use App\Helpers\Mailer;
 use App\Helpers\Notification;
 use App\Helpers\Session;
 use App\Helpers\UploadHelper;
@@ -38,7 +39,7 @@ final class AssociationRequestController extends Controller
         $params = [];
         $wheres = [];
 
-        if ($status !== '' && in_array($status, ['pending', 'approved', 'rejected'], true)) {
+        if ($status !== '' && in_array($status, ['pending', 'approved', 'rejected', 'modification_requested'], true)) {
             $wheres[] = 'status = ?';
             $params[] = $status;
         }
@@ -247,8 +248,9 @@ final class AssociationRequestController extends Controller
         }
 
         $userId = null;
+        $isLegacyUser = false;
 
-        Database::transaction(function () use ($request, &$userId) {
+        Database::transaction(function () use ($request, &$userId, &$isLegacyUser) {
             // 1. Créer l'association
             $associationId = Database::insert('associations', [
                 'nom'                => $request['association_name'],
@@ -285,7 +287,9 @@ final class AssociationRequestController extends Controller
 
                 $userId = $linkedUserId;
             } else {
-                $hashedPassword = password_hash('Harmonia@2026', PASSWORD_BCRYPT);
+                $randomPassword = bin2hex(random_bytes(16));
+                $hashedPassword = password_hash($randomPassword, PASSWORD_BCRYPT);
+                $isLegacyUser = true;
                 $userId = (int) Database::insert('users', [
                     'nom'            => $request['president_lastname'],
                     'prenom'         => $request['president_firstname'],
@@ -327,6 +331,30 @@ final class AssociationRequestController extends Controller
             Notification::send($userId, 'Demande approuvée', 'Votre demande d\'inscription pour « ' . $request['association_name'] . ' » a été approuvée. Vous pouvez maintenant accéder à votre espace association.', 'association_request_approved', [
                 'request_id' => (int) $request['id'],
             ]);
+
+            // Email de validation
+            $presidentEmail = (string) ($request['president_email'] ?? '');
+            if ($presidentEmail !== '') {
+                Mailer::sendEventNotification(
+                    $presidentEmail,
+                    'Votre association a été validée — حومتي ايفانت',
+                    '🎉', '#059669', '#D1FAE5', '#065F46',
+                    'Félicitations ! Votre association « <strong>' . e((string) $request['association_name']) . ' »</strong> a été validée par la Wilaya. Vous pouvez désormais créer des événements et gérer votre espace.',
+                    'Compte activé',
+                    "Accéder à mon espace",
+                    public_url('association'),
+                    'Ceci est un message automatique.'
+                );
+
+                if ($isLegacyUser) {
+                    $resetToken = bin2hex(random_bytes(32));
+                    Database::insert('password_resets', [
+                        'email' => $presidentEmail,
+                        'token' => $resetToken,
+                    ]);
+                    Mailer::sendResetLink($presidentEmail, $resetToken);
+                }
+            }
         }
 
         flash('success', 'Demande validée. Le compte président est actif.');
@@ -378,6 +406,55 @@ final class AssociationRequestController extends Controller
         }
 
         flash('success', 'Demande refusée.');
+        $this->redirect('admin/association-requests/' . (int) $id);
+    }
+
+    /**
+     * Demander des modifications avant refus définitif.
+     */
+    public function requestModification(string $id): never
+    {
+        $this->requirePermission('association_request.request_modification');
+        $this->csrfCheck();
+
+        $request = Database::one('SELECT * FROM association_requests WHERE id = ?', [(int) $id]);
+        if ($request === null) {
+            abort(404, 'Demande introuvable.');
+        }
+
+        if ($request['status'] !== 'pending') {
+            flash('error', 'Cette demande a déjà été traitée.', 'warning');
+            $this->redirect('admin/association-requests/' . (int) $id);
+        }
+
+        $data = all_input();
+        $reason = trim((string) ($data['modification_reason'] ?? ''));
+
+        if ($reason === '') {
+            $this->backWithErrors(['modification_reason' => 'Le motif de la demande de modification est obligatoire.'], $data);
+        }
+
+        Database::update('association_requests', [
+            'status'                   => 'modification_requested',
+            'processed_by'             => Session::userId(),
+            'processed_at'             => date('Y-m-d H:i:s'),
+            'modification_reason'      => $reason,
+            'modification_requested_at' => date('Y-m-d H:i:s'),
+        ], 'id = ?', [(int) $id]);
+
+        AuditLog::log('association_request_modification_requested', 'association_requests', (int) $id, null, [
+            'reason' => $reason,
+        ]);
+
+        // Notifier le président de l'association
+        $linkedUserId = (int) ($request['user_id'] ?? 0);
+        if ($linkedUserId > 0) {
+            Notification::send($linkedUserId, 'Modification demandée', 'La Wilaya a demandé des modifications pour votre demande d\'inscription « ' . $request['association_name'] . ' ». Motif : ' . $reason, 'association_request_modification', [
+                'request_id' => (int) $id,
+            ]);
+        }
+
+        flash('success', 'Demande de modification envoyée.');
         $this->redirect('admin/association-requests/' . (int) $id);
     }
 }

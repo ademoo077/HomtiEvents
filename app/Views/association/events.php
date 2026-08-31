@@ -54,15 +54,19 @@ $tabLabels = [
             50% { opacity: 0.5; }
         }
     </style>
-    <div class="wh-page">
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-        <div>
-            <h1 class="wh-page-title"><?= e(__('evenements.mes_evenements')) ?></h1>
-            <p class="wh-page-sub"><?= e($isAr ? 'نشاطاتك' : 'Suivi de vos demandes et événements') ?></p>
+    <div style="background:linear-gradient(135deg,#198754 0%,#0B5ED7 100%);border-radius:var(--wh-radius);padding:1.75rem 2rem;margin-bottom:1.5rem;color:#fff;">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.2);display:grid;place-items:center;font-size:1.3rem;"><i class="mdi mdi-calendar-text"></i></div>
+                <div>
+                    <h1 style="font-size:1.35rem;font-weight:700;margin:0;"><?= e(__('evenements.mes_evenements')) ?></h1>
+                    <p style="margin:0;opacity:.85;font-size:.85rem;"><?= e($isAr ? 'نشاطاتك' : 'Suivi de vos demandes et événements') ?></p>
+                </div>
+            </div>
+            <a class="btn btn-warning fw-bold" href="<?= url('association/create') ?>">
+                <i class="mdi mdi-plus me-1"></i><?= e(__('evenements.create')) ?>
+            </a>
         </div>
-        <a class="btn btn-primary" href="<?= url('association/create') ?>">
-            <i class="mdi mdi-plus me-1"></i><?= e(__('evenements.create')) ?>
-        </a>
     </div>
 
     <!-- Barre de recherche + onglets de filtre -->
@@ -94,14 +98,13 @@ $tabLabels = [
 
     <!-- Cartes événements -->
     <?php if (empty($evenements)): ?>
-        <div class="wh-empty card shadow-sm py-5">
-            <div class="card-body text-center">
-                <i class="mdi mdi-calendar-blank-multiple text-muted" style="font-size: 2rem"></i>
-                <p class="mb-2 mt-2"><?= e($isAr ? 'لا توجد نشاطات' : 'Aucun événement dans cette catégorie.') ?></p>
-                <a href="<?= url('association/create') ?>" class="btn btn-sm btn-primary">
-                    <i class="mdi mdi-plus me-1"></i><?= e(__('evenements.create')) ?>
-                </a>
-            </div>
+        <div class="futur-empty">
+            <i class="mdi mdi-calendar-blank-multiple"></i>
+            <p class="futur-empty-title"><?= e($isAr ? 'لا توجد نشاطات' : 'Aucun événement dans cette catégorie.') ?></p>
+            <p class="futur-empty-text"><?= $isAr ? 'Commencez par créer votre premier événement.' : 'Commencez par créer votre premier événement.' ?></p>
+            <a href="<?= url('association/create') ?>" class="btn btn-primary futur-empty-action">
+                <i class="mdi mdi-plus me-1"></i><?= e(__('evenements.create')) ?>
+            </a>
         </div>
     <?php else: ?>
         <div class="row g-3">
@@ -170,6 +173,11 @@ $tabLabels = [
                                 <a href="<?= url('association/' . (int) $e['id']) ?>" class="btn btn-sm btn-outline-primary">
                                     <i class="mdi mdi-eye me-1"></i><?= e(__('common.detail')) ?>
                                 </a>
+                                <?php if (in_array($statut, ['PROGRAMME', 'QR_GENERE', 'EN_COURS', 'TERMINE'], true)): ?>
+                                    <a href="<?= url('association/evenements/' . (int) $e['id'] . '/presence') ?>" class="btn btn-sm btn-outline-success">
+                                        <i class="mdi mdi-account-multiple-check me-1"></i><?= e(__('evenements.presences')) ?>
+                                    </a>
+                                <?php endif; ?>
                                 <?php if ($statut === 'VALIDÉ'): ?>
                                     <button type="button" class="btn btn-sm btn-success wh-program-btn"
                                             data-id="<?= (int) $e['id'] ?>">
@@ -186,6 +194,14 @@ $tabLabels = [
                                         <i class="mdi mdi-close-circle me-1"></i><?= e(__('evenements.annuler')) ?>
                                     </button>
                                 <?php endif; ?>
+                                <a href="<?= url('association/' . (int) $e['id'] . '/clone') ?>" class="btn btn-sm btn-outline-secondary"
+                                   title="<?= e(__('evenements.cloner')) ?>">
+                                    <i class="mdi mdi-content-copy"></i>
+                                </a>
+                                <a href="<?= url('association/' . (int) $e['id'] . '/ical') ?>" class="btn btn-sm btn-outline-secondary"
+                                   title="<?= e(__('evenements.export_ical')) ?>">
+                                    <i class="mdi mdi-calendar-export"></i>
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -226,7 +242,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 .catch(() => location.reload());
         });
     });
-});
+
     // Annulation d'une demande (EN_ATTENTE / MODIFICATION_DEMANDEE)
     document.querySelectorAll('.wh-annuler-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {

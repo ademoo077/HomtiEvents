@@ -14,17 +14,28 @@ $statut = $val('statut', 'publie');
 $evenementId = (int) $val('evenement_id', '0');
 ?>
 <div class="wh-page">
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-        <div>
-            <h1 class="wh-page-title"><?= $editing ? ($isAr ? 'تعديل العنصر' : 'Modifier l\'élément') : ($isAr ? 'عنصر جديد' : 'Nouvel élément') ?></h1>
-            <p class="wh-page-sub"><?= $isAr ? 'أخبار أو حدث قادم' : 'Actualité ou événement à venir' ?></p>
+    <div style="background:linear-gradient(135deg,#198754 0%,#0B5ED7 100%);border-radius:var(--wh-radius);padding:1.75rem 2rem;margin-bottom:1.5rem;color:#fff;">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.2);display:grid;place-items:center;font-size:1.3rem;"><i class="mdi mdi-newspaper"></i></div>
+                <div>
+                    <h1 style="font-size:1.35rem;font-weight:700;margin:0;"><?= $editing ? ($isAr ? 'تعديل العنصر' : 'Modifier l\'élément') : ($isAr ? 'عنصر جديد' : 'Nouvel élément') ?></h1>
+                    <p style="margin:0;opacity:.85;font-size:.85rem;"><?= $isAr ? 'أخبار أو حدث قادم' : 'Actualité ou événement à venir' ?></p>
+                </div>
+            </div>
+            <a class="btn btn-light" href="<?= url('admin/landing/news') ?>">
+                <i class="mdi mdi-arrow-left me-1"></i><?= $isAr ? 'رجوع' : 'Retour' ?>
+            </a>
         </div>
-        <a class="btn btn-outline-secondary" href="<?= url('admin/landing/news') ?>">
-            <i class="mdi mdi-arrow-left me-1"></i><?= $isAr ? 'رجوع' : 'Retour' ?>
-        </a>
     </div>
 
     <div class="card border-0 shadow-sm">
+        <div class="card-header" style="background:#ede9fe;border-bottom:1px solid #ddd6fe;">
+            <span class="d-flex align-items-center gap-2 fw-bold">
+                <span style="width:32px;height:32px;border-radius:8px;background:rgba(124,58,237,.15);display:grid;place-items:center;color:#7c3aed;"><i class="mdi mdi-pencil"></i></span>
+                <?= $isAr ? 'معلومات العنصر' : 'Informations de l\'élément' ?>
+            </span>
+        </div>
         <div class="card-body">
             <form method="post" action="<?= $action ?>" enctype="multipart/form-data">
                 <?= csrf_field() ?>
@@ -131,7 +142,7 @@ $evenementId = (int) $val('evenement_id', '0');
                     </div>
                 </div>
 
-                <div class="d-flex gap-2">
+                <div class="d-flex gap-2 mt-4 pt-3" style="border-top:1px solid var(--wh-border);">
                     <button type="submit" class="btn btn-primary">
                         <i class="mdi mdi-content-save me-1"></i><?= $isAr ? 'حفظ' : 'Enregistrer' ?>
                     </button>

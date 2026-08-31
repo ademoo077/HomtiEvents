@@ -8,17 +8,23 @@ $page  = 'qrcode.show';
 $dir   = I18n::direction();
 $isAr  = $dir === 'rtl';
 
-$checkinUrl = url('checkin/' . $qr['token_qr']);
+$checkinUrl = network_url('checkin/' . $qr['token_qr']);
 $expired    = ! empty($qr['date_expiration']) && strtotime((string) $qr['date_expiration']) < time();
 ?>
-<div class="d-flex justify-content-between flex-wrap align-items-center gap-2 mb-4">
-    <div>
-        <h1 class="h3 mb-1"><?= e(__('common.qrcode')) ?></h1>
-        <p class="text-muted mb-0"><?= $isAr ? 'رمز حضور الحدث رقم ' . (int) $qr['evenement_id'] : 'QR code de présence — événement n°' . (int) $qr['evenement_id'] ?></p>
+<div class="wh-hero" style="background: linear-gradient(135deg, #0B5ED7 0%, #6C63FF 100%)">
+    <div class="wh-hero-inner">
+        <div class="wh-hero-row">
+            <div class="wh-hero-text">
+                <h1 class="wh-hero-title"><i class="mdi mdi-qrcode me-2"></i><?= e(__('common.qrcode')) ?></h1>
+                <p class="wh-hero-sub"><?= $isAr ? 'رمز حضور الحدث رقم ' . (int) $qr['evenement_id'] : 'QR code de présence — événement n°' . (int) $qr['evenement_id'] ?></p>
+            </div>
+            <div class="wh-hero-actions">
+                <a class="btn btn-light" href="<?= e(url('qrcode/scan')) ?>">
+                    <i class="mdi mdi-arrow-left me-1"></i><?= $isAr ? 'رجوع' : 'Retour' ?>
+                </a>
+            </div>
+        </div>
     </div>
-    <a class="btn btn-outline-secondary" href="<?= e(url('qrcode/scan')) ?>">
-        <i class="mdi mdi-arrow-left me-1"></i><?= $isAr ? 'رجوع' : 'Retour' ?>
-    </a>
 </div>
 
 <?php if ($expired): ?>
@@ -49,3 +55,5 @@ $expired    = ! empty($qr['date_expiration']) && strtotime((string) $qr['date_ex
         </div>
     </div>
 </div>
+
+<style>.wh-hero{border-radius:0 0 1.5rem 1.5rem;padding:1.5rem;margin-bottom:1.5rem}.wh-hero-inner{max-width:1200px;margin:0 auto}.wh-hero-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}.wh-hero-title{color:#fff;font-size:1.35rem;font-weight:700;margin:0}.wh-hero-sub{color:rgba(255,255,255,.8);font-size:.85rem;margin:.25rem 0 0}.wh-hero-actions{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}</style>

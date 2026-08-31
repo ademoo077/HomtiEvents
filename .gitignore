@@ -1,5 +1,6 @@
 # Dépendances & outils
 /vendor/
+/node_modules/
 /.phpunit.cache/
 /phpunit.xml
 
@@ -20,10 +21,18 @@
 !/storage/sessions/.gitkeep
 /storage/cache/*
 !/storage/cache/.gitkeep
+/storage/ratelimit/*
+!/storage/ratelimit/.gitkeep
 
 # Uploads
 /public/uploads/*
 /public/qr/*
+
+# Sauvegardes & journaux locaux
+/db_backup_*.sql
+/backups/
+server.log
+*.log
 
 # OS / IDE
 .DS_Store

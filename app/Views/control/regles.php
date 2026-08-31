@@ -8,14 +8,20 @@ $dir   = I18n::direction();
 $isAr  = $dir === 'rtl';
 ?>
 <div class="futur-control">
-    <div class="futur-control-header">
-        <div>
-            <h2 class="futur-control-title"><i class="mdi mdi-scale-balance"></i> <?= e(__('common.rules')) ?></h2>
-            <p class="futur-control-sub"><?= $isAr ? 'محرك قواعد الأعمال — قيود وتفعيلات ديناميكية' : 'Moteur de règles métier — règles dynamiques et contrôles' ?></p>
+    <div class="wh-hero" style="background:linear-gradient(135deg,#DC2626 0%,#D97706 100%)">
+        <div class="wh-hero-inner">
+            <div class="wh-hero-row">
+                <div class="wh-hero-text">
+                    <h1 class="wh-hero-title"><i class="mdi mdi-scale-balance me-2"></i><?= e(__('common.rules')) ?></h1>
+                    <p class="wh-hero-sub"><?= $isAr ? 'محرك قواعد الأعمال — قيود وتفعيلات ديناميكية' : 'Moteur de règles métier — règles dynamiques et contrôles' ?></p>
+                </div>
+                <div class="wh-hero-actions">
+                    <a class="btn btn-sm btn-light" href="<?= e(url('control/regles')) ?>" data-bs-toggle="modal" data-bs-target="#regleModal">
+                        <i class="mdi mdi-plus"></i> <?= $isAr ? 'قاعدة جديدة' : 'Nouvelle règle' ?>
+                    </a>
+                </div>
+            </div>
         </div>
-        <a class="futur-btn futur-btn-sm futur-btn-outline" href="<?= e(url('control/regles')) ?>" data-bs-toggle="modal" data-bs-target="#regleModal">
-            <i class="mdi mdi-plus"></i> <?= $isAr ? 'قاعدة جديدة' : 'Nouvelle règle' ?>
-        </a>
     </div>
 
     <div class="futur-card">
@@ -66,6 +72,7 @@ $isAr  = $dir === 'rtl';
             </div>
         </div>
     </div>
+    <style>.wh-hero{border-radius:0 0 1.5rem 1.5rem;padding:1.5rem;margin-bottom:1.5rem}.wh-hero-inner{max-width:1200px;margin:0 auto}.wh-hero-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}.wh-hero-title{color:#fff;font-size:1.35rem;font-weight:700;margin:0}.wh-hero-sub{color:rgba(255,255,255,.8);font-size:.85rem;margin:.25rem 0 0}.wh-hero-actions{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}</style>
 </div>
 
 <script>

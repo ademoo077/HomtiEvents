@@ -23,17 +23,44 @@ $badgeColor = static function (string $statut): string {
 };
 ?>
 <div class="wh-page">
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-        <div>
-            <h1 class="wh-page-title"><?= e(__('common.dashboard')) ?></h1>
-            <p class="wh-page-sub">
-                <?= e(($association['nom'] ?? 'Association')) ?> — <?= $isAr ? 'مراقبة طلبات الأحداث' : 'Suivi de vos demandes d\'événements' ?>
-            </p>
-            <div class="mt-1"><?= association_badge($association) ?></div>
+    <div style="background:linear-gradient(135deg,#198754 0%,#0B5ED7 100%);border-radius:var(--wh-radius);padding:1.75rem 2rem;margin-bottom:1.5rem;color:#fff;">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.2);display:grid;place-items:center;font-size:1.3rem;"><i class="mdi mdi-calendar-star"></i></div>
+                <div>
+                    <h1 style="font-size:1.35rem;font-weight:700;margin:0;"><?= e(__('common.dashboard')) ?></h1>
+                    <p style="margin:0;opacity:.85;font-size:.85rem;"><?= e(($association['nom'] ?? 'Association')) ?> — <?= $isAr ? 'مراقبة طلبات الأحداث' : 'Suivi de vos demandes d\'événements' ?></p>
+                    <div class="mt-1"><?= association_badge($association) ?></div>
+                </div>
+            </div>
+            <a class="btn btn-warning fw-bold" href="<?= url('association/create') ?>">
+                <i class="mdi mdi-plus me-1"></i><?= e(__('evenements.create')) ?>
+            </a>
         </div>
-        <a class="btn btn-primary" href="<?= url('association/create') ?>">
-            <i class="mdi mdi-plus me-1"></i><?= e(__('evenements.create')) ?>
-        </a>
+    </div>
+
+    <!-- Score de performance -->
+    <?php $s = $score ?? ['score' => 0, 'details' => ['participation' => 0, 'evaluation' => 0, 'completion' => 0, 'volume' => 0]]; ?>
+    <div class="card border-0 shadow-sm mb-4" style="border-radius:var(--wh-radius);overflow:hidden;">
+        <div style="padding:.65rem 1.25rem;background:var(--wh-green-soft);border-bottom:1px solid #b7e4c7;display:flex;align-items:center;gap:.5rem;">
+            <span style="width:28px;height:28px;border-radius:7px;background:rgba(25,135,84,.15);display:grid;place-items:center;color:var(--wh-green);font-size:.85rem;"><i class="mdi mdi-speedometer"></i></span>
+            <span class="fw-bold" style="font-size:.88rem;"><?= $isAr ? 'مؤشر الأداء' : 'Score de performance' ?></span>
+        </div>
+        <div class="card-body d-flex flex-wrap align-items-center gap-4">
+            <div class="wh-score-ring <?= $s['score'] >= 80 ? 'wh-score-excellent' : ($s['score'] >= 60 ? 'wh-score-good' : ($s['score'] >= 40 ? 'wh-score-average' : 'wh-score-poor')) ?>"
+                 style="--score: <?= (int) $s['score'] ?>">
+                <span><?= (int) $s['score'] ?></span>
+            </div>
+            <div>
+                <h6 class="mb-1"><?= $isAr ? 'مؤشر الأداء' : 'Score de performance' ?></h6>
+                <div class="d-flex flex-wrap gap-3 small text-muted">
+                    <span><i class="mdi mdi-account-group me-1"></i><?= $isAr ? 'المشاركة' : 'Participation' ?> : <?= (int) $s['details']['participation'] ?>/30</span>
+                    <span><i class="mdi mdi-star me-1"></i><?= $isAr ? 'التقييم' : 'Évaluation' ?> : <?= (int) $s['details']['evaluation'] ?>/30</span>
+                    <span><i class="mdi mdi-check-circle me-1"></i><?= $isAr ? 'الإنجاز' : 'Complétion' ?> : <?= (int) $s['details']['completion'] ?>/20</span>
+                    <span><i class="mdi mdi-chart-bar me-1"></i><?= $isAr ? 'الحجم' : 'Volume' ?> : <?= (int) $s['details']['volume'] ?>/20</span>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- KPIs (compteurs globaux, cliquables) -->
@@ -78,7 +105,7 @@ $badgeColor = static function (string $statut): string {
     </div>
 
     <!-- Filters -->
-    <form method="get" action="<?= url('association') ?>" class="row g-2 mb-3">
+    <form method="get" action="<?= url('association') ?>" class="row g-2 mb-3 wh-filters" style="padding:.85rem 1rem;">
         <div class="col-md-4">
             <input type="text" name="q" class="form-control" placeholder="<?= e(__('common.search')) ?>" value="<?= e($filters['q'] ?? '') ?>">
         </div>
@@ -100,7 +127,12 @@ $badgeColor = static function (string $statut): string {
     </form>
 
     <!-- Events list -->
-    <div class="card border-0 shadow-sm">
+    <div class="card border-0 shadow-sm" style="border-radius:var(--wh-radius);overflow:hidden;">
+        <div style="padding:.65rem 1.25rem;background:var(--wh-blue-soft);border-bottom:1px solid #b6d4fe;display:flex;align-items:center;gap:.5rem;">
+            <span style="width:28px;height:28px;border-radius:7px;background:rgba(11,94,215,.15);display:grid;place-items:center;color:var(--wh-blue);font-size:.85rem;"><i class="mdi mdi-table-large"></i></span>
+            <span class="fw-bold" style="font-size:.88rem;"><?= $isAr ? 'قائمة الأحداث' : 'Liste des événements' ?></span>
+            <span class="wh-badge badge-blue" style="margin-inline-start:auto;"><?= count($evenements) ?></span>
+        </div>
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead>

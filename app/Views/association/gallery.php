@@ -17,24 +17,26 @@ $isAr  = $dir === 'rtl';
         .wh-card-hover:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,.12) !important; }
     </style>
 
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-        <div>
-            <h1 class="wh-page-title">
-                <i class="mdi mdi-image-multiple me-2"></i><?= e(__('common.gallery')) ?>
-            </h1>
-            <p class="wh-page-sub"><?= e($isAr ? 'إدارة صور فعالياتك' : 'Soumettez et suivez les photos de vos événements') ?></p>
+    <div style="background:linear-gradient(135deg,#198754 0%,#0B5ED7 100%);border-radius:var(--wh-radius);padding:1.75rem 2rem;margin-bottom:1.5rem;color:#fff;">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.2);display:grid;place-items:center;font-size:1.3rem;"><i class="mdi mdi-image-multiple"></i></div>
+                <div>
+                    <h1 style="font-size:1.35rem;font-weight:700;margin:0;"><?= e(__('common.gallery')) ?></h1>
+                    <p style="margin:0;opacity:.85;font-size:.85rem;"><?= e($isAr ? 'إدارة صور فعالياتك' : 'Soumettez et suivez les photos de vos événements') ?></p>
+                </div>
+            </div>
         </div>
     </div>
 
     <?php if ($events === []): ?>
-        <div class="wh-empty card shadow-sm py-5">
-            <div class="card-body text-center">
-                <i class="mdi mdi-image-multiple text-muted" style="font-size: 2rem"></i>
-                <p class="mb-2 mt-2"><?= e($isAr ? 'لا توجد فعاليات بعد' : 'Aucun événement enregistré.') ?></p>
-                <a href="<?= url('association/create') ?>" class="btn btn-sm btn-primary">
-                    <i class="mdi mdi-plus me-1"></i><?= e($isAr ? 'إنشاء فعالية' : __('evenements.create')) ?>
-                </a>
-            </div>
+        <div class="futur-empty">
+            <i class="mdi mdi-image-multiple"></i>
+            <p class="futur-empty-title"><?= e($isAr ? 'لا توجد فعاليات بعد' : 'Aucun événement enregistré.') ?></p>
+            <p class="futur-empty-text"><?= $isAr ? 'Créez un événement pour y ajouter des photos.' : 'Créez un événement pour y ajouter des photos.' ?></p>
+            <a href="<?= url('association/create') ?>" class="btn btn-primary futur-empty-action">
+                <i class="mdi mdi-plus me-1"></i><?= e($isAr ? 'إنشاء فعالية' : __('evenements.create')) ?>
+            </a>
         </div>
     <?php else: ?>
         <div class="row g-3">

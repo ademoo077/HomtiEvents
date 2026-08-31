@@ -1,0 +1,127 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════════════════════════════════════════════════════════════
+   WILAYA HARMONIA — Tailwind CSS (couche additive / migration progressive)
+   Preflight est désactivé (tailwind.config.js) : Bootstrap conserve son
+   reset/layout. Cette feuille ajoute des composants & utilitaires Tailwind
+   propres au design system, sans casser l'existant.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Base additive (complète Bootstrap, ne le concurrence pas) ── */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+  /* Focus visible global (accessibilité clavier) — léger, non intrusif */
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--wh-blue);
+    outline-offset: 2px;
+  }
+}
+
+/* ── Composants du design system ──
+   Écrits en CSS "brut" utilisant les tokens --wh-* (design-tokens.css),
+   via @layer components pour garder la priorité en cascade correcte. */
+@layer components {
+
+  /* -- Boutons -- */
+  .wh-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    border-radius: var(--wh-radius);
+    padding: .5rem 1rem;
+    font-size: .875rem;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    user-select: none;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background-color var(--wh-duration) var(--wh-ease),
+                border-color var(--wh-duration) var(--wh-ease),
+                color var(--wh-duration) var(--wh-ease),
+                box-shadow var(--wh-duration) var(--wh-ease),
+                transform var(--wh-duration) var(--wh-ease);
+  }
+  .wh-btn:active { transform: scale(.98); }
+  .wh-btn:disabled, .wh-btn[disabled] { opacity: .55; pointer-events: none; }
+  .wh-btn-primary {
+    background: var(--wh-blue);
+    color: #fff;
+    box-shadow: var(--wh-shadow);
+  }
+  .wh-btn-primary:hover { background: var(--wh-blue-dark); box-shadow: var(--wh-shadow-lg); }
+  .wh-btn-soft {
+    background: var(--wh-blue-soft);
+    color: var(--wh-blue-dark);
+  }
+  .wh-btn-soft:hover { background: color-mix(in srgb, var(--wh-blue-soft) 78%, #fff); }
+  .wh-btn-outline {
+    border-color: var(--wh-border-strong);
+    color: var(--wh-text);
+    background: transparent;
+  }
+  .wh-btn-outline:hover { background: var(--wh-gray-soft); }
+  .wh-btn-ghost {
+    color: var(--wh-text-muted);
+    background: transparent;
+  }
+  .wh-btn-ghost:hover { background: var(--wh-gray-soft); color: var(--wh-text); }
+  .wh-btn-danger { background: var(--wh-red); color: #fff; box-shadow: var(--wh-shadow); }
+  .wh-btn-danger:hover { background: color-mix(in srgb, var(--wh-red) 88%, #000); box-shadow: var(--wh-shadow-lg); }
+  .wh-btn-success { background: var(--wh-green); color: #fff; box-shadow: var(--wh-shadow); }
+  .wh-btn-success:hover { background: color-mix(in srgb, var(--wh-green) 88%, #000); box-shadow: var(--wh-shadow-lg); }
+  .wh-btn-sm { padding: .375rem .75rem; font-size: .8125rem; }
+  .wh-btn-lg { padding: .625rem 1.25rem; font-size: .9375rem; }
+  .wh-btn-icon { padding: .5rem; }
+
+  /* -- Badges -- */
+  .wh-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    border-radius: 999px;
+    padding: .125rem .625rem;
+    font-size: .75rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  /* -- Cartes / surfaces -- */
+  .wh-surface, .wh-card {
+    background: var(--wh-card-bg);
+    border: 1px solid var(--wh-border);
+    border-radius: var(--wh-radius-lg);
+    box-shadow: var(--wh-shadow);
+  }
+
+  /* -- Tableaux -- */
+  .wh-table-wrap {
+    background: var(--wh-card-bg);
+    border: 1px solid var(--wh-border);
+    border-radius: var(--wh-radius-lg);
+    box-shadow: var(--wh-shadow);
+    overflow: hidden;
+  }
+
+  /* -- États vides -- */
+  .wh-state-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .75rem;
+    padding: 4rem 1rem;
+    text-align: center;
+    color: var(--wh-text-muted);
+  }
+
+  /* -- Conteneurs -- */
+  .wh-shell { width: 100%; }
+  .wh-page { width: 100%; max-width: 1600px; margin-inline: auto; }
+}

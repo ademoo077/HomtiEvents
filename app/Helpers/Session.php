@@ -14,8 +14,28 @@ final class Session
         if (session_status() === PHP_SESSION_ACTIVE) {
             return;
         }
-
+        // ASVS 3.4.1 — Secure seulement si HTTPS réel (évite de bloquer http://154.241.14.144)
+        $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443);
+        $secure = $isHttps && ((bool) config('security.cookie_secure', true) || (string) config('app.env') === 'production');
+        // Si http, forcer Secure=false pour permettre login http (puis HSTS redirigera vers https)
+        $params = session_get_cookie_params();
+        session_set_cookie_params([
+            'lifetime' => $params['lifetime'],
+            'path' => $params['path'] ?: '/',
+            'domain' => $params['domain'] ?: '',
+            'secure' => $secure,
+            'httponly' => true,
+            'samesite' => 'Strict',
+        ]);
+        // Anti-fixation : régénération périodique (OWASP)
+        if (!isset($_SESSION['initiated'])) {
+            $_SESSION['initiated'] = time();
+        }
         session_start();
+        if (isset($_SESSION['initiated']) && time() - (int) $_SESSION['initiated'] > 1800) {
+            self::regenerate();
+            $_SESSION['initiated'] = time();
+        }
     }
 
     public static function id(): string

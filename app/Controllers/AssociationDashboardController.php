@@ -8,6 +8,7 @@ use App\Helpers\Database;
 use App\Helpers\EvenementService;
 use App\Helpers\Notification;
 use App\Helpers\Rbac;
+use App\Helpers\StatsService;
 
 /**
  * Dashboard dédié aux associations.
@@ -73,7 +74,7 @@ final class AssociationDashboardController extends Controller
             'SELECT AVG(note) FROM evaluation WHERE association_id = ?',
             [$associationId]
         );
-        $stats['avg_note'] = $avgNote === null ? 0.0 : (float) round($avgNote, 1);
+        $stats['avg_note'] = $avgNote === null ? 0.0 : round((float) $avgNote, 1);
 
         // Compteurs par statut (KPI cliquables) et événements exigeant une action
         $statutsCounts = EvenementService::statutsCounts($associationId);
@@ -156,6 +157,7 @@ final class AssociationDashboardController extends Controller
             'envoyes'       => $envoyes,
             'historique'    => $historique,
             'evaluations'   => $evaluations,
+            'score'         => StatsService::associationScore($associationId),
         ], 'association');
     }
 

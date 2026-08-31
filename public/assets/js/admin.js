@@ -11,33 +11,41 @@
         return I18N[key] || fallback || key;
     }
 
-    /* ── Thème clair / sombre ──────────────────────────────────── */
-    function applyTheme(theme, persist) {
-        document.documentElement.setAttribute('data-bs-theme', theme);
-        var icon = document.querySelector('[data-theme-icon]');
-        if (icon) {
-            icon.className = theme === 'dark' ? 'mdi mdi-weather-sunny' : 'mdi mdi-weather-night';
-        }
-        if (persist !== false) {
-            try { localStorage.setItem('wh-theme', theme); } catch (e) { /* noop */ }
-        }
-    }
+    /* ── Sidebar repliée : tooltips natifs sur les liens ──────── */
+    (function () {
+        var app = document.querySelector('.wh-app');
+        var sidebar = document.getElementById('whSidebar');
+        if (!app || !sidebar) return;
 
-    function initTheme() {
-        var stored = null;
-        try { stored = localStorage.getItem('wh-theme'); } catch (e) { /* noop */ }
-        var dark = stored === 'dark'
-            || (!stored && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        applyTheme(dark ? 'dark' : 'light', false);
-    }
-
-    document.addEventListener('click', function (e) {
-        var toggle = e.target.closest('[data-theme-toggle]');
-        if (toggle) {
-            var next = document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
-            applyTheme(next, true);
+        function syncTooltips() {
+            var collapsed = app.classList.contains('has-collapsed');
+            var desktop = window.innerWidth >= 992;
+            sidebar.querySelectorAll('a.nav-link').forEach(function (a) {
+                var label = a.querySelector('span');
+                if (collapsed && desktop) {
+                    // Ne surcharge pas un title existant (badges etc.).
+                    if (!a.hasAttribute('data-wh-title')) {
+                        a.setAttribute('data-wh-title', label ? label.textContent.trim() : '');
+                    }
+                    a.title = a.getAttribute('data-wh-title') || '';
+                    // Rendu accessible pour basse résolution.
+                    a.setAttribute('aria-label', a.getAttribute('data-wh-title') || '');
+                } else {
+                    a.title = '';
+                    a.removeAttribute('aria-label');
+                }
+            });
         }
-    });
+
+        // Écoute le basculement déclenché par le bouton de collapse (main.php).
+        var observer = new MutationObserver(syncTooltips);
+        observer.observe(app, {
+            attributes: true,
+            attributeFilter: ['class']
+        });
+        window.addEventListener('resize', syncTooltips);
+        syncTooltips();
+    })();
 
     /* ── Sidebar mobile (offcanvas) ────────────────────────────── */
     document.addEventListener('click', function (e) {
@@ -56,6 +64,81 @@
             if (sidebar) sidebar.classList.remove('show');
             if (backdrop) backdrop.classList.remove('show');
         }
+    });
+
+    // Fermeture du sidebar mobile au clic sur un lien du menu
+    // (après navigation, le menu ne doit pas rester ouvert).
+    document.addEventListener('click', function (e) {
+        var link = e.target.closest('#whSidebar a[href]');
+        if (!link) return;
+        var sidebar = document.getElementById('whSidebar');
+        var backdrop = document.getElementById('whSidebarBackdrop');
+        if (sidebar) sidebar.classList.remove('show');
+        if (backdrop) backdrop.classList.remove('show');
+    });
+
+    // Fermeture du sidebar mobile avec la touche Échap
+    document.addEventListener('keyup', function (e) {
+        if (e.key !== 'Escape') return;
+        var sidebar = document.getElementById('whSidebar');
+        var backdrop = document.getElementById('whSidebarBackdrop');
+        if (sidebar) sidebar.classList.remove('show');
+        if (backdrop) backdrop.classList.remove('show');
+    });
+
+    /* ── Indicateur de défilement horizontal des tableaux ─────── */
+    function initTableScrollHints() {
+        document.querySelectorAll('.table-responsive').forEach(function (wrap) {
+            var check = function () {
+                var scrollable = wrap.scrollWidth > wrap.clientWidth + 2;
+                wrap.classList.toggle('wh-table-scroll', scrollable);
+                var hint = wrap.querySelector(':scope > .wh-table-hint');
+                if (scrollable) {
+                    if (!hint) {
+                        hint = document.createElement('span');
+                        hint.className = 'wh-table-hint';
+                        hint.setAttribute('aria-hidden', 'true');
+                        hint.innerHTML = '<i class="mdi mdi-swipe-horizontal"></i>'
+                            + t('common.table_scroll', 'Faire défiler');
+                        wrap.appendChild(hint);
+                    }
+                } else if (hint) {
+                    hint.remove();
+                }
+            };
+            check();
+            window.addEventListener('resize', check);
+        });
+    }
+
+    /* ── Filtres : accordéon sur mobile ────────────────────────── */
+    function initMobileFilters() {
+        document.querySelectorAll('form.wh-filters').forEach(function (form) {
+            var row = form.querySelector(':scope > .row, :scope > .card-body > .row');
+            if (!row) return;
+            var container = row.parentNode;
+            row.classList.add('wh-filters-body');
+            var btn = form.querySelector(':scope > .wh-filters-toggle, :scope > .card-body > .wh-filters-toggle');
+            if (!btn) {
+                btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'wh-filters-toggle';
+                btn.setAttribute('aria-expanded', 'false');
+                btn.innerHTML = '<i class="mdi mdi-tune-variant" aria-hidden="true"></i>'
+                    + t('common.filters', 'Filtres')
+                    + '<i class="mdi mdi-chevron-down" aria-hidden="true"></i>';
+                container.insertBefore(btn, row);
+            }
+            btn.addEventListener('click', function () {
+                var open = form.classList.toggle('wh-filters-open');
+                btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            });
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        initTableScrollHints();
+        initMobileFilters();
     });
 
     /* ── Recherche instantanée dans les tableaux ───────────────── */
@@ -138,31 +221,55 @@
         });
     });
 
-    /* ── Toast d'événements ────────────────────────────────────── */
-    function showToast(message, type) {
-        var wrap = document.querySelector('.wh-toast-wrap');
+    /* ── Toast d'événements (Futur Design) ───────────────────────── */
+    function showToast(message, type, title) {
+        var wrap = document.querySelector('.futur-toast-wrap');
         if (!wrap) {
             wrap = document.createElement('div');
-            wrap.className = 'wh-toast-wrap';
+            wrap.className = 'futur-toast-wrap';
             document.body.appendChild(wrap);
         }
         type = type || 'success';
-        var icon = type === 'success' ? 'mdi-check-circle'
-            : type === 'danger' ? 'mdi-alert-circle'
-            : type === 'warning' ? 'mdi-alert' : 'mdi-information';
+        var iconMap = {
+            success: 'mdi-check-circle',
+            error: 'mdi-alert-circle',
+            danger: 'mdi-alert-circle',
+            warning: 'mdi-alert',
+            info: 'mdi-information'
+        };
+        var icons = {
+            success: 'mdi-check',
+            error: 'mdi-close',
+            danger: 'mdi-close',
+            warning: 'mdi-alert',
+            info: 'mdi-information'
+        };
         var el = document.createElement('div');
-        el.className = 'toast align-items-center border-0 show text-bg-' + type;
+        el.className = 'futur-toast ' + type;
         el.setAttribute('role', 'alert');
-        el.innerHTML = '<div class="d-flex"><div class="toast-body"><i class="mdi ' + icon + ' me-1"></i>'
-            + (message || '') + '</div>'
-            + '<button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button></div>';
+        el.innerHTML =
+            '<div class="futur-toast-icon"><i class="mdi ' + iconMap[type] + '"></i></div>' +
+            '<div class="futur-toast-content">' +
+            (title ? '<div class="futur-toast-title">' + title + '</div>' : '') +
+            '<div class="futur-toast-message">' + (message || '') + '</div>' +
+            '</div>' +
+            '<button type="button" class="futur-toast-close" aria-label="Fermer"><i class="mdi mdi-close"></i></button>' +
+            '<div class="futur-toast-progress"></div>';
         wrap.appendChild(el);
-        window.setTimeout(function () {
-            el.classList.remove('show');
-            window.setTimeout(function () { el.remove(); }, 300);
-        }, 5000);
+        var duration = 5000;
+        var progress = el.querySelector('.futur-toast-progress');
+        progress.style.animationDuration = duration + 'ms';
+        var closeBtn = el.querySelector('.futur-toast-close');
+        closeBtn.addEventListener('click', function () { removeToast(el); });
+        var timer = window.setTimeout(function () { removeToast(el); }, duration);
+        function removeToast(toast) {
+            clearTimeout(timer);
+            toast.classList.add('removing');
+            toast.addEventListener('animationend', function () { toast.remove(); });
+        }
     }
 
+    window.showToast = showToast;
     window.whToast = showToast;
 
     /* ── Alerts auto-dismiss ───────────────────────────────────── */
@@ -348,7 +455,43 @@
         }
     }, true);
 
-    /* ── Copie d'un champ (lien d'invitation, etc.) ───────────── */
+    /* ── Submit loading state (disabled + spinner) ───────────────── */
+    function initFormSubmitLoading() {
+        document.addEventListener('submit', function (e) {
+            var form = e.target;
+            if (!form || form.tagName !== 'FORM') return;
+            // Ignore forms with data-no-loading or already submitting
+            if (form.hasAttribute('data-no-loading') || form.dataset.submitting === 'true') return;
+            // Ignore GET forms (search, filters)
+            if (form.method.toLowerCase() === 'get') return;
+
+            var submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+            if (!submitBtn) return;
+
+            // Prevent double submit
+            if (submitBtn.disabled) { e.preventDefault(); return; }
+
+            // Disable + add spinner
+            submitBtn.disabled = true;
+            form.dataset.submitting = 'true';
+            var originalHtml = submitBtn.innerHTML;
+            submitBtn.dataset.originalHtml = originalHtml;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>' +
+                (submitBtn.hasAttribute('data-loading-text') ? submitBtn.getAttribute('data-loading-text') : 'Enregistrement...');
+
+            // Re-enable on page unload (back button, etc.)
+            window.addEventListener('pageshow', function onPageshow(event) {
+                if (event.persisted) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalHtml;
+                    delete form.dataset.submitting;
+                    window.removeEventListener('pageshow', onPageshow);
+                }
+            });
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', initFormSubmitLoading);
     document.addEventListener('click', function (e) {
         var btn = e.target.closest('[data-copy]');
         if (!btn) return;
@@ -362,5 +505,245 @@
         } catch (err) { /* silencieux */ }
     });
 
-    initTheme();
+    /* ── PWA: Install prompt banner ── */
+    var deferredPrompt = null;
+    var installBanner = null;
+
+    window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        deferredPrompt = e;
+        showInstallBanner();
+    });
+
+    function showInstallBanner() {
+        if (document.getElementById('pwa-install-banner')) return;
+        if (localStorage.getItem('pwa_install_dismissed') === '1') return;
+
+        var banner = document.createElement('div');
+        banner.id = 'pwa-install-banner';
+        banner.innerHTML =
+            '<div style="position:fixed;bottom:0;left:0;right:0;z-index:9999;padding:12px 16px;background:linear-gradient(135deg,#0F2B22,#1A4D3E);border-top:2px solid #D4AF37;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-family:system-ui,sans-serif;box-shadow:0 -4px 20px rgba(0,0,0,.3)">' +
+            '<div style="flex:1;min-width:200px;color:#F6EFDD">' +
+            '<div style="font-weight:700;font-size:.9rem">📱 Installer حومتي ايفانت</div>' +
+            '<div style="font-size:.78rem;color:#C9D6CE;margin-top:2px">Accès rapide • Notifications • Mode hors ligne</div>' +
+            '</div>' +
+            '<button id="pwa-install-btn" style="padding:8px 18px;border-radius:8px;border:1px solid rgba(212,175,55,.6);background:#D4AF37;color:#0F2B22;font-weight:700;cursor:pointer;font-size:.85rem;white-space:nowrap">Installer</button>' +
+            '<button id="pwa-install-dismiss" style="padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:transparent;color:#C9D6CE;cursor:pointer;font-size:.85rem">✕</button>' +
+            '</div>';
+        document.body.appendChild(banner);
+
+        document.getElementById('pwa-install-btn').addEventListener('click', function () {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then(function (res) {
+                if (res.outcome === 'accepted') {
+                    banner.remove();
+                }
+                deferredPrompt = null;
+            });
+        });
+        document.getElementById('pwa-install-dismiss').addEventListener('click', function () {
+            banner.remove();
+            localStorage.setItem('pwa_install_dismissed', '1');
+        });
+    }
+
+    window.addEventListener('appinstalled', function () {
+        deferredPrompt = null;
+        var b = document.getElementById('pwa-install-banner');
+        if (b) b.remove();
+    });
+
+    /* ── PWA: Update available banner ── */
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('controllerchange', function () {
+            showUpdateBanner();
+        });
+    }
+
+    function showUpdateBanner() {
+        if (document.getElementById('pwa-update-banner')) return;
+        var banner = document.createElement('div');
+        banner.id = 'pwa-update-banner';
+        banner.innerHTML =
+            '<div style="position:fixed;top:0;left:0;right:0;z-index:9999;padding:10px 16px;background:#D4AF37;color:#0F2B22;display:flex;align-items:center;gap:10px;font-family:system-ui,sans-serif;font-weight:600;font-size:.85rem;box-shadow:0 4px 12px rgba(0,0,0,.2)">' +
+            '<span style="flex:1">🔄 Une mise à jour est disponible</span>' +
+            '<button onclick="location.reload()" style="padding:6px 14px;border-radius:6px;border:1px solid #0F2B22;background:#0F2B22;color:#fff;cursor:pointer;font-weight:700;font-size:.82rem">Actualiser</button>' +
+            '<button onclick="this.parentElement.remove()" style="padding:6px 10px;border:none;background:transparent;cursor:pointer;font-size:1rem">✕</button>' +
+            '</div>';
+        document.body.appendChild(banner);
+    }
+
+    /* ── PWA: Handle background sync messages from SW ── */
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', function (event) {
+            if (event.data && event.data.type === 'SYNC_SCANS') {
+                syncOfflineScans();
+            }
+        });
+    }
+
+    function syncOfflineScans() {
+        try {
+            var queue = JSON.parse(localStorage.getItem('wh_scan_queue') || '[]');
+            if (!queue.length) return;
+            var sent = 0;
+            queue.forEach(function (item) {
+                fetch(item.url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    body: JSON.stringify(item.data)
+                }).then(function () { sent++; })
+                  .catch(function () {});
+            });
+            localStorage.setItem('wh_scan_queue', '[]');
+            if (sent > 0) {
+                var ev = new CustomEvent('wh:synced', { detail: { count: sent } });
+                window.dispatchEvent(ev);
+            }
+        } catch (e) { /* silencieux */ }
+    }
+
+    /* ── PWA: Sync offline comments ── */
+    function syncOfflineComments() {
+        try {
+            var queue = JSON.parse(localStorage.getItem('wh_comment_queue') || '[]');
+            if (!queue.length) return;
+            var sent = 0;
+            queue.forEach(function (item) {
+                fetch(item.url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': CSRF
+                    },
+                    body: item.body
+                }).then(function () { sent++; })
+                  .catch(function () {});
+            });
+            localStorage.setItem('wh_comment_queue', '[]');
+            if (sent > 0) {
+                window.whToast && window.whToast(t('common.comments_synced', 'Commentaires synchronisés'), 'success');
+            }
+        } catch (e) { /* silencieux */ }
+    }
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', function (event) {
+            if (event.data && event.data.type === 'SYNC_COMMENTS') {
+                syncOfflineComments();
+            }
+        });
+    }
+
+    /* ── PWA: Periodic background sync registration ── */
+    if ('serviceWorker' in navigator && 'periodicSync' in (navigator.serviceWorker.controller ? {} : {})) {
+        navigator.serviceWorker.ready.then(function (reg) {
+            if ('periodicSync' in reg) {
+                reg.periodicSync.register('sync-scans', { minInterval: 60 * 60 * 1000 }).catch(function () {});
+            }
+        });
+    }
+
+    /* ── Scroll-to-top button ─────────────────────────────────── */
+    (function () {
+        var btn = document.getElementById('scrollTopBtn');
+        if (!btn) return;
+        var ticking = false;
+        window.addEventListener('scroll', function () {
+            if (!ticking) {
+                window.requestAnimationFrame(function () {
+                    btn.classList.toggle('visible', window.scrollY > 300);
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        }, { passive: true });
+        btn.addEventListener('click', function () {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    })();
+
+    /* ── Sidebar swipe gesture (mobile) ───────────────────────── */
+    (function () {
+        var sidebar = document.getElementById('whSidebar');
+        var backdrop = document.getElementById('whSidebarBackdrop');
+        if (!sidebar || !backdrop) return;
+        var startX = 0;
+        var currentX = 0;
+        var swiping = false;
+        var isRTL = document.documentElement.dir === 'rtl';
+
+        sidebar.addEventListener('touchstart', function (e) {
+            if (!sidebar.classList.contains('show')) return;
+            startX = e.touches[0].clientX;
+            swiping = true;
+        }, { passive: true });
+
+        sidebar.addEventListener('touchmove', function (e) {
+            if (!swiping) return;
+            currentX = e.touches[0].clientX;
+            var diff = currentX - startX;
+            if (isRTL) diff = -diff;
+            if (diff < 0) {
+                sidebar.style.transform = 'translateX(' + Math.max(diff, -268) + 'px)';
+            }
+        }, { passive: true });
+
+        sidebar.addEventListener('touchend', function () {
+            if (!swiping) return;
+            swiping = false;
+            var diff = currentX - startX;
+            if (isRTL) diff = -diff;
+            sidebar.style.transform = '';
+            if (diff < -60) {
+                sidebar.classList.remove('show');
+                if (backdrop) backdrop.classList.remove('show');
+            }
+        }, { passive: true });
+    })();
+
+    /* ── Active nav link smooth scroll into view ──────────────── */
+    (function () {
+        var active = document.querySelector('.wh-nav .nav-link.active');
+        if (active) {
+            active.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+    })();
+
+    /* ── Toast auto-dismiss ───────────────────────────────────── */
+    window.showToast = window.showToast || function (message, type) {
+        var wrap = document.querySelector('.wh-toast-wrap');
+        if (!wrap) return;
+        var icon = type === 'success' ? 'mdi-check-circle' : type === 'error' ? 'mdi-alert-circle' : 'mdi-information';
+        var bg = type === 'success' ? '#198754' : type === 'error' ? '#dc3545' : '#0B5ED7';
+        var toast = document.createElement('div');
+        toast.className = 'wh-toast';
+        toast.style.cssText = 'display:flex;align-items:center;gap:.65rem;padding:.75rem 1.1rem;background:' + bg + ';color:#fff;border-radius:var(--wh-radius);box-shadow:0 6px 20px rgba(0,0,0,.2);font-size:.88rem;font-weight:500;min-width:260px;max-width:400px;cursor:pointer;margin-top:.5rem;';
+        toast.innerHTML = '<i class="mdi ' + icon + '" style="font-size:1.2rem"></i><span>' + message + '</span>';
+        toast.addEventListener('click', function () { toast.remove(); });
+        wrap.appendChild(toast);
+        setTimeout(function () {
+            toast.style.animation = 'whToastOut .3s ease forwards';
+            setTimeout(function () { toast.remove(); }, 300);
+        }, 4000);
+    };
+
+    /* ── IA MAX — CountUp + Skeletons + Keyboard ───────────────────── */
+    document.addEventListener('DOMContentLoaded', function(){
+        document.querySelectorAll('.wh-kpi-value, .wh-kpi-card .wh-kpi-value, .wh-stat-val').forEach(function(el){
+            var raw=(el.textContent||'').replace(/[^\d]/g,''); var target=parseInt(raw,10);
+            if(isNaN(target) || target===0) return;
+            var cur=0, step=Math.max(1, Math.ceil(target/30));
+            el.textContent='0';
+            var iv=setInterval(function(){ cur+=step; if(cur>=target){ cur=target; clearInterval(iv);} el.textContent=cur.toLocaleString('fr-DZ'); }, 20);
+        });
+        document.addEventListener('keydown', function(e){
+            if(e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+            if(e.key==='?' ){ e.preventDefault(); showToast('Raccourcis: Ctrl+K palette · n nouveau · / recherche · ? aide','info'); }
+            if(e.key==='n' ){ var a=document.querySelector('a[href*="evenements/create"]'); if(a){ e.preventDefault(); location.href=a.href; } }
+            if(e.key==='/' ){ var s=document.querySelector('.wh-search input'); if(s){ e.preventDefault(); s.focus(); } }
+        });
+    });
 })();

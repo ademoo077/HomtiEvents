@@ -96,4 +96,20 @@ final class NotificationController extends Controller
 
         json_response(['success' => true]);
     }
+
+    public function stream(): never
+    {
+        $this->requireAuth();
+        $user = Session::user();
+        $userId = (int) ($user['id'] ?? 0);
+        header('Content-Type: text/event-stream');
+        header('Cache-Control: no-cache');
+        header('Connection: keep-alive');
+        header('X-Accel-Buffering: no');
+        $count = Notification::unreadCount($userId);
+        echo "data: " . json_encode(['count' => $count]) . "\n\n";
+        @ob_flush(); @flush();
+        // keep-alive single shot — client will fallback to polling
+        exit;
+    }
 }

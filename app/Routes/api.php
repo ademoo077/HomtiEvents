@@ -20,8 +20,9 @@ use App\Middleware\RoleMiddleware;
 
 // ── API publique ───────────────────────────────────────────────
 $router->get('api/evenements', 'Api\EvenementController@index')->name('api.evenements');
-$router->get('api/evenements/{id}', 'Api\EvenementController@show');
+$router->get('api/evenements/suivi', 'Api\EvenementController@suivi')->name('api.evenements.suivi');
 $router->get('api/evenements/nearby', 'Api\EvenementController@nearby')->name('api.evenements.nearby');
+$router->get('api/evenements/{id}', 'Api\EvenementController@show');
 $router->get('api/map', 'Api\MapController@index')->name('api.map');
 $router->get('api/stats', 'Api\StatsController@global')->name('api.stats');
 $router->get('api/lang/{locale}', 'Api\LangController@translations');
@@ -36,14 +37,18 @@ $router->middleware([AuthMiddleware::class])->post('api/push/unsubscribe', 'Api\
 
 // ── API notifications (compteur non lues) ──────────────────────
 $router->middleware([AuthMiddleware::class])->get('api/notifications/unread', 'NotificationController@unreadCount')->name('api.notifications.unread');
+$router->middleware([AuthMiddleware::class])->get('api/notifications/stream', 'NotificationController@stream')->name('api.notifications.stream');
 
 // ── API Carto & Search (authentifiée) ─────────────────────────
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->get('api/wilaya/carto', 'Api\CalendarController@carto')->name('api.wilaya.carto');
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])->get('api/wilaya/search', 'Api\CalendarController@search')->name('api.wilaya.search');
 
-// ── API Dashboard EPIC (événements d'un jour, authentifiée) ───
+// ── API Dashboard EPIC (événements d'un jour / mois, authentifiée) ───
 $router->middleware([AuthMiddleware::class])->get('api/epic/events', 'Api\EpicDashboardApi@eventsDuJour')->name('api.epic.events');
+$router->middleware([AuthMiddleware::class])->get('api/epic/calendar', 'Api\EpicDashboardApi@calendarMois')->name('api.epic.calendar');
 
 // ── API Routage : diagnostic (wilaya) ─────────────────────────────
 $router->middleware([AuthMiddleware::class, RoleMiddleware::class . ':wilaya'])
     ->get('api/routing/debug', 'Api\RoutingDebugApi@debug')->name('api.routing.debug');
+
+// ── API Chatbot (removed — chatbot is 100% client-side JS) ────────

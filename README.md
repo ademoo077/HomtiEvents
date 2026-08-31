@@ -1,8 +1,25 @@
-# Wilaya Harmonia
+# 🏛️ Wilaya Harmonia
 
-Plateforme web de gestion événementielle citoyenne : les **Associations** soumettent des demandes d'opérations (nettoyage, plantation, réhabilitation…), la **Wilaya** les valide, les **programme** et génère un **QR code** de check-in ; les **Citoyens** participent, gagnent des **points et badges**, et les **EPIC** (ADE, NETCOM, ASROUT, EDEVAL) coordonnent les interventions.
+> **Plateforme de gestion événementielle citoyenne** — Bordeaux de la participation civique en Algérie. Les Associations soumettent des demandes d'opérations (nettoyage, plantation, réhabilitation…), la Wilaya les valide, les programme et génère un QR code de check-in ; les Citoyens participent, gagnent des points et badges, et les EPIC (ADE, NETCOM, ASROUT, EDEVAL) coordonnent les interventions.
 
-PHP 8.2+ · MariaDB/MySQL · PDO préparé · RBAC 7 niveaux · i18n FR/AR RTL · PWA · RGPD.
+[![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php&logoColor=white)](https://www.php.net)
+[![MariaDB](https://img.shields.io/badge/MariaDB-10.6%2B-003545?logo=mariadb&logoColor=white)](https://mariadb.org)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-3-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![Leaflet](https://img.shields.io/badge/Leaflet-OpenStreetMap-199900?logo=leaflet&logoColor=white)](https://leafletjs.com)
+[![PWA](https://img.shields.io/badge/PWA-Progressives-5A0FC8?logo=pwa&logoColor=white)](https://web.dev/progressive-web-apps)
+[![License](https://img.shields.io/badge/license-MIT-3DA639)](#licence)
+
+Plateforme **100 % auto-hébergée** : PHP 8.2+ · MariaDB/MySQL · PDO préparé · RBAC 7 niveaux · i18n FR/AR **RTL** · PWA · conformité RGPD.
+
+---
+
+### ✨ Points forts
+
+- **Cycle de vie complet** des opérations avec validation Wilaya, programmation, QR check-in, journal d'audit et historique immuables.
+- **QR codes** sécurisés (UUID v4, fenêtre de validité, anti re-scan) & **gamification** citoyenne (points, badges, classement).
+- **Coordination EPIC** (ADE, NETCOM, ASROUT, EDEVAL) et **espaces dédiés** Association / Citoyen / Membre.
+- **Carte Leaflet / OpenStreetMap**, **i18n FR/AR RTL**, **PWA hors-ligne** et **CMS Landing** administrable.
+- **Backup automatisé** (MySQL + uploads) vers Google Drive via `wilaya-backup.sh`.
 
 ---
 

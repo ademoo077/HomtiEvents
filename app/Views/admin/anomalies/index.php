@@ -3,15 +3,29 @@
 $title = __('common.anomalies');
 $page  = 'admin.anomalies.index';
 ?>
+<style>
+.wh-anomalies-hero{background:linear-gradient(135deg,#dc3545 0%,#F59E0B 100%);border-radius:var(--wh-radius);padding:1.75rem 2rem;color:#fff;position:relative;overflow:hidden}
+.wh-anomalies-hero::before{content:"";position:absolute;top:-40%;right:-5%;width:300px;height:300px;background:rgba(255,255,255,.07);border-radius:50%}
+.wh-anomalies-hero h1{position:relative;z-index:1;margin:0}
+.wh-anomalies-hero p{position:relative;z-index:1;opacity:.85}
+.wh-anomalies-hero .btn{position:relative;z-index:1}
+@media(max-width:767.98px){.wh-anomalies-hero{padding:1.25rem 1rem}.wh-anomalies-hero h1{font-size:1.2rem}}
+</style>
+
 <div class="wh-page">
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-        <div>
-            <h1 class="wh-page-title"><?= e(__('common.anomalies')) ?></h1>
-            <p class="wh-page-sub"><?= e($total) ?> <?= e(__('common.anomalies')) ?></p>
+    <div class="wh-anomalies-hero mb-4">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div>
+                <h1 class="d-flex align-items-center gap-2" style="font-size:1.5rem">
+                    <i class="mdi mdi-alert-octagon"></i>
+                    <?= e(__('common.anomalies')) ?>
+                </h1>
+                <p class="mt-1 mb-0"><?= e($total) ?> <?= e(__('common.anomalies')) ?></p>
+            </div>
+            <a class="btn btn-light" href="<?= url('admin/anomalies/create') ?>">
+                <i class="mdi mdi-plus me-1"></i><?= e(__('common.create')) ?>
+            </a>
         </div>
-        <a class="btn btn-primary" href="<?= url('admin/anomalies/create') ?>">
-            <i class="mdi mdi-plus me-1"></i><?= e(__('common.create')) ?>
-        </a>
     </div>
 
     <form method="get" action="<?= url('admin/anomalies') ?>" class="wh-filters mb-3">
@@ -44,6 +58,7 @@ $page  = 'admin.anomalies.index';
     </div>
 
     <div class="card border-0 shadow-sm">
+        <div class="card-header" style="background:var(--wh-red-soft);border-bottom:2px solid #dc3545"><h6 class="mb-0 fw-bold" style="color:#dc3545"><i class="mdi mdi-alert-octagon me-2"></i><?= e(__('common.anomalies')) ?></h6></div>
         <div class="table-responsive">
             <table class="table align-middle mb-0">
                 <thead class="table-light">

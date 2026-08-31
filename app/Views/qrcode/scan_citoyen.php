@@ -5,12 +5,18 @@ use App\Helpers\I18n;
 $isAr = I18n::direction() === 'rtl';
 ?>
 
-<div class="citoyen-section">
-    <div class="citoyen-section-header">
-        <h2 class="citoyen-section-title"><?= e(__('common.qrcode')) ?></h2>
+<div class="wh-hero" style="background: linear-gradient(135deg, #0B5ED7 0%, #6C63FF 100%)">
+    <div class="wh-hero-inner">
+        <div class="wh-hero-row">
+            <div class="wh-hero-text">
+                <h1 class="wh-hero-title"><i class="mdi mdi-qrcode-scan me-2"></i><?= e(__('common.qrcode')) ?></h1>
+                <p class="wh-hero-sub"><?= $isAr ? 'فحص رموز QR لحضور الفعاليات.' : 'Scanner les QR codes de présence des événements.' ?></p>
+            </div>
+        </div>
     </div>
+</div>
 
-    <p class="citoyen-scan-text"><?= $isAr ? 'فحص رموز QR لحضور الفعاليات.' : 'Scanner les QR codes de présence des événements.' ?></p>
+<div class="citoyen-section">
 
     <div class="citoyen-scan-area">
         <div class="citoyen-scan-icon">
@@ -67,3 +73,5 @@ $isAr = I18n::direction() === 'rtl';
     });
 })();
 </script>
+
+<style>.wh-hero{border-radius:0 0 1.5rem 1.5rem;padding:1.5rem;margin-bottom:1.5rem}.wh-hero-inner{max-width:1200px;margin:0 auto}.wh-hero-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}.wh-hero-title{color:#fff;font-size:1.35rem;font-weight:700;margin:0}.wh-hero-sub{color:rgba(255,255,255,.8);font-size:.85rem;margin:.25rem 0 0}.wh-hero-actions{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}</style>

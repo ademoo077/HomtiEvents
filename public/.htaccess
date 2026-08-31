@@ -1,7 +1,7 @@
 Options -Indexes
 RewriteEngine On
 
-# Forcer HTTPS (décommenter en production)
+# Forcer HTTPS (activer en production avec certificat SSL)
 # RewriteCond %{HTTPS} !=on
 # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
@@ -14,9 +14,20 @@ RewriteRule ^ - [L]
 RewriteRule ^ index.php [L]
 
 # Protection des fichiers sensibles
-<FilesMatch "\.(env|log|lock|job)$">
+<FilesMatch "\.(env|log|lock|job|sql|md|git|gitignore|example|ini|sh)$">
     Require all denied
 </FilesMatch>
+
+# Bloquer l'accès aux dossiers système
+<IfModule mod_rewrite.c>
+    RewriteRule (^|/)\.(?!well-known/) - [F]
+</IfModule>
+
+# Upload limit (override PHP default)
+<IfModule mod_php.c>
+    php_value upload_max_filesize 10M
+    php_value post_max_size 12M
+</IfModule>
 
 <IfModule mod_headers.c>
     Header set X-Content-Type-Options "nosniff"

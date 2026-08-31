@@ -1,22 +1,77 @@
 {
-  "name": "Wilaya Harmonia",
-  "short_name": "Harmonia",
+  "name": "حومتي ايفانت",
+  "short_name": "حومتي",
   "description": "Plateforme de coordination citoyenne : signalement et participation aux événements de la wilaya.",
-  "start_url": "/",
+  "start_url": "/citoyen",
   "scope": "/",
+  "id": "/citoyen",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f4f7fb",
-  "theme_color": "#4f46e5",
+  "background_color": "#FAF6EC",
+  "theme_color": "#0F2B22",
   "lang": "fr",
   "dir": "ltr",
+  "categories": ["civic", "events", "government"],
+  "prefer_related_applications": false,
   "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/assets/img/icon-144.png", "sizes": "144x144", "type": "image/png", "purpose": "any" },
     { "src": "/assets/img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/img/icon-256.png", "sizes": "256x256", "type": "image/png", "purpose": "any" },
     { "src": "/assets/img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "/assets/img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
+  "screenshots": [
+    {
+      "src": "/assets/img/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Espace citoyen"
+    }
+  ],
   "shortcuts": [
-    { "name": "Scanner un QR", "url": "/qrcode/scan", "icons": [{ "src": "/assets/img/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Événements", "url": "/evenements", "icons": [{ "src": "/assets/img/icon-192.png", "sizes": "192x192" }] }
-  ]
+    {
+      "name": "Scanner un QR",
+      "short_name": "Scanner",
+      "url": "/qrcode/scan-optimise",
+      "icons": [{ "src": "/assets/img/icon-192.png", "sizes": "192x192" }],
+      "description": "Scanner un QR Code pour participer"
+    },
+    {
+      "name": "Événements à venir",
+      "short_name": "Événements",
+      "url": "/citoyen/explorer",
+      "icons": [{ "src": "/assets/img/icon-192.png", "sizes": "192x192" }],
+      "description": "Explorer les événements"
+    },
+    {
+      "name": "Mes participations",
+      "short_name": "Participations",
+      "url": "/citoyen/participations",
+      "icons": [{ "src": "/assets/img/icon-192.png", "sizes": "192x192" }],
+      "description": "Voir mes participations"
+    },
+    {
+      "name": "Mon profil",
+      "short_name": "Profil",
+      "url": "/citoyen/profile",
+      "icons": [{ "src": "/assets/img/icon-192.png", "sizes": "192x192" }],
+      "description": "Consulter mon profil"
+    }
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "display_override": ["standalone", "minimal-ui"],
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  }
 }

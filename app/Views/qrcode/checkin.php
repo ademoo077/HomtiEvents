@@ -226,6 +226,45 @@ $eventTime = ! empty($event['heure']) ? substr((string) $event['heure'], 0, 5) :
             font-weight: 700;
         }
         .check-badge .mdi { font-size: 1rem; }
+        .invite-form { display: flex; flex-direction: column; gap: .7rem; }
+        .invite-field { text-align: start; }
+        .invite-field label {
+            display: block;
+            font-size: .72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            color: var(--muted);
+            margin-bottom: .3rem;
+        }
+        .invite-field input {
+            width: 100%;
+            padding: .7rem .9rem;
+            font-size: .95rem;
+            font-family: inherit;
+            border: 1.5px solid var(--border);
+            border-radius: .7rem;
+            background: #fff;
+            color: var(--text);
+            transition: border-color .15s, box-shadow .15s;
+        }
+        .invite-field input:focus {
+            outline: none;
+            border-color: var(--primary-600);
+            box-shadow: 0 0 0 3px rgba(21, 128, 61, .12);
+        }
+        .invite-error {
+            display: none;
+            margin-top: .7rem;
+            padding: .6rem .8rem;
+            background: var(--danger-100);
+            color: var(--danger);
+            border-radius: .6rem;
+            font-size: .82rem;
+            font-weight: 600;
+            text-align: start;
+        }
+        .invite-error.show { display: block; }
     </style>
 </head>
 <body>
@@ -308,14 +347,42 @@ $eventTime = ! empty($event['heure']) ? substr((string) $event['heure'], 0, 5) :
                             <?= $isAr ? 'سيتم تسجيل حضورك عند التحقق' : 'Votre présence sera enregistrée une fois vérifiée' ?>
                         </p>
                     <?php else: ?>
-                        <a href="<?= url('auth/login') ?>" class="btn btn-primary">
-                            <i class="mdi mdi-login"></i>
-                            <?= $isAr ? 'تسجيل الدخول للمشاركة' : 'Se connecter pour participer' ?>
-                        </a>
+                        <button class="btn btn-primary" id="btnInvite" type="button" onclick="showInviteForm()">
+                            <i class="mdi mdi-hand-wave"></i>
+                            <span><?= $isAr ? 'أشارك' : 'Je participe' ?></span>
+                        </button>
+                        <p style="margin:.9rem 0 .4rem; font-size:.8rem; color:var(--muted);">
+                            <?= $isAr ? 'المشاركة ممكنة دون إنشاء حساب' : 'Participation possible sans créer de compte' ?>
+                        </p>
+                        <div id="inviteFormWrap" style="display:none; margin-top:.75rem;">
+                            <form id="inviteForm" class="invite-form" novalidate>
+                                <div class="invite-field">
+                                    <label><?= $isAr ? 'الاسم الأخير' : 'Nom' ?></label>
+                                    <input type="text" name="nom" id="invNom" autocomplete="family-name" required>
+                                </div>
+                                <div class="invite-field">
+                                    <label><?= $isAr ? 'الاسم الأول' : 'Prénom' ?></label>
+                                    <input type="text" name="prenom" id="invPrenom" autocomplete="given-name" required>
+                                </div>
+                                <div class="invite-field">
+                                    <label><?= $isAr ? 'رقم الهاتف' : 'Numéro de téléphone' ?></label>
+                                    <input type="tel" name="telephone" id="invTel" autocomplete="tel" required>
+                                </div>
+                                <button class="btn btn-primary" type="submit" id="btnInviteSubmit">
+                                    <i class="mdi mdi-check-circle" id="invIcon"></i>
+                                    <span id="invLabel"><?= $isAr ? 'تأكيد المشاركة' : 'Confirmer ma participation' ?></span>
+                                    <span class="spinner" id="invSpinner"></span>
+                                </button>
+                                <p class="invite-note" style="margin-top:.6rem; font-size:.72rem; color:var(--muted); line-height:1.5;">
+                                    <i class="mdi mdi-shield-check-outline" style="color:var(--primary-600);"></i>
+                                    <?= $isAr ? 'ستُرسل معلوماتك إلى الجمعية المنظمة' : 'Vos informations seront transmises à l\'association organisatrice' ?>
+                                </p>
+                            </form>
+                        </div>
                         <div class="btn-spacer"></div>
-                        <a href="<?= url('auth/register') ?>" class="btn btn-outline">
-                            <i class="mdi mdi-account-plus"></i>
-                            <?= $isAr ? 'إنشاء حساب' : 'Créer un compte' ?>
+                        <a href="<?= url('auth/login') ?>" class="btn btn-outline">
+                            <i class="mdi mdi-login"></i>
+                            <?= $isAr ? 'لديك حساب؟ سجّل الدخول' : 'Vous avez un compte ? Se connecter' ?>
                         </a>
                     <?php endif; ?>
                 </div>
@@ -334,7 +401,7 @@ $eventTime = ! empty($event['heure']) ? substr((string) $event['heure'], 0, 5) :
         <?php endif; ?>
         <div class="checkin-footer">
             <i class="mdi mdi-heart"></i>
-            <span><?= $isAr ? 'ولاية هارمونيا' : 'Wilaya Harmonia' ?></span>
+            <span>حومتي ايفانت</span>
         </div>
     </div>
 
@@ -380,6 +447,81 @@ $eventTime = ! empty($event['heure']) ? substr((string) $event['heure'], 0, 5) :
             document.getElementById('errorText').textContent = '<?= $isAr ? 'خطأ في الشبكة، حاول مجدداً' : 'Erreur réseau. Veuillez réessayer.' ?>';
         });
     }
+    </script>
+    <?php endif; ?>
+    <?php if (! $invalid && ! $already && ! is_logged()): ?>
+    <script>
+    function showInviteForm() {
+        var wrap = document.getElementById('inviteFormWrap');
+        var btn = document.getElementById('btnInvite');
+        if (wrap.style.display === 'none') {
+            wrap.style.display = 'block';
+            btn.style.display = 'none';
+            document.getElementById('invPrenom').focus();
+        } else {
+            wrap.style.display = 'none';
+        }
+    }
+
+    (function () {
+        'use strict';
+        var form = document.getElementById('inviteForm');
+        if (!form) return;
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            var submit = document.getElementById('btnInviteSubmit');
+            var spinner = document.getElementById('invSpinner');
+            var icon = document.getElementById('invIcon');
+            var label = document.getElementById('invLabel');
+            var errBox = document.getElementById('inviteError');
+            if (!errBox) {
+                errBox = document.createElement('div');
+                errBox.className = 'invite-error';
+                errBox.id = 'inviteError';
+                form.appendChild(errBox);
+            }
+            errBox.classList.remove('show');
+            errBox.textContent = '';
+            var payload = '_token=' + encodeURIComponent('<?= csrf_token() ?>')
+                + '&nom=' + encodeURIComponent(document.getElementById('invNom').value)
+                + '&prenom=' + encodeURIComponent(document.getElementById('invPrenom').value)
+                + '&telephone=' + encodeURIComponent(document.getElementById('invTel').value);
+            submit.disabled = true;
+            icon.style.display = 'none';
+            label.style.display = 'none';
+            spinner.style.display = 'inline-block';
+
+            fetch('<?= url('checkin/' . $qr['token_qr'] . '/invitee?ajax=1') ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': '<?= csrf_token() ?>'
+                },
+                body: payload
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.success) {
+                    document.getElementById('checkinForm').style.display = 'none';
+                    document.getElementById('successMsg').style.display = 'block';
+                } else {
+                    errBox.textContent = data.error || '<?= $isAr ? 'خطأ غير معروف' : 'Erreur inconnue' ?>';
+                    errBox.classList.add('show');
+                }
+            })
+            .catch(function () {
+                errBox.textContent = '<?= $isAr ? 'خطأ في الشبكة، حاول مجدداً' : 'Erreur réseau. Veuillez réessayer.' ?>';
+                errBox.classList.add('show');
+            })
+            .finally(function () {
+                submit.disabled = false;
+                icon.style.display = '';
+                label.style.display = '';
+                spinner.style.display = 'none';
+            });
+        });
+    })();
     </script>
     <?php endif; ?>
 </body>

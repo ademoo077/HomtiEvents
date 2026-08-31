@@ -40,24 +40,30 @@ final class Gamification
                 continue;
             }
 
-            if (self::conditionSatisfied($userId, $badge['condition_type'])) {
-                Database::insert('user_badges', [
-                    'user_id' => $userId,
-                    'badge_id' => (int) $badge['id'],
-                ]);
+            if (! self::conditionSatisfied($userId, $badge['condition_type'])) {
+                continue;
+            }
 
-                if ((int) $badge['points_recompense'] > 0) {
-                    Database::run('UPDATE users SET points = points + ? WHERE id = ?', [(int) $badge['points_recompense'], $userId]);
-                }
+            Database::insert('user_badges', [
+                'user_id'  => $userId,
+                'badge_id' => (int) $badge['id'],
+            ]);
 
-                Notification::send(
+            if ((int) $badge['points_recompense'] > 0) {
+                self::awardPoints(
                     $userId,
-                    __('gamification.badge_gagne') . ' : ' . $badge['nom'],
-                    $badge['description'] ?? '',
-                    'badge',
-                    ['badge_id' => (int) $badge['id']]
+                    (int) $badge['points_recompense'],
+                    __('gamification.badge_gagne') . ' : ' . $badge['nom']
                 );
             }
+
+            Notification::send(
+                $userId,
+                __('gamification.badge_gagne') . ' : ' . $badge['nom'],
+                $badge['description'] ?? '',
+                'badge',
+                ['badge_id' => (int) $badge['id']]
+            );
         }
     }
 
@@ -69,12 +75,16 @@ final class Gamification
     private static function conditionSatisfied(int $userId, string $condition): bool
     {
         return match ($condition) {
-            'first_event' => self::eventsForAssociation($userId) >= 1,
-            '10_events'   => self::eventsForAssociation($userId) >= 10,
-            '50_events'   => self::eventsForAssociation($userId) >= 50,
-            '100_scans'   => self::scans($userId) >= 100,
-            '1000_scans'  => self::scans($userId) >= 1000,
-            default       => false,
+            'first_event'          => self::eventsForAssociation($userId) >= 1,
+            '10_events'            => self::eventsForAssociation($userId) >= 10,
+            '50_events'            => self::eventsForAssociation($userId) >= 50,
+            'first_participation'  => self::scans($userId) >= 1,
+            '5_participations'     => self::scans($userId) >= 5,
+            '25_participations'    => self::scans($userId) >= 25,
+            '50_participations'    => self::scans($userId) >= 50,
+            '100_scans'            => self::scans($userId) >= 100,
+            '1000_scans'           => self::scans($userId) >= 1000,
+            default                => false,
         };
     }
 

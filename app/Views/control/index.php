@@ -23,7 +23,6 @@ $tabs = [
 $activeTab = (string) input('tab', 'dashboard');
 ?>
 <div class="futur-control">
-    <!-- Header avec navigation par onglets -->
     <div class="futur-control-header mb-4">
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
             <div>
@@ -32,11 +31,11 @@ $activeTab = (string) input('tab', 'dashboard');
             </div>
         </div>
 
-        <!-- Onglets principaux -->
         <nav class="futur-tabs" role="tablist" aria-label="<?= e(__('control.tabs')) ?>">
             <?php foreach ($tabs as $key => $tab): ?>
                 <a class="futur-tab <?= $activeTab === $key ? 'active' : '' ?>"
                    href="<?= url('control?tab=' . $key) ?>"
+                   data-tab="<?= e($key) ?>"
                    role="tab"
                    aria-selected="<?= $activeTab === $key ? 'true' : 'false' ?>">
                     <i class="mdi <?= $tab['icon'] ?>"></i>
@@ -46,57 +45,101 @@ $activeTab = (string) input('tab', 'dashboard');
         </nav>
     </div>
 
-    <?php
-    // Inclure le contenu de l'onglet actif
-    $tabFile = __DIR__ . '/control.tabs/' . $activeTab . '.php';
-    if (is_file($tabFile)) {
-        include $tabFile;
-    } else {
-        // Fallback vers l'ancien dashboard
-        include __DIR__ . '/control.tabs/dashboard.php';
-    }
-    ?>
+    <div id="cc-tab-content">
+        <?php
+        $tabFile = __DIR__ . '/control.tabs/' . $activeTab . '.php';
+        if (is_file($tabFile)) {
+            include $tabFile;
+        } else {
+            include __DIR__ . '/control.tabs/dashboard.php';
+        }
+        ?>
+    </div>
 </div>
 
-<style>
-.futur-tabs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    border-bottom: 2px solid var(--futur-border, #e2e8f0);
-    padding-bottom: 2px;
-    margin-top: 8px;
-}
-.futur-tab {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    border-radius: 8px 8px 0 0;
-    text-decoration: none;
-    color: var(--futur-text-muted, #64748b);
-    font-weight: 500;
-    font-size: 0.85rem;
-    transition: all 0.15s ease;
-    background: transparent;
-    border: 1px solid transparent;
-    border-bottom: none;
-    white-space: nowrap;
-}
-.futur-tab:hover {
-    color: var(--futur-primary, #6366f1);
-    background: rgba(99, 102, 241, 0.05);
-}
-.futur-tab.active {
-    color: var(--futur-primary, #6366f1);
-    background: var(--futur-bg, #f8fafc);
-    border-color: var(--futur-border, #e2e8f0);
-    border-bottom: 2px solid var(--futur-bg, #f8fafc);
-    margin-bottom: -2px;
-}
-.futur-tab i { font-size: 1rem; }
-@media (max-width: 768px) {
-    .futur-tab { padding: 6px 10px; font-size: 0.78rem; }
-    .futur-tab span { display: none; }
-}
-</style>
+<script>
+(function () {
+    var container = document.getElementById('cc-tab-content');
+    var tabs      = document.querySelectorAll('.futur-tab[data-tab]');
+    var current   = <?= json_encode($activeTab) ?>;
+    var baseUrl   = <?= json_encode(url('control')) ?>;
+    var tabUrl    = <?= json_encode(url('control/tab/')) ?>;
+
+    /* ── Restaurer dernier onglet visité ─────────────────────── */
+    try {
+        var saved = sessionStorage.getItem('cc_last_tab');
+        if (saved && saved !== current && document.querySelector('.futur-tab[data-tab="' + saved + '"]')) {
+            navigateTo(saved, false);
+        }
+    } catch (e) { /* sessionStorage indisponible */ }
+
+    /* ── Clic sur un onglet ─────────────────────────────────── */
+    tabs.forEach(function (tab) {
+        tab.addEventListener('click', function (e) {
+            e.preventDefault();
+            var target = this.getAttribute('data-tab');
+            if (target === current) return;
+            navigateTo(target, true);
+        });
+    });
+
+    /* ── Navigation ─────────────────────────────────────────── */
+    function navigateTo(tab, pushState) {
+        /* Spinner sur l'onglet cible */
+        var targetEl = document.querySelector('.futur-tab[data-tab="' + tab + '"]');
+        if (targetEl) targetEl.classList.add('is-loading');
+
+        /* Skeleton dans le contenu */
+        container.classList.add('cc-loading');
+
+        fetch(tabUrl + tab, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function (r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.text();
+        })
+        .then(function (html) {
+            container.innerHTML = html;
+            current = tab;
+
+            /* Mettre à jour les classes actives */
+            tabs.forEach(function (t) {
+                var isActive = t.getAttribute('data-tab') === tab;
+                t.classList.toggle('active', isActive);
+                t.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            });
+
+            /* URL */
+            if (pushState) {
+                history.pushState({ tab: tab }, '', baseUrl + '?tab=' + tab);
+                try { sessionStorage.setItem('cc_last_tab', tab); } catch (e) {}
+            }
+
+            /* Scroll en haut */
+            container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        })
+        .catch(function () {
+            /* Fallback : rechargement complet */
+            window.location.href = baseUrl + '?tab=' + tab;
+        })
+        .finally(function () {
+            if (targetEl) targetEl.classList.remove('is-loading');
+            container.classList.remove('cc-loading');
+        });
+    }
+
+    /* ── Popstate (bouton retour navigateur) ────────────────── */
+    window.addEventListener('popstate', function (e) {
+        var state = e.state;
+        if (state && state.tab) {
+            navigateTo(state.tab, false);
+        }
+    });
+
+    /* État initial pour le bouton retour */
+    if (history.replaceState) {
+        history.replaceState({ tab: current }, '', window.location.href);
+    }
+})();
+</script>

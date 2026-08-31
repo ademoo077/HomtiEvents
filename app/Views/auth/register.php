@@ -1,4 +1,11 @@
 <?php /** @var array $errors @var string $next */ ?>
+
+<div class="mb-3">
+    <a href="<?= url('/') ?>" class="d-inline-flex align-items-center gap-1" style="color:#5A6B60;font-size:.85rem;text-decoration:none">
+        <i class="mdi mdi-arrow-left"></i> <?= App\Helpers\I18n::direction() === 'rtl' ? 'العودة للرئيسية' : "Retour à l'accueil" ?>
+    </a>
+</div>
+
 <form method="post" action="<?= url('auth/register') ?>">
     <?= csrf_field() ?>
     <?php if (! empty($next)): ?><input type="hidden" name="next" value="<?= e($next) ?>"><?php endif; ?>

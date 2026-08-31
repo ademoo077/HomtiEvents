@@ -15,72 +15,81 @@ $dir   = I18n::direction();
 $cover = (string) ($album['couverture'] ?? '');
 ?>
 <div class="wh-page">
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-        <div>
-            <h1 class="wh-page-title">
-                <i class="mdi mdi-image-multiple me-2"></i><?= e(__('common.gallery')) ?>
-            </h1>
-            <p class="wh-page-sub">
-                <?= e($event['adresse'] ?? '') ?>
-                <?php if (! empty($event['commune_nom'])): ?>
-                    — <?= e($event['commune_nom']) ?>
-                <?php endif; ?>
-                <?php if (! empty($event['date_evenement'])): ?>
-                    · <?= e($event['date_evenement']) ?>
-                <?php endif; ?>
-            </p>
-        </div>
-        <div class="d-flex gap-2">
-            <a class="btn btn-outline-secondary" href="<?= url('wilaya/evenements/' . (int) $event['id']) ?>">
-                <i class="mdi mdi-arrow-left me-1"></i><?= e(__('common.back')) ?>
-            </a>
-            <a class="btn btn-primary" href="<?= url('wilaya/evenements/' . (int) $event['id'] . '/photos/create') ?>">
-                <i class="mdi mdi-plus me-1"></i><?= e(__('gallery.add_photos')) ?>
-            </a>
+    <!-- Gradient Hero -->
+    <div class="mb-4" style="background:linear-gradient(135deg, #0B5ED7 0%, #6610f2 100%);border-radius:var(--wh-radius);padding:1.75rem 2rem;color:#fff;position:relative;overflow:hidden">
+        <div style="position:absolute;top:-40%;right:-8%;width:320px;height:320px;background:rgba(255,255,255,.08);border-radius:50%"></div>
+        <div style="position:absolute;bottom:-30%;left:5%;width:200px;height:200px;background:rgba(255,255,255,.05);border-radius:50%"></div>
+        <div class="row align-items-center" style="position:relative;z-index:1">
+            <div class="col-lg-7">
+                <h1 class="mb-1" style="font-size:1.5rem;font-weight:800">
+                    <i class="mdi mdi-image-multiple me-2"></i><?= e(__('common.gallery')) ?>
+                </h1>
+                <p class="mb-0" style="opacity:.85;font-size:.9rem">
+                    <?= e($event['adresse'] ?? '') ?>
+                    <?php if (! empty($event['commune_nom'])): ?>
+                        · <?= e($event['commune_nom']) ?>
+                    <?php endif; ?>
+                    <?php if (! empty($event['date_evenement'])): ?>
+                        · <?= e($event['date_evenement']) ?>
+                    <?php endif; ?>
+                    · <?= count($photos) ?> <?= e(__('gallery.photos_count')) ?>
+                </p>
+            </div>
+            <div class="col-lg-5 text-lg-end mt-3 mt-lg-0">
+                <a class="btn btn-light btn-lg" href="<?= url('wilaya/evenements/' . (int) $event['id']) ?>">
+                    <i class="mdi mdi-arrow-left me-1"></i><?= e(__('common.back')) ?>
+                </a>
+                <a class="btn btn-warning btn-lg ms-2 fw-bold" href="<?= url('wilaya/evenements/' . (int) $event['id'] . '/photos/create') ?>">
+                    <i class="mdi mdi-plus me-1"></i><?= e(__('gallery.add_photos')) ?>
+                </a>
+            </div>
         </div>
     </div>
 
     <?php if ($album !== null): ?>
 
         <!-- ═══ GESTION DE L'ALBUM ═══ -->
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-body">
+        <div class="card border-0 shadow-sm mb-4" style="border-radius:var(--wh-radius)">
+            <div class="card-body p-3 p-md-4">
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
                     <div class="d-flex align-items-center gap-3 min-w-0">
                         <?php if ($photos !== []): ?>
-                            <img src="<?= e($cover !== '' ? $cover : $photos[0]['image']) ?>"
-                                 alt="<?= e($album['titre'] ?? '') ?>" class="wh-album-cover">
+                            <?php $coverPhoto = $cover !== '' ? array_filter($photos, fn ($p) => (string) ($p['image'] ?? '') === $cover) : null; ?>
+                            <?php $coverPhoto = $coverPhoto ? reset($coverPhoto) : $photos[0]; ?>
+                            <img src="<?= e(photo_src($coverPhoto)) ?>"
+                                 alt="<?= e($album['titre'] ?? '') ?>" style="width:80px;height:80px;border-radius:.75rem;object-fit:cover;flex-shrink:0;border:3px solid #fff;box-shadow:0 4px 12px rgba(0,0,0,.1)">
                         <?php else: ?>
-                            <div class="wh-album-cover d-flex align-items-center justify-content-center text-muted">
-                                <i class="mdi mdi-image-multiple"></i>
+                            <div style="width:80px;height:80px;border-radius:.75rem;background:var(--wh-purple-soft);display:grid;place-items:center;flex-shrink:0">
+                                <i class="mdi mdi-image-multiple" style="font-size:2rem;color:var(--wh-purple)"></i>
                             </div>
                         <?php endif; ?>
                         <div class="min-w-0">
-                            <h5 class="mb-1 text-truncate"><?= e($album['titre'] ?? '') ?></h5>
+                            <h5 class="mb-1 fw-bold" style="font-size:1.05rem"><?= e($album['titre'] ?? '') ?></h5>
                             <?php if (! empty($album['recit'])): ?>
-                                <p class="text-muted small mb-1 wh-album-recit"><?= e($album['recit']) ?></p>
+                                <p class="small mb-1" style="color:#64748b;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:500px"><?= e($album['recit']) ?></p>
                             <?php endif; ?>
-                            <small class="text-muted">
-                                <?= count($photos) ?> <?= e(__('gallery.photos_count')) ?>
-                                <span class="mx-1">·</span>
-                                <span class="badge <?= $album['statut'] === 'publie' ? 'bg-success' : 'bg-secondary' ?>">
+                            <div class="d-flex align-items-center gap-2">
+                                <small class="text-muted">
+                                    <i class="mdi mdi-camera me-1"></i><?= count($photos) ?> <?= e(__('gallery.photos_count')) ?>
+                                </small>
+                                <span class="badge <?= $album['statut'] === 'publie' ? 'bg-success' : 'bg-secondary' ?>" style="font-size:.68rem">
                                     <?= e(__('gallery.status_' . ($album['statut'] === 'publie' ? 'published' : 'draft'))) ?>
                                 </span>
-                            </small>
+                            </div>
                         </div>
                     </div>
                     <div class="d-flex gap-1 flex-wrap">
                         <?php if ($album['statut'] === 'publie'): ?>
-                            <form method="post" action="<?= url('wilaya/albums/' . (int) $album['id'] . '/unpublish') ?>" class="d-inline">
+                            <form method="post" action="<?= url('wilaya/albums/' . (int) $album['id'] . '/unpublish') ?>" data-confirm="<?= e(__('gallery.unpublish_confirm')) ?>" class="d-inline">
                                 <?= csrf_field() ?>
-                                <button type="submit" class="btn btn-sm btn-outline-warning" title="<?= e(__('gallery.unpublish')) ?>">
+                                <button type="submit" class="btn btn-sm btn-warning" title="<?= e(__('gallery.unpublish')) ?>">
                                     <i class="mdi mdi-eye-off me-1"></i><?= e(__('gallery.unpublish')) ?>
                                 </button>
                             </form>
                         <?php else: ?>
-                            <form method="post" action="<?= url('wilaya/albums/' . (int) $album['id'] . '/publish') ?>" class="d-inline">
+                            <form method="post" action="<?= url('wilaya/albums/' . (int) $album['id'] . '/publish') ?>" data-confirm="<?= e(__('gallery.publish_confirm')) ?>" class="d-inline">
                                 <?= csrf_field() ?>
-                                <button type="submit" class="btn btn-sm btn-outline-success" title="<?= e(__('gallery.publish')) ?>">
+                                <button type="submit" class="btn btn-sm btn-success" title="<?= e(__('gallery.publish')) ?>">
                                     <i class="mdi mdi-eye me-1"></i><?= e(__('gallery.publish')) ?>
                                 </button>
                             </form>
@@ -96,9 +105,9 @@ $cover = (string) ($album['couverture'] ?? '');
 
                 <!-- Sélecteur de couverture -->
                 <div class="collapse mt-3" id="coverPicker">
-                    <div class="pt-3 border-top">
-                        <small class="fw-semibold text-muted d-block mb-2">
-                            <i class="mdi mdi-image-outline me-1"></i><?= e(__('gallery.cover_active')) ?>
+                    <div class="pt-3" style="border-top:1px solid #e2e8f0">
+                        <small class="fw-bold d-block mb-2" style="color:#475569">
+                            <i class="mdi mdi-image-outline me-1" style="color:var(--wh-purple)"></i><?= e(__('gallery.cover_active')) ?>
                         </small>
                         <div class="row g-2">
                             <?php foreach ($photos as $ph): ?>
@@ -108,7 +117,7 @@ $cover = (string) ($album['couverture'] ?? '');
                                         <input type="hidden" name="photo_id" value="<?= (int) $ph['id'] ?>">
                                         <button type="submit" class="btn p-0 border-0 bg-transparent wh-cover-btn <?= $cover === (string) $ph['image'] ? 'wh-cover-active' : '' ?>"
                                                 title="<?= e(__('gallery.cover')) ?>">
-                                            <img src="<?= e($ph['image']) ?>" alt="" loading="lazy">
+                                            <img src="<?= e(photo_src($ph)) ?>" alt="" loading="lazy">
                                             <?php if ($cover === (string) $ph['image']): ?>
                                                 <span class="wh-cover-check"><i class="mdi mdi-check"></i></span>
                                             <?php endif; ?>
@@ -122,18 +131,18 @@ $cover = (string) ($album['couverture'] ?? '');
 
                 <!-- Édition du titre / récit -->
                 <div class="collapse mt-3" id="albumEdit">
-                    <form method="post" action="<?= url('wilaya/albums/' . (int) $album['id'] . '/update') ?>" class="row g-2 align-items-end pt-3 border-top">
+                    <form method="post" action="<?= url('wilaya/albums/' . (int) $album['id'] . '/update') ?>" class="row g-2 align-items-end pt-3" style="border-top:1px solid #e2e8f0">
                         <?= csrf_field() ?>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-medium" for="album_titre"><?= e(__('common.title')) ?></label>
-                            <input type="text" class="form-control form-control-sm" id="album_titre" name="titre" value="<?= e($album['titre'] ?? '') ?>" required>
+                        <div class="col-md-5">
+                            <label class="form-label fw-medium" style="font-size:.8rem;color:#475569" for="album_titre"><?= e(__('common.title')) ?></label>
+                            <input type="text" class="form-control form-control-sm" id="album_titre" name="titre" value="<?= e($album['titre'] ?? '') ?>" required style="border-radius:.55rem">
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-medium" for="album_recit"><?= e(__('gallery.description')) ?></label>
-                            <textarea class="form-control form-control-sm" id="album_recit" name="recit" rows="2"><?= e($album['recit'] ?? '') ?></textarea>
+                        <div class="col-md-5">
+                            <label class="form-label fw-medium" style="font-size:.8rem;color:#475569" for="album_recit"><?= e(__('gallery.description')) ?></label>
+                            <textarea class="form-control form-control-sm" id="album_recit" name="recit" rows="2" style="border-radius:.55rem"><?= e($album['recit'] ?? '') ?></textarea>
                         </div>
-                        <div class="col-12">
-                            <button type="submit" class="btn btn-sm btn-primary">
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-sm btn-primary w-100" style="border-radius:.55rem">
                                 <i class="mdi mdi-content-save me-1"></i><?= e(__('common.save')) ?>
                             </button>
                         </div>
@@ -149,7 +158,7 @@ $cover = (string) ($album['couverture'] ?? '');
                 <figure class="wh-photo" data-idx="<?= $i ?>">
                     <?php if ($hasImage): ?>
                         <button type="button" class="wh-photo-media wh-lb-open" data-src="<?= e($photo['image']) ?>" data-caption="<?= e($photo['legende'] ?? '') ?>" aria-label="<?= e($photo['legende'] ?? __('common.gallery')) ?>">
-                            <img src="<?= e($photo['image']) ?>" alt="<?= e($photo['legende'] ?? '') ?>" loading="lazy">
+                            <img src="<?= e(photo_src($photo)) ?>" alt="<?= e($photo['legende'] ?? '') ?>" loading="lazy">
                             <span class="wh-photo-order" title="<?= e(__('gallery.position')) ?>">#<?= $i + 1 ?></span>
                             <span class="wh-photo-zoom"><i class="mdi mdi-magnify-plus"></i></span>
                         </button>
@@ -209,10 +218,13 @@ $cover = (string) ($album['couverture'] ?? '');
             <?php endforeach; ?>
 
             <?php if ($photos === []): ?>
-                <div class="wh-empty w-100">
-                    <i class="mdi mdi-image-multiple"></i>
-                    <p><?= e(__('gallery.no_photos')) ?></p>
-                    <a href="<?= url('wilaya/evenements/' . (int) $event['id'] . '/photos/create') ?>" class="btn btn-primary mt-2">
+                <div class="text-center py-5 w-100">
+                    <div style="width:80px;height:80px;margin:0 auto 1rem;background:var(--wh-purple-soft);border-radius:50%;display:grid;place-items:center">
+                        <i class="mdi mdi-image-multiple" style="font-size:2.2rem;color:var(--wh-purple)"></i>
+                    </div>
+                    <h5 class="fw-bold mb-1"><?= e(__('gallery.no_photos')) ?></h5>
+                    <p class="text-muted mb-3" style="font-size:.9rem"><?= e(__('gallery.add_first')) ?></p>
+                    <a href="<?= url('wilaya/evenements/' . (int) $event['id'] . '/photos/create') ?>" class="btn btn-primary" style="border-radius:.55rem">
                         <i class="mdi mdi-plus me-1"></i><?= e(__('gallery.add_first')) ?>
                     </a>
                 </div>
@@ -231,10 +243,13 @@ $cover = (string) ($album['couverture'] ?? '');
         </div>
 
     <?php else: ?>
-        <div class="wh-empty">
-            <i class="mdi mdi-image-multiple"></i>
-            <p><?= e(__('gallery.no_album')) ?></p>
-            <a href="<?= url('wilaya/evenements/' . (int) $event['id'] . '/photos/create') ?>" class="btn btn-primary mt-2">
+        <div class="text-center py-5">
+            <div style="width:80px;height:80px;margin:0 auto 1rem;background:var(--wh-purple-soft);border-radius:50%;display:grid;place-items:center">
+                <i class="mdi mdi-image-multiple" style="font-size:2.2rem;color:var(--wh-purple)"></i>
+            </div>
+            <h5 class="fw-bold mb-1"><?= e(__('gallery.no_album')) ?></h5>
+            <p class="text-muted mb-3" style="font-size:.9rem"><?= e(__('gallery.create_album')) ?></p>
+            <a href="<?= url('wilaya/evenements/' . (int) $event['id'] . '/photos/create') ?>" class="btn btn-primary" style="border-radius:.55rem">
                 <i class="mdi mdi-plus me-1"></i><?= e(__('gallery.create_album')) ?>
             </a>
         </div>
@@ -242,25 +257,15 @@ $cover = (string) ($album['couverture'] ?? '');
 </div>
 
 <style>
-.wh-album-cover {
-    width: 84px;
-    height: 84px;
-    border-radius: 10px;
-    object-fit: cover;
-    flex-shrink: 0;
-    background: #f1f5f9;
-    font-size: 2rem;
-}
-.wh-album-recit {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
 .wh-masonry {
     columns: 3 260px;
     column-gap: 1rem;
+}
+@media (max-width: 767.98px) {
+    .wh-masonry { columns: 2 160px; column-gap: .65rem; }
+}
+@media (max-width: 575.98px) {
+    .wh-masonry { columns: 2 140px; column-gap: .5rem; }
 }
 .wh-photo {
     break-inside: avoid;
@@ -269,10 +274,10 @@ $cover = (string) ($album['couverture'] ?? '');
     border-radius: 12px;
     overflow: hidden;
     background: #fff;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, .08), 0 1px 2px rgba(15, 23, 42, .04);
-    transition: box-shadow .18s, transform .18s;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, .06), 0 1px 2px rgba(15, 23, 42, .04);
+    transition: box-shadow .22s, transform .22s;
 }
-.wh-photo:hover { box-shadow: 0 10px 24px rgba(15, 23, 42, .14); transform: translateY(-2px); }
+.wh-photo:hover { box-shadow: 0 12px 28px rgba(15, 23, 42, .14); transform: translateY(-3px); }
 .wh-photo-media {
     display: block;
     width: 100%;
@@ -320,7 +325,7 @@ $cover = (string) ($album['couverture'] ?? '');
     color: #fff;
     font-size: 1.8rem;
     opacity: 0;
-    transition: opacity .18s;
+    transition: opacity .22s;
 }
 .wh-photo-media:hover .wh-photo-zoom { opacity: 1; }
 .wh-photo-meta {
@@ -340,7 +345,7 @@ $cover = (string) ($album['couverture'] ?? '');
     gap: .3rem;
     opacity: 0;
     transform: translateY(-4px);
-    transition: opacity .18s, transform .18s;
+    transition: opacity .22s, transform .22s;
 }
 .wh-photo:hover .wh-photo-actions,
 .wh-photo:focus-within .wh-photo-actions { opacity: 1; transform: none; }
@@ -351,7 +356,8 @@ $cover = (string) ($album['couverture'] ?? '');
     align-items: center;
     justify-content: center;
     padding: 0;
-    box-shadow: 0 2px 6px rgba(15, 23, 42, .2);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, .22);
+    border-radius: .5rem;
 }
 
 .wh-cover-btn {
@@ -369,30 +375,32 @@ $cover = (string) ($album['couverture'] ?? '');
     transition: border-color .15s, opacity .15s;
 }
 .wh-cover-btn:hover img { opacity: .85; }
-.wh-cover-active img { border-color: var(--wh-primary, #2563eb); }
+.wh-cover-active img { border-color: var(--wh-primary, #0B5ED7); box-shadow:0 0 0 2px rgba(11,94,215,.3); }
 .wh-cover-check {
     position: absolute;
     top: 4px;
     inset-inline-end: 4px;
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
-    background: var(--wh-primary, #2563eb);
+    background: var(--wh-primary, #0B5ED7);
     color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: .8rem;
+    font-size: .75rem;
+    box-shadow: 0 2px 6px rgba(11,94,215,.4);
 }
 
 .wh-lightbox {
     position: fixed;
     inset: 0;
     z-index: 3000;
-    background: rgba(2, 6, 23, .92);
+    background: rgba(2, 6, 23, .94);
     display: flex;
     align-items: center;
     justify-content: center;
+    backdrop-filter: blur(8px);
 }
 .wh-lightbox[hidden] { display: none; }
 .wh-lb-figure {
@@ -407,7 +415,7 @@ $cover = (string) ($album['couverture'] ?? '');
 .wh-lb-img {
     max-width: 100%;
     max-height: 78vh;
-    border-radius: 10px;
+    border-radius: 12px;
     box-shadow: 0 24px 60px rgba(0, 0, 0, .5);
 }
 .wh-lb-caption {
@@ -423,22 +431,24 @@ $cover = (string) ($album['couverture'] ?? '');
     background: rgba(255, 255, 255, .12);
     color: #fff;
     border-radius: 50%;
-    width: 44px;
-    height: 44px;
+    width: 48px;
+    height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.4rem;
     cursor: pointer;
-    transition: background .15s;
+    transition: background .15s, transform .15s;
+    backdrop-filter: blur(6px);
 }
-.wh-lb-close:hover, .wh-lb-nav:hover { background: rgba(255, 255, 255, .24); }
+.wh-lb-close:hover, .wh-lb-nav:hover { background: rgba(255, 255, 255, .24); transform:scale(1.05); }
 .wh-lb-close { top: 18px; inset-inline-end: 18px; }
 .wh-lb-prev { inset-inline-start: 18px; top: 50%; transform: translateY(-50%); }
 .wh-lb-next { inset-inline-end: 18px; top: 50%; transform: translateY(-50%); }
 @media (max-width: 575.98px) {
     .wh-lb-prev { inset-inline-start: 6px; }
     .wh-lb-next { inset-inline-end: 6px; }
+    .wh-lb-close, .wh-lb-nav { width: 40px; height: 40px; font-size: 1.2rem; }
 }
 </style>
 

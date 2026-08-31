@@ -8,18 +8,23 @@ $error = static function (string $key) use ($errors): string {
 };
 ?>
 <div class="wh-page">
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-        <div>
-            <h1 class="wh-page-title"><?= e(__('common.edit')) ?> — <?= e($epic['nom']) ?></h1>
-            <p class="wh-page-sub"><?= e(__('common.epic')) ?></p>
+    <div class="wh-hero-panel mb-4" style="--hero-a:#0891b2;--hero-b:#0B5ED7">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div>
+                <h1 class="d-flex align-items-center gap-2" style="font-size:1.5rem">
+                    <i class="mdi mdi-pencil-outline"></i>
+                    <?= e(__('common.edit')) ?> — <?= e($epic['nom']) ?>
+                </h1>
+                <p class="mt-1 mb-0"><?= e(__('common.epic')) ?></p>
+            </div>
+            <a href="<?= url('admin/epics') ?>" class="btn btn-light"><i class="mdi mdi-arrow-left me-1"></i><?= e(__('common.back')) ?></a>
         </div>
-        <a href="<?= url('admin/epics') ?>" class="btn btn-outline-secondary"><i class="mdi mdi-arrow-left me-1"></i><?= e(__('common.back')) ?></a>
     </div>
 
     <form method="post" action="<?= url('admin/epics/' . (int) $epic['id'] . '/update') ?>" novalidate>
         <?= csrf_field() ?>
         <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header"><span><i class="mdi mdi-satellite-variant me-2"></i><?= e(__('common.epic')) ?></span></div>
+            <div class="card-header" style="background:var(--wh-cyan-soft);border-bottom:2px solid #0891b2"><h6 class="mb-0 fw-bold" style="color:#0891b2"><i class="mdi mdi-satellite-variant me-2"></i><?= e(__('common.epic')) ?></h6></div>
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-8">

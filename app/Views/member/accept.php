@@ -10,19 +10,20 @@ $isAr  = $dir === 'rtl';
 $errors = errors();
 $old    = old();
 ?>
-<div class="row justify-content-center">
-    <div class="col-md-7 col-lg-6">
-        <div class="card border-0 shadow-sm mt-4 mb-4">
-            <div class="card-body p-4">
-                <div class="text-center mb-3">
-                    <span class="wh-auth-logo"><i class="mdi mdi-account-plus-outline"></i></span>
-                    <h1 class="h4 mb-1"><?= e(__('members.accept_title')) ?></h1>
-                    <p class="text-muted">
-                        <?= $isAr ? 'دعوة للانضمام إلى' : 'Invitation à rejoindre' ?>
-                        <strong><?= e($association['nom'] ?? '') ?></strong>
-                        <span class="badge bg-light text-dark ms-1"><?= e($invitation['email']) ?></span>
-                    </p>
-                </div>
+<div class="wh-page" style="max-width:600px;margin:0 auto">
+    <div class="wh-hero text-center" style="background:linear-gradient(135deg,#4B5563 0%,#0B5ED7 100%);border-radius:0 0 1.5rem 1.5rem;padding:2rem 1.5rem;margin-bottom:1.5rem">
+        <div class="wh-hero-inner">
+            <span class="d-inline-flex align-items-center justify-content-center mb-2" style="width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.15);backdrop-filter:blur(8px)"><i class="mdi mdi-account-plus-outline" style="font-size:2rem;color:#fff"></i></span>
+            <h1 class="wh-hero-title" style="font-size:1.3rem"><?= e(__('members.accept_title')) ?></h1>
+            <p class="wh-hero-sub" style="margin-top:.5rem">
+                <?= $isAr ? 'دعوة للانضمام إلى' : 'Invitation à rejoindre' ?>
+                <strong><?= e($association['nom'] ?? '') ?></strong>
+                <span class="badge bg-light text-dark ms-1"><?= e($invitation['email']) ?></span>
+            </p>
+        </div>
+    </div>
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
 
                 <?php if ($existing !== null): ?>
                     <div class="alert alert-info">
@@ -70,6 +71,5 @@ $old    = old();
                     </form>
                 <?php endif; ?>
             </div>
-        </div>
     </div>
 </div>

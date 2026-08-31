@@ -8,17 +8,29 @@
 $title = 'Règles de routage';
 $page  = 'admin.routing.index';
 ?>
+<style>
+.wh-routing-hero{background:linear-gradient(135deg,#6d28d9 0%,#8B5CF6 100%);border-radius:var(--wh-radius);padding:1.75rem 2rem;color:#fff;position:relative;overflow:hidden}
+.wh-routing-hero::before{content:"";position:absolute;top:-40%;right:-5%;width:300px;height:300px;background:rgba(255,255,255,.07);border-radius:50%}
+.wh-routing-hero h1{position:relative;z-index:1;margin:0}
+.wh-routing-hero p{position:relative;z-index:1;opacity:.85}
+.wh-routing-hero .btn{position:relative;z-index:1}
+@media(max-width:767.98px){.wh-routing-hero{padding:1.25rem 1rem}.wh-routing-hero h1{font-size:1.2rem}}
+</style>
+
 <div class="wh-page">
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-        <div>
-            <h1 class="wh-page-title">
-                <i class="mdi mdi-router-network-outline me-2"></i>Règles de routage
-            </h1>
-            <p class="wh-page-sub">Priorité 1 : anomalie → organisation · Priorité 2 : anomalie + daira · Sinon : alerte admin.</p>
+    <div class="wh-routing-hero mb-4">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div>
+                <h1 class="d-flex align-items-center gap-2" style="font-size:1.5rem">
+                    <i class="mdi mdi-router-network-outline"></i>
+                    Règles de routage
+                </h1>
+                <p class="mt-1 mb-0">Priorité 1 : anomalie → organisation · Priorité 2 : anomalie + daira · Sinon : alerte admin.</p>
+            </div>
+            <a class="btn btn-light" href="<?= url('admin/routing?open=1') ?>">
+                <i class="mdi mdi-plus me-1"></i><?= e(__('common.create')) ?>
+            </a>
         </div>
-        <a class="btn btn-primary" href="<?= url('admin/routing?open=1') ?>">
-            <i class="mdi mdi-plus me-1"></i><?= e(__('common.create')) ?>
-        </a>
     </div>
 
     <?php if ($success): ?>
@@ -48,6 +60,7 @@ $page  = 'admin.routing.index';
     </form>
 
     <div class="card border-0 shadow-sm">
+        <div class="card-header" style="background:rgba(109,40,217,.08);border-bottom:2px solid #6d28d9"><h6 class="mb-0 fw-bold" style="color:#6d28d9"><i class="mdi mdi-router-network-outline me-2"></i><?= e(count($rules)) ?> règle(s) de routage</h6></div>
         <div class="table-responsive">
             <table class="table align-middle mb-0">
                 <thead class="table-light">
@@ -79,7 +92,7 @@ $page  = 'admin.routing.index';
                         <td class="text-end">
                             <div class="d-flex gap-1 justify-content-end">
                                 <a class="btn btn-sm btn-outline-secondary" href="<?= url('admin/routing/' . (int) $r['id'] . '/edit?open=1') ?>" title="Modifier"><i class="mdi mdi-pencil"></i></a>
-                                <form method="post" action="<?= url('admin/routing/' . (int) $r['id'] . '/delete') ?>" data-confirm="Supprimer cette règle&nbsp;?" class="d-inline">
+                                <form method="post" action="<?= url('admin/routing/' . (int) $r['id'] . '/delete') ?>" data-confirm="<?= e(__('common.confirm_delete')) ?>" class="d-inline">
                                     <?= csrf_field() ?>
                                     <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer"><i class="mdi mdi-delete"></i></button>
                                 </form>
@@ -173,7 +186,6 @@ $page  = 'admin.routing.index';
 (function () {
     var modal = document.getElementById('ruleModal');
     if (!modal) return;
-    // Ouvre la modale en création/édition si le paramètre ?open=1 est présent.
     if (new URLSearchParams(window.location.search).has('open')) {
         var bs = new bootstrap.Modal(modal);
         bs.show();

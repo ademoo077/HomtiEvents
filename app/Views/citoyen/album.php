@@ -56,16 +56,17 @@ $shareUrl = url('citoyen/albums/' . (int) $album['id']);
         <div class="album-photo-grid" id="albumPhotoGrid">
             <?php foreach ($photos as $i => $ph):
                 $cap = (string) ($ph['legende'] ?: $ph['title'] ?: ''); ?>
-                <a class="album-photo-tile" href="<?= e(asset((string) $ph['image'])) ?>"
-                   data-lightbox="album-gallery"
-                   data-title="<?= e($cap) ?>"
-                   style="animation-delay:<?= min($i * 0.04, 0.6) ?>s">
-                    <img src="<?= e(asset((string) $ph['image'])) ?>"
-                         alt="<?= e($cap) ?>" loading="lazy">
+                <figure class="album-photo-tile" style="animation-delay:<?= min($i * 0.04, 0.6) ?>s">
+                    <a href="<?= e(asset((string) $ph['image'])) ?>"
+                       data-lightbox="album-gallery"
+                       data-title="<?= e($cap) ?>">
+                        <img src="<?= e(photo_src($ph)) ?>"
+                             alt="<?= e($cap !== '' ? $cap : $titre) ?>" loading="lazy">
+                    </a>
                     <?php if ($cap !== ''): ?>
                         <figcaption><?= e($cap) ?></figcaption>
                     <?php endif; ?>
-                </a>
+                </figure>
             <?php endforeach; ?>
         </div>
     <?php else: ?>

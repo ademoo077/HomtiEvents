@@ -100,21 +100,29 @@ abstract class Controller
     protected function rateLimit(string $key, int $max = 10, int $windowSeconds = 60): bool
     {
         $ip = client_ip();
-        $cacheKey = "rl:{$key}:{$ip}";
-
-        $count = (int) ($_SESSION[$cacheKey . ':count'] ?? 0);
-        $start = (int) ($_SESSION[$cacheKey . ':start'] ?? time());
-
-        if (time() - $start > $windowSeconds) {
-            $count = 0;
-            $start = time();
+        $dir = BASE_PATH . '/storage/ratelimit';
+        if (! is_dir($dir)) {
+            mkdir($dir, 0775, true);
         }
 
-        $count++;
+        $file = $dir . '/' . md5($key . ':' . $ip) . '.json';
+        $now  = time();
 
-        $_SESSION[$cacheKey . ':count'] = $count;
-        $_SESSION[$cacheKey . ':start'] = $start;
+        $data = ['count' => 0, 'start' => $now];
+        if (is_file($file)) {
+            $raw = file_get_contents($file);
+            if ($raw !== false) {
+                $data = json_decode($raw, true) ?? $data;
+            }
+        }
 
-        return $count <= $max;
+        if ($now - ($data['start'] ?? 0) > $windowSeconds) {
+            $data = ['count' => 0, 'start' => $now];
+        }
+
+        $data['count'] = ($data['count'] ?? 0) + 1;
+        file_put_contents($file, json_encode($data), LOCK_EX);
+
+        return $data['count'] <= $max;
     }
 }

@@ -56,6 +56,12 @@ $sections = [
     <?= e(__('associations.inscription_request_help')) ?>
 </p>
 
+<div class="mb-3">
+    <a href="<?= url('/') ?>" class="d-inline-flex align-items-center gap-1" style="color:#5A6B60;font-size:.85rem;text-decoration:none">
+        <i class="mdi mdi-arrow-left"></i> <?= $isAr ? 'العودة للرئيسية' : "Retour à l'accueil" ?>
+    </a>
+</div>
+
 <form method="post" action="<?= url('auth/register-association') ?>" enctype="multipart/form-data" novalidate>
     <?= csrf_field() ?>
 

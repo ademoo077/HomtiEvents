@@ -357,6 +357,98 @@ final class AdministrationController extends Controller
         ]);
     }
 
+    /**
+     * Formulaire de création d'un utilisateur (niveau Wilaya).
+     */
+    public function userCreate(): never
+    {
+        $roles = [
+            'wilaya'      => 'Wilaya',
+            'association' => 'Président d\'association',
+            'epic'        => 'EPIC',
+            'membre'      => 'Membre',
+            'citoyen'     => 'Citoyen',
+        ];
+
+        $this->view('admin.users.create', [
+            'associations' => Database::all('SELECT id, nom FROM associations ORDER BY nom'),
+            'epics'        => Database::all('SELECT id, nom FROM epic ORDER BY nom'),
+            'roles'        => $roles,
+            'errors'       => $this->errors(),
+        ]);
+    }
+
+    /**
+     * Création d'un utilisateur (niveau Wilaya).
+     */
+    public function userStore(): never
+    {
+        $data = all_input();
+
+        $validator = Validator::make($data, [
+            'nom'     => 'required|string|max:50',
+            'prenom'  => 'required|string|max:50',
+            'email'   => 'required|email|unique:users,email',
+            'password'=> 'required|min:8',
+            'role'    => 'required',
+        ], [
+            'nom.required'     => 'Le nom est obligatoire.',
+            'prenom.required'  => 'Le prénom est obligatoire.',
+            'email.required'   => 'L\'adresse email est obligatoire.',
+            'email.email'      => 'Adresse email invalide.',
+            'email.unique'     => 'Cette adresse email est déjà utilisée.',
+            'password.required'=> 'Le mot de passe est obligatoire.',
+            'password.min'     => 'Le mot de passe doit contenir au moins 8 caractères.',
+            'role.required'    => 'Le rôle est obligatoire.',
+        ]);
+
+        if ($validator->fails()) {
+            $this->backWithErrors($validator->errors(), $data);
+        }
+
+        $role = (string) $data['role'];
+        $validRoles = ['wilaya', 'association', 'epic', 'membre', 'citoyen'];
+        if (! in_array($role, $validRoles, true)) {
+            $this->backWithErrors(['role' => 'Rôle invalide.'], $data);
+        }
+
+        $associationId = $role === 'association' ? (int) ($data['association_id'] ?? 0) : 0;
+        $epicId        = $role === 'epic' ? (int) ($data['epic_id'] ?? 0) : 0;
+
+        $userId = Database::insert('users', [
+            'nom'            => trim((string) $data['nom']),
+            'prenom'         => trim((string) $data['prenom']),
+            'email'          => mb_strtolower(trim((string) $data['email'])),
+            'password'       => password_hash((string) $data['password'], PASSWORD_BCRYPT),
+            'role_user'      => $role,
+            'telephone'      => trim((string) ($data['telephone'] ?? '')),
+            'association_id' => $associationId > 0 ? $associationId : null,
+            'epic_id'        => $epicId > 0 ? $epicId : null,
+            'is_active'      => isset($data['is_active']) ? 1 : 0,
+        ]);
+
+        $roleId = (int) Database::value('SELECT id FROM roles WHERE nom = ?', [$role]);
+        if ($roleId > 0) {
+            Database::insert('user_roles', ['user_id' => $userId, 'role_id' => $roleId]);
+        }
+
+        Database::insert('user_preferences', [
+            'user_id'     => $userId,
+            'notif_email' => 1,
+            'notif_inapp' => 1,
+        ]);
+
+        AuditLog::log('user_created', 'user', $userId, null, [
+            'prenom' => trim((string) $data['prenom']),
+            'nom'    => trim((string) $data['nom']),
+            'email'  => mb_strtolower(trim((string) $data['email'])),
+            'role'   => $role,
+        ]);
+
+        flash('success', 'Utilisateur créé avec succès.');
+        redirect('admin/users/' . $userId);
+    }
+
     public function userShow(string $id): never
     {
         $user = Database::one(
