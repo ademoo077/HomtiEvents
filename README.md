@@ -2,7 +2,7 @@
 
 **Plateforme de gestion événementielle citoyenne pour la Wilaya d'Alger**
 
-<img src="HomtiEvents.jpg" alt="Wilaya Harmonia Banner" width="100%">
+<img src="HomtiEvents.jpg" alt="Wilaya Harmonia Banner" width="60%">
 
 ![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php)
 ![MySQL](https://img.shields.io/badge/MySQL%2FMariaDB-10.6-4479A1?logo=mysql)
